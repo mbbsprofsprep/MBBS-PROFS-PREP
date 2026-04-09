@@ -1,0 +1,119 @@
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.qnaData) return;
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
+        .dark #universal-deck-layer { background: #111827; color: white; }
+        .deck-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; animation: fadeIn 0.3s ease-in-out; }
+        .dark .deck-card { background: #1f2937; border: 1px solid #374151; }
+        .option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 600; color: #374151; cursor: pointer; }
+        .dark .option-btn { border-color: #374151; background: rgba(31, 41, 55, 0.5); color: #d1d5db; }
+        .opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; }
+        .opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
+        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #2563eb; color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
+        #view-toggle-btn:active { transform: scale(0.90); }
+        .univ-drawer { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+        .univ-drawer.open { pointer-events: auto; opacity: 1; }
+        .univ-drawer-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        .univ-drawer-content { position: absolute; top: 0; right: 0; bottom: 0; width: 85%; max-width: 320px; background: white; transform: translateX(100%); transition: transform 0.3s ease; display: flex; flex-direction: column; }
+        .dark .univ-drawer-content { background: #111827; border-left: 1px solid #374151; }
+        .univ-drawer.open .univ-drawer-content { transform: translateX(0); }
+        .nav-grid-container { padding: 16px; overflow-y: auto; flex: 1; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 800; font-size: 13px; background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .nav-btn.active { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
+        .nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
+        .nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    `;
+    document.head.appendChild(style);
+
+    const deckLayer = document.createElement('div');
+    deckLayer.id = 'universal-deck-layer';
+    deckLayer.innerHTML = `
+        <div class="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10 shrink-0">
+            <h1 class="font-bold text-lg text-blue-600 dark:text-blue-400">Review Mode</h1>
+            <button onclick="window.toggleUnivDrawer('nav')" class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 font-bold border border-gray-200 dark:border-gray-600" id="univ-deck-counter">1/1</button>
+        </div>
+        <div class="flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-gray-900" id="univ-card-container"></div>
+        <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-3 z-10 shrink-0 pb-20">
+            <button onclick="window.univPrev()" class="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 font-bold dark:text-white">Previous</button>
+            <button onclick="window.univNext()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30">Next</button>
+        </div>
+        <div id="univ-nav-drawer" class="univ-drawer">
+            <div class="univ-drawer-bg" onclick="window.toggleUnivDrawer(null)"></div>
+            <div class="univ-drawer-content">
+                <div class="p-4 border-b dark:border-gray-700 font-bold flex justify-between dark:text-white"><span>Navigator</span><button onclick="window.toggleUnivDrawer(null)">✕</button></div>
+                <div class="nav-grid-container"><div class="nav-grid" id="univ-nav-grid"></div></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(deckLayer);
+
+    const fab = document.createElement('button');
+    fab.id = 'view-toggle-btn'; fab.innerHTML = '🎴'; fab.onclick = window.toggleUniversalMode;
+    document.body.appendChild(fab);
+
+    window.isDeckMode = false; window.activeQuestions = [...window.qnaData]; window.univIndex = 0; window.univStatus = {};
+
+    window.renderUnivCard = function() {
+        const container = document.getElementById('univ-card-container');
+        if (window.activeQuestions.length === 0) return container.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-gray-500">No questions match filter</div>`;
+        const q = window.activeQuestions[window.univIndex]; 
+        document.getElementById('univ-deck-counter').innerText = `${window.univIndex + 1}/${window.activeQuestions.length}`;
+        
+        let opts = q.type === 'MCQ' ? `<div class="space-y-3">${q.options.map((o,i) => `<button onclick="window.checkUnivAnswer(this, '${String.fromCharCode(65+i)}', '${q.ans_key}')" class="option-btn"><span class="w-7 h-7 inline-flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg mr-3">${String.fromCharCode(65+i)}</span>${o}</button>`).join('')}</div>` : `<div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-blue-800 dark:text-blue-300 font-medium">Subjective Theory Question.</div>`;
+        
+        container.innerHTML = `<div class="deck-card"><div class="mb-3"><span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold">${q.q}</span></div><h2 class="text-xl font-bold mb-6 text-gray-900 dark:text-white">${q.stem}</h2>${opts}</div>`;
+    };
+
+    window.checkUnivAnswer = function(btn, picked, correct) {
+        const q = window.activeQuestions[window.univIndex]; const p = picked.toUpperCase(); const c = correct.toUpperCase();
+        btn.parentElement.querySelectorAll('button').forEach(b => b.disabled = true);
+        if (p === c) { btn.classList.add('opt-correct'); window.univStatus[q.q] = 'correct'; } 
+        else { btn.classList.add('opt-wrong'); window.univStatus[q.q] = 'wrong'; btn.parentElement.querySelectorAll('button').forEach((b,i) => { if(String.fromCharCode(65+i) === c) b.classList.add('opt-correct'); }); }
+    };
+
+    window.toggleUniversalMode = function() {
+        window.isDeckMode = !window.isDeckMode;
+        const mainContent = document.getElementById('main-wrapper') || document.querySelector('.w-full.px-4.py-8');
+        if(mainContent) mainContent.style.display = window.isDeckMode ? 'none' : 'block';
+        document.getElementById('universal-deck-layer').style.display = window.isDeckMode ? 'flex' : 'none';
+        document.getElementById('view-toggle-btn').innerHTML = window.isDeckMode ? '📋' : '🎴';
+        if(window.isDeckMode) window.syncDeckWithFilters();
+    };
+
+    window.toggleUnivDrawer = function(type) {
+        const nav = document.getElementById('univ-nav-drawer'); nav.classList.remove('open');
+        if (type === 'nav') { 
+            document.getElementById('univ-nav-grid').innerHTML = window.activeQuestions.map((q, i) => `<button onclick="window.univIndex=${i}; window.toggleUnivDrawer(null); window.renderUnivCard();" class="nav-btn ${i===window.univIndex?'active':''} ${window.univStatus[q.q]||''}">${q.q}</button>`).join('');
+            nav.classList.add('open'); 
+        }
+    };
+
+    window.univNext = function() { if(window.univIndex < window.activeQuestions.length-1) { window.univIndex++; window.renderUnivCard(); } };
+    window.univPrev = function() { if(window.univIndex > 0) { window.univIndex--; window.renderUnivCard(); } };
+
+    window.syncDeckWithFilters = function() {
+        const searchInput = document.getElementById("searchInput");
+        const search = searchInput ? searchInput.value.toLowerCase() : "";
+        window.activeQuestions = window.qnaData.filter(q => {
+            let show = true;
+            if (search && !(q.stem + (q.chapter?q.chapter.join(''):'')).toLowerCase().includes(search)) show = false;
+            if (window.filterState) {
+                if (show && window.filterState.types && window.filterState.types.size > 0 && !window.filterState.types.has(q.type)) show = false;
+                if (show && window.filterState.chapters && window.filterState.chapters.size > 0 && q.chapter && !q.chapter.some(ch => window.filterState.chapters.has(ch))) show = false;
+            }
+            return show;
+        });
+        window.univIndex = 0; document.getElementById('univ-deck-counter').innerText = `${window.activeQuestions.length > 0 ? 1 : 0}/${window.activeQuestions.length}`;
+        window.renderUnivCard();
+    };
+
+    if (typeof window.filterTable === 'function') {
+        const originalFilter = window.filterTable;
+        window.filterTable = function() { originalFilter(); if(window.isDeckMode) window.syncDeckWithFilters(); };
+    }
+    window.renderUnivCard();
+});

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer - MBBS Profs Prep</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0ea5e9' }, dark: { bg: '#020617' } }, fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } } } }
+    </script>
+    <style>
+        body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s; }
+        body.dark { background-color: #020617 !important; color: #f8fafc !important; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col">
+    <nav class="w-full px-4 py-3 flex items-center justify-between border-b bg-white/90 dark:bg-slate-900/90 border-brand-100 dark:border-slate-800">
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="p-2 rounded-full hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            </a>
+            <div>
+                <h1 class="font-bold text-lg" id="viewer-title">Loading...</h1>
+                <p class="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Secure Library</p>
+            </div>
+        </div>
+        <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-slate-800 text-xl" onclick="document.body.classList.toggle('dark'); localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light'); this.innerText=document.body.classList.contains('dark')?'☀️':'🌙';">🌙</button>
+    </nav>
+    <main class="flex-1 w-full h-full relative p-2 md:p-4 bg-slate-100 dark:bg-slate-950">
+        <div id="loading-spinner" class="absolute inset-0 flex flex-col items-center justify-center">
+            <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin"></div>
+        </div>
+        <div class="w-full h-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl opacity-0 transition-opacity duration-500" id="iframe-wrapper">
+            <iframe id="document-frame" class="w-full h-full bg-white dark:bg-slate-900" frameborder="0"></iframe>
+        </div>
+    </main>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') { document.body.classList.add('dark'); document.querySelector('button').innerText = '☀️'; }
+        document.addEventListener("DOMContentLoaded", () => {
+            const params = new URLSearchParams(window.location.search);
+            document.getElementById('viewer-title').innerText = decodeURIComponent(params.get('title') || 'Document');
+            let url = decodeURIComponent(params.get('url'));
+            if (!url) return document.getElementById('loading-spinner').innerHTML = '<p class="text-red-500 font-bold">No URL provided.</p>';
+            if (url.includes('drive.google.com') || url.includes('docs.google.com')) { url = url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview'); if(!url.includes('/preview')) url += '/preview'; }
+            const iframe = document.getElementById('document-frame');
+            iframe.src = url; iframe.onload = () => { document.getElementById('loading-spinner').style.display = 'none'; document.getElementById('iframe-wrapper').classList.remove('opacity-0'); };
+        });
+    </script>
+</body>
+</html>

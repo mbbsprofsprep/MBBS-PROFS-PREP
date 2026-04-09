@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBBS Profs Prep - Central Portal</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' },
+                        accent: { yellow: '#ffc107', yellowHover: '#e0a800' },
+                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
+                    },
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    animation: { 'fade-in': 'fadeIn 0.3s ease-out forwards' },
+                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; }
+        body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
+        body.dark { background-color: #020617 !important; color: #f8fafc !important; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 10px; }
+        body.dark ::-webkit-scrollbar-track { background: #020617; }
+        body.dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
+        
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        body.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
+        .glass-card:hover { transform: translateY(-5px); }
+        body.dark .glass-card:hover { border-color: #3395ff; box-shadow: 0 10px 30px -5px rgba(51, 149, 255, 0.2); }
+    </style>
+</head>
+
+<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg dark:text-white transition-colors duration-300">
+
+    <div id="canvas-container"></div>
+
+    <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
+        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center">
+            <a class="flex items-center gap-3 group cursor-pointer" onclick="app.goHome(true)">
+                <div class="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-brand-500/30">M</div>
+                <div class="leading-tight">
+                    <h1 class="font-bold text-lg tracking-tight text-black dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Central Portal</p>
+                </div>
+            </a>
+            <div class="hidden md:block flex-1 max-w-md mx-8">
+                <input class="w-full px-4 py-2 bg-brand-50 dark:bg-dark-surface border border-brand-100 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-brand-400 outline-none transition-all text-sm" id="globalSearch" placeholder="Search..." type="text"/>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-24 pb-20 w-full px-4 md:px-6 min-h-screen max-w-7xl mx-auto">
+        <div class="hidden mb-6 px-2 flex items-center text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 animate-fade-in flex-wrap" id="breadcrumbs">
+            <span class="hover:text-brand-400 cursor-pointer transition-colors" onclick="app.goHome()">Home</span>
+            <span class="mx-2">/</span>
+            <span class="hover:text-brand-400 cursor-pointer text-brand-600 dark:text-brand-400 font-bold transition-colors" id="bc-institute">Institute</span>
+            <span class="mx-2 hidden" id="bc-slash-1">/</span>
+            <span class="text-slate-900 dark:text-white hidden" id="bc-year">Year</span>
+        </div>
+
+        <div id="app-container">
+            <div class="animate-fade-in" id="view-institutes">
+                <div class="text-center mb-10 mt-4">
+                    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 text-slate-900 dark:text-white">Select Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-accent-yellow">Institute</span></h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm md:text-lg">Access PYQs for all AIIMS.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" id="institutes-grid"></div>
+            </div>
+
+            <div class="hidden animate-fade-in" id="view-years">
+                <div class="text-center mb-10 mt-4">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Select Year</h2>
+                    <p class="text-brand-500 dark:text-brand-400 font-semibold text-lg" id="selected-institute-name">AIIMS Name</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" id="years-grid"></div>
+            </div>
+
+            <div class="hidden animate-fade-in" id="view-subjects">
+                <div class="text-center mb-10 mt-4">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Select Subject</h2>
+                    <p class="text-slate-500 dark:text-slate-400"><span class="font-bold text-brand-500" id="selected-year-name">Year</span> • <span id="selected-inst-sub-name">Inst</span></p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" id="subjects-grid"></div>
+            </div>
+
+            <div class="hidden animate-fade-in" id="view-resources">
+                <div class="text-center mb-10 mt-4">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Select Resource</h2>
+                    <p class="text-brand-500 font-semibold text-lg" id="selected-resource-subject">Subject</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto" id="resources-grid"></div>
+            </div>
+        </div>
+    </main>
+
+    <button class="fixed bottom-6 left-6 z-[9990] w-14 h-14 bg-indigo-600 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center transition-all border-2 border-white dark:border-slate-800 hover:scale-110" id="pdf-trigger-btn" onclick="pdfSmartApp.toggle()" style="display:none">
+        <span class="text-2xl">📚</span>
+    </button>
+
+    <aside class="fixed top-0 left-0 h-full z-[10000] bg-white dark:bg-slate-950 shadow-2xl transform -translate-x-full transition-all duration-300 flex flex-col border-r border-slate-200 dark:border-slate-800 w-full md:w-[400px] lg:w-[450px]" id="pdf-smart-drawer">
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900 shrink-0">
+            <div class="flex items-center gap-3">
+                <button class="p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-600 dark:text-slate-300" onclick="pdfSmartApp.goBack()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                </button>
+                <h2 class="text-sm font-bold uppercase tracking-wider" id="pdf-smart-title">Library</h2>
+            </div>
+            <button class="p-2 rounded-lg text-slate-400 hover:text-red-500 transition-colors" onclick="pdfSmartApp.close()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-3" id="pdf-smart-body"></div>
+    </aside>
+    <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="pdfSmartApp.close()"></div>
+
+    <script>
+        const DATA = {
+            locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
+            institutes: [
+                { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false },
+                { id: 'deoghar', name: 'AIIMS Deoghar', city: 'Jharkhand', badge: 'D', locked: false },
+                { id: 'kalyani', name: 'AIIMS Kalyani', city: 'West Bengal', badge: 'K', locked: false },
+                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: true },
+                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: true },
+                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: true },
+                { id: 'patna', name: 'AIIMS Patna', city: 'Bihar', badge: 'P', locked: true },
+                { id: 'raipur', name: 'AIIMS Raipur', city: 'Chhattisgarh', badge: 'R', locked: true },
+                { id: 'rishikesh', name: 'AIIMS Rishikesh', city: 'Uttarakhand', badge: 'R', locked: true },
+                { id: 'raebareli', name: 'AIIMS Raebareli', city: 'Uttar Pradesh', badge: 'R', locked: true },
+                { id: 'mangalagiri', name: 'AIIMS Mangalagiri', city: 'Andhra Pradesh', badge: 'M', locked: true },
+                { id: 'nagpur', name: 'AIIMS Nagpur', city: 'Maharashtra', badge: 'N', locked: true },
+                { id: 'gorakhpur', name: 'AIIMS Gorakhpur', city: 'Uttar Pradesh', badge: 'G', locked: true },
+                { id: 'bathinda', name: 'AIIMS Bathinda', city: 'Punjab', badge: 'B', locked: true },
+                { id: 'guwahati', name: 'AIIMS Guwahati', city: 'Assam', badge: 'G', locked: true },
+                { id: 'vijaypur', name: 'AIIMS Vijaypur', city: 'Jammu', badge: 'V', locked: true },
+                { id: 'bilaspur', name: 'AIIMS Bilaspur', city: 'Himachal Pradesh', badge: 'B', locked: true },
+                { id: 'madurai', name: 'AIIMS Madurai', city: 'Tamil Nadu', badge: 'M', locked: true },
+                { id: 'darbhanga', name: 'AIIMS Darbhanga', city: 'Bihar', badge: 'D', locked: true },
+                { id: 'rajkot', name: 'AIIMS Rajkot', city: 'Gujarat', badge: 'R', locked: true },
+                { id: 'bibinagar', name: 'AIIMS Bibinagar', city: 'Telangana', badge: 'B', locked: true }
+            ],
+            years: [
+                { id: '1', name: 'First Prof', sub: 'Anatomy • Physio • Biochem' },
+                { id: '2', name: 'Second Prof', sub: 'Patho • Pharma • Micro • FMT' },
+                { id: '3', name: 'Third Prof', sub: 'ENT • Ophthal • PSM • Psych • Ortho' },
+                { id: '4', name: 'Final Prof', sub: 'Med • Surg • OBG • Peds • Derma • Anesth • Radio' }
+            ],
+            subjects: {
+                '1': [ { name: 'Anatomy', icon: '🦴', id: 'anatomy' }, { name: 'Physiology', icon: '🧠', id: 'physiology' }, { name: 'Biochemistry', icon: '🧪', id: 'biochemistry' } ],
+                '2': [ { name: 'Pathology', icon: '🔬', id: 'pathology' }, { name: 'Pharmacology', icon: '💊', id: 'pharmacology' }, { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } ],
+                '3': [ { name: 'ENT', icon: '👂', id: 'ent' }, { name: 'Ophthalmology', icon: '👁️', id: 'ophthalmology' }, { name: 'Community Medicine', icon: '🏘️', id: 'psm' }, { name: 'Psychiatry', icon: '🧠', id: 'psychiatry' }, { name: 'Orthopaedics', icon: '🦴', id: 'orthopaedics' } ],
+                '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Pediatrics', icon: '🧸', id: 'pediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anesthesia', icon: '💉', id: 'anesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
+            },
+            overrides: {
+                'deoghar_obg': [{ label: 'OBG Exam Review', url: 'obg_aiims_deoghar.html' }],
+                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+            }
+        };
+
+        const app = {
+            state: { view: 'institutes', inst: null, year: null, sub: null },
+            init: function() { this.renderInstitutes(); },
+            
+            checkDeogharVIP: function(instName) {
+                const DESTINATION = "schedules.html"; 
+                const VIP_ACCESS_LIST = [ "pankajmahto109@gmail.com", "pankajkumarmahto1009@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com" ];
+
+                const triggerTitle = document.getElementById('selected-institute-name');
+                if (!triggerTitle) return;
+
+                triggerTitle.style.cursor = "default";
+                triggerTitle.classList.remove('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
+                const newTitle = triggerTitle.cloneNode(true);
+                triggerTitle.parentNode.replaceChild(newTitle, triggerTitle);
+
+                if (instName.includes("Deoghar")) {
+                    const currentUser = localStorage.getItem('medqs_user_email');
+                    if (currentUser && VIP_ACCESS_LIST.includes(currentUser.toLowerCase().trim())) {
+                        newTitle.classList.add('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
+                        newTitle.setAttribute('title', 'Open Schedules');
+                        newTitle.addEventListener('click', () => window.location.href = DESTINATION);
+                    }
+                }
+            },
+
+            goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
+            goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
+            goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
+            
+            handleSubjectClick: function(sub) {
+                const key = `${this.state.inst.id}_${sub.id}`;
+                const links = DATA.overrides[key] || [{ label: `${sub.name} Database`, url: `#` }];
+                this.state.sub = sub; this.state.view = 'resources';
+                this.renderResources(this.state.inst, this.state.year, sub, links);
+            },
+            showLockedModal: function(name) { alert(`Content for ${name} is coming soon!`); },
+
+            renderInstitutes: function() {
+                this.toggleView('institutes');
+                document.getElementById('institutes-grid').innerHTML = DATA.institutes.map(inst => {
+                    if (inst.locked) return `<div onclick="app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-lg mb-4">${inst.badge}</div><h3 class="font-bold text-lg mb-1">${inst.name}</h3><p class="text-sm text-slate-400">${inst.city}</p></div>`;
+                    return `<div onclick="app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer group hover:scale-[1.02] transition-transform"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow">↗</span></div><h3 class="font-bold text-lg mb-1 group-hover:text-brand-400">${inst.name}</h3><p class="text-sm text-slate-500">${inst.city}</p></div>`;
+                }).join('');
+                this.updateBreadcrumbs();
+            },
+
+            renderYears: function(inst) {
+                this.toggleView('years');
+                document.getElementById('selected-institute-name').innerText = inst.name;
+                this.checkDeogharVIP(inst.name);
+                
+                document.getElementById('years-grid').innerHTML = DATA.years.map(year => {
+                    if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-4 right-4 bg-slate-200 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2">${year.name}</h3><p class="text-xs font-bold text-slate-400 uppercase">${year.sub}</p></div>`;
+                    return `<div onclick="app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 mb-4 group-hover:text-brand-400/20">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 uppercase">${year.sub}</p></div>`;
+                }).join('');
+                this.updateBreadcrumbs();
+            },
+
+            renderSubjects: function(inst, year) {
+                this.toggleView('subjects');
+                document.getElementById('selected-year-name').innerText = year.name;
+                document.getElementById('selected-inst-sub-name').innerText = inst.name;
+                document.getElementById('subjects-grid').innerHTML = DATA.subjects[year.id].map(sub => {
+                    if (sub.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${sub.id}`))) return `<div onclick="app.showLockedModal('${sub.name}')" class="glass-card p-6 rounded-xl relative opacity-70 grayscale flex items-center gap-4 bg-slate-100"><div class="absolute top-2 right-2 bg-slate-200 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-4xl opacity-50">${sub.icon}</div><div><h3 class="text-xl font-bold">${sub.name}</h3></div></div>`;
+                    return `<div onclick="app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold group-hover:text-accent-yellow">${sub.name}</h3><p class="text-xs text-slate-400 font-bold uppercase">Open ➝</p></div></div>`;
+                }).join('');
+                this.updateBreadcrumbs();
+            },
+
+            renderResources: function(inst, year, sub, links) {
+                this.toggleView('resources');
+                document.getElementById('selected-resource-subject').innerText = `${sub.name} (${inst.name})`;
+                document.getElementById('resources-grid').innerHTML = links.map(link => {
+                    const isPDF = link.url.includes('drive.google.com') || link.url.includes('.pdf');
+                    const finalUrl = isPDF ? `viewer.html?title=${encodeURIComponent(link.label)}&url=${encodeURIComponent(link.url)}` : link.url;
+                    return `<a href="${finalUrl}" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center justify-between hover:border-brand-400"><span class="font-bold text-lg group-hover:text-brand-400">${link.label}</span><span class="text-slate-300 group-hover:text-brand-400">↗</span></a>`;
+                }).join('');
+                this.updateBreadcrumbs();
+            },
+
+            toggleView: function(viewId) {
+                ['institutes', 'years', 'subjects', 'resources'].forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (v === viewId) { el.classList.remove('hidden'); el.classList.add('animate-fade-in'); } 
+                    else { el.classList.add('hidden'); el.classList.remove('animate-fade-in'); }
+                });
+            },
+
+            updateBreadcrumbs: function() {
+                const bc = document.getElementById('breadcrumbs');
+                if (this.state.view === 'institutes') { bc.classList.add('hidden'); } 
+                else {
+                    bc.classList.remove('hidden'); 
+                    document.getElementById('bc-institute').innerText = this.state.inst.name;
+                    if (this.state.view === 'subjects' || this.state.view === 'resources') { 
+                        document.getElementById('bc-slash-1').classList.remove('hidden'); 
+                        const yr = document.getElementById('bc-year');
+                        yr.classList.remove('hidden'); yr.innerText = this.state.year.name; 
+                    } else { 
+                        document.getElementById('bc-slash-1').classList.add('hidden'); 
+                        document.getElementById('bc-year').classList.add('hidden'); 
+                    }
+                }
+            }
+        };
+
+        const PDF_SMART_DB = {
+            "AIIMS Deoghar": {
+                "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
+                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk"
+            }
+        };
+
+        const pdfSmartApp = {
+            isOpen: false, stack: [],
+            allowedUsers: ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com"],
+            els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
+            
+            init: function() { setInterval(() => this.checkVisibility(), 1500); },
+            checkVisibility: function() {
+                const email = localStorage.getItem('medqs_user_email');
+                const isVIP = email && this.allowedUsers.includes(email.toLowerCase());
+                this.els.trigger.style.display = isVIP ? 'flex' : 'none';
+                if(!isVIP && this.isOpen) this.close();
+            },
+            toggle: function() { this.isOpen ? this.close() : this.open(); },
+            open: function() { this.isOpen = true; this.els.drawer.classList.remove('-translate-x-full'); this.els.backdrop.classList.remove('opacity-0', 'pointer-events-none'); if(this.stack.length===0) this.renderHome(); },
+            close: function() { this.isOpen = false; this.els.drawer.classList.add('-translate-x-full'); this.els.backdrop.classList.add('opacity-0', 'pointer-events-none'); },
+            goBack: function() { if(this.stack.length > 1) { this.stack.pop(); this.renderList(this.stack[this.stack.length-1].val, false); } else this.close(); },
+            renderHome: function(push=true) {
+                if(push) this.stack.push({type:'home'}); this.els.title.innerText="Library";
+                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900">${name} ➝</div>`).join('');
+            },
+            renderList: function(col, push=true) {
+                if(push) this.stack.push({type:'list', val:col}); this.els.title.innerText=col;
+                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900">📄 ${sub}</div>`).join('');
+            },
+            renderViewer: function(url) {
+                let fUrl = url.includes('drive.google') ? url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview') : url;
+                this.stack.push({type:'viewer'}); this.els.title.innerText="Viewing";
+                this.els.body.innerHTML = `<iframe src="${fUrl}" class="w-full h-full rounded-xl bg-white border" frameborder="0"></iframe>`;
+            }
+        };
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000); camera.position.z = 40;
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
+            const group = new THREE.Group(); scene.add(group); const geo = new THREE.SphereGeometry(0.3, 8, 8);
+            let mb = new THREE.MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
+            for(let i=0; i<150; i++) { const a=i*0.4; group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); }
+            (function animate() { requestAnimationFrame(animate); group.rotation.x+=0.002; renderer.render(scene, camera); })();
+            window.update3D = () => container.style.opacity = document.body.classList.contains('dark') ? 0.1 : 0.6;
+            window.update3D();
+        }
+
+        function toggleTheme() {
+            const d = document.body.classList.toggle('dark'); localStorage.setItem('theme', d?'dark':'light');
+            document.getElementById('theme-icon').innerText = d?'☀️':'🌙'; if(window.update3D) window.update3D();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('theme') === 'dark') { document.body.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
+            init3D(); app.init(); pdfSmartApp.init();
+        });
+    </script>
+</body>
+</html>

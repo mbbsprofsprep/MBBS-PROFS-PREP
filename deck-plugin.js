@@ -95,13 +95,12 @@
         fab.onclick = window.toggleUniversalMode;
         document.body.appendChild(fab);
 
-        // 3. EXACT DATA MAPPING LOGIC
+        // 3. DATA MAPPING LOGIC
         window.isDeckMode = false; 
         window.allQuestions = []; 
         window.activeQuestions = []; 
         window.univIndex = 0; 
         window.univStatus = {}; 
-        window.CAT_MAP = { 'chapter': 'chapters', 'type': 'types', 'batch': 'exams' };
 
         let typeCounters = {}; 
         window.allQuestions = window.qnaData.map((q, idx) => {
@@ -133,7 +132,7 @@
         });
         window.activeQuestions = [...window.allQuestions];
 
-        // 4. EXACT FILTER POPULATION
+        // 4. FILTER POPULATION
         window.populateFilterUI = function() {
             const naturalSort = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
             const chapters = [...new Set(window.allQuestions.flatMap(q => q.chapter))].sort(naturalSort);
@@ -146,63 +145,39 @@
                 return `<div class="mb-6 filter-group">
                             <div class="font-bold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-1">${label}</div>
                             <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                                ${opts.map(opt => `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 cursor-pointer transition-colors group"><input type="checkbox" value="${opt}" onchange="window.handleDeckFilterChange('${category}', this.value)" class="univ-filter-checkbox mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500" data-category="${category}"><span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span></label>`).join('')}
+                                ${opts.map(opt => `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 cursor-pointer transition-colors group"><input type="checkbox" value="${opt}" class="univ-filter-checkbox mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500" data-category="${category}"><span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span></label>`).join('')}
                             </div>
                         </div>`;
             };
             container.innerHTML = buildGroup('Chapters', 'chapter', chapters) + buildGroup('Type', 'type', types) + buildGroup('Exam Batch', 'batch', batches);
         };
 
-        // 5. EXACT SYNCHRONIZATION LOGIC
-        window.handleDeckFilterChange = function(category, value) { 
-            if (typeof filterState === 'undefined') return; 
-            const stateKey = window.CAT_MAP[category]; 
-            const set = filterState[stateKey]; 
-            if (set.has(value)) set.delete(value); 
-            else set.add(value); 
-            window.applyFilters(); 
-            if (typeof filterTable === 'function') filterTable(); // Syncs the table silently
-        };
-
+        // 5. BULLETPROOF FILTER APPLICATION (Reads straight from the screen checkboxes)
         window.applyFilters = function() { 
-            if (typeof filterState !== 'undefined') { 
-                window.activeQuestions = window.allQuestions.filter(q => { 
-                    const matchCh = filterState.chapters.size === 0 || q.chapter.some(ch => filterState.chapters.has(ch)); 
-                    const matchTy = filterState.types.size === 0 || filterState.types.has(q.type); 
-                    const matchBat = filterState.exams.size === 0 || filterState.exams.has(q.batch); 
-                    return matchCh && matchTy && matchBat; 
-                }); 
-            } else { 
-                window.activeQuestions = [...window.allQuestions]; 
-            } 
-            window.univIndex = 0; window.updateDeckStats(); window.renderUnivCard(); 
+            const getChecked = (category) => {
+                const checkboxes = document.querySelectorAll(`.univ-filter-checkbox[data-category="${category}"]:checked`);
+                return Array.from(checkboxes).map(cb => cb.value);
+            };
+
+            const selectedChapters = getChecked('chapter');
+            const selectedTypes = getChecked('type');
+            const selectedBatches = getChecked('batch');
+
+            window.activeQuestions = window.allQuestions.filter(q => {
+                let matchCh = selectedChapters.length === 0 || q.chapter.some(ch => selectedChapters.includes(ch));
+                let matchTy = selectedTypes.length === 0 || selectedTypes.includes(q.type);
+                let matchBat = selectedBatches.length === 0 || selectedBatches.includes(q.batch);
+                return matchCh && matchTy && matchBat;
+            });
+
+            window.univIndex = 0; 
+            window.updateDeckStats(); 
+            window.renderUnivCard(); 
         };
 
         window.resetFilters = function() { 
-            if (typeof filterState !== 'undefined') { 
-                filterState.chapters.clear(); 
-                filterState.types.clear(); 
-                filterState.exams.clear(); 
-            } 
             document.querySelectorAll('.univ-filter-checkbox').forEach(cb => cb.checked = false); 
             window.applyFilters(); 
-            if (typeof filterTable === 'function') filterTable(); // Update table
-        };
-
-        window.syncDeckCheckboxes = function() { 
-            document.querySelectorAll('.univ-filter-checkbox').forEach(cb => cb.checked = false); 
-            if (typeof filterState !== 'undefined') { 
-                for (const [deckCat, stateKey] of Object.entries(window.CAT_MAP)) { 
-                    const set = filterState[stateKey]; 
-                    if (set && set.size > 0) { 
-                        set.forEach(val => { 
-                            const safeVal = val.replace(/"/g, '\\"'); 
-                            const cb = document.querySelector(`.univ-filter-checkbox[data-category="${deckCat}"][value="${safeVal}"]`); 
-                            if(cb) cb.checked = true; 
-                        }); 
-                    } 
-                } 
-            } 
         };
 
         // 6. RENDER AND NAVIGATION
@@ -226,7 +201,6 @@
             const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             const cleanQuestion = q.question.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             
-            // Re-integrate Ask AI button correctly based on the index
             const askAiBtnHtml = `<button onclick="window.triggerUnivAskAI(this)" class="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors flex items-center gap-1.5 border border-green-200 dark:border-green-800 shadow-sm">Ask AI</button>`;
 
             container.innerHTML = `
@@ -236,6 +210,7 @@
                             <span class="inline-block px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-extrabold border border-blue-200 dark:border-blue-800">${q.label}</span>
                             <div class="flex gap-2">
                                 ${askAiBtnHtml}
+                                <button onclick="window.openReportModal()" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm">⚠️</button>
                             </div>
                         </div>
                         <div class="mb-6">
@@ -302,8 +277,8 @@
         window.toggleUniversalMode = function() { 
             window.isDeckMode = !window.isDeckMode; 
             
-            // Hide OBG Table Content wrapper
-            const mainContent = document.querySelector('.w-full.px-4.py-8');
+            // Cleanly Hide the main table wrapper
+            const mainContent = document.querySelector('.w-full.px-4.py-8') || document.getElementById('main-wrapper');
             if (mainContent) mainContent.style.display = window.isDeckMode ? 'none' : 'block';
 
             const deck = document.getElementById('universal-deck-layer'); 
@@ -312,7 +287,7 @@
             if (window.isDeckMode) { 
                 deck.style.display = 'flex'; 
                 fab.innerHTML = '📋'; fab.title = "Switch to Table View"; 
-                window.syncDeckCheckboxes(); // Pull existing filters from Table view
+                // Apply whatever filters are currently checked in the deck
                 window.applyFilters();
                 window.dispatchEvent(new Event('resize')); 
             } else { 
@@ -330,6 +305,36 @@
             if (typeof window.askAI === 'function') { 
                 window.askAI(btnElement, window.qnaData[originalIndex]); 
             } 
+        };
+
+        window.openReportModal = function() { 
+            const q = window.activeQuestions[window.univIndex]; if (!q) return; 
+            let m = document.getElementById('univ-report-modal'); 
+            if (!m) { 
+                m = document.createElement('div'); m.id = 'univ-report-modal'; 
+                m.className = 'fixed inset-0 z-[10005] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in'; 
+                document.body.appendChild(m); 
+            } 
+            m.innerHTML = `<div class="glass-card max-w-sm w-full p-6 rounded-2xl relative"><h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Report Issue</h3><p class="text-xs text-slate-500 mb-4">Question ID: ${q.label || q.id}</p><label class="block text-xs font-bold text-slate-500 uppercase mb-2">What's wrong?</label><div class="grid grid-cols-2 gap-2 mb-4"><button onclick="window.selectReportType(this)" class="rep-type-btn py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors" data-val="Wrong Answer">Wrong Answer</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors" data-val="Typo/Error">Typo / Error</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors" data-val="Missing Content">Missing Img/Opt</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-colors" data-val="Other">Other</button></div><textarea id="report-desc" rows="3" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-400 focus:outline-none mb-4" placeholder="Briefly describe the error..."></textarea><div class="flex gap-3"><button onclick="document.getElementById('univ-report-modal').remove()" class="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm">Cancel</button><button onclick="window.submitReport('${q.label || q.id}')" class="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-500/30">Submit Report</button></div></div>`; 
+            m.style.display = 'flex'; 
+        };
+        
+        window.selectedReportType = "Other"; 
+        window.selectReportType = function(btn) { 
+            document.querySelectorAll('.rep-type-btn').forEach(b => { b.classList.remove('ring-2', 'ring-offset-1', 'ring-red-400', 'bg-slate-100'); }); 
+            btn.classList.add('ring-2', 'ring-offset-1', 'ring-red-400'); 
+            window.selectedReportType = btn.getAttribute('data-val'); 
+        };
+        
+        window.submitReport = function(qid) { 
+            const desc = document.getElementById('report-desc').value; 
+            const btn = document.querySelector('#univ-report-modal button:last-child'); 
+            btn.innerText = "Sending..."; btn.disabled = true; 
+            const combinedID = `${qid} | ${window.location.href}`;
+            const REPORT_CONFIG = { formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", entryID_QID: "entry.1044663891", entryID_Type: "entry.1296716381", entryID_Desc: "entry.621177596" };
+            const url = `https://docs.google.com/forms/d/e/${REPORT_CONFIG.formID}/formResponse?${REPORT_CONFIG.entryID_QID}=${encodeURIComponent(combinedID)}&${REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&${REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`; 
+            const iframe = document.createElement('iframe'); iframe.style.display = 'none'; iframe.src = url; document.body.appendChild(iframe); 
+            setTimeout(() => { document.getElementById('univ-report-modal').innerHTML = `<div class="glass-card max-w-sm w-full p-6 rounded-2xl text-center"><div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3><p class="text-xs text-slate-500 mb-4">We will review this shortly.</p><button onclick="document.getElementById('univ-report-modal').remove()" class="w-full py-2 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold text-sm">Close</button></div>`; setTimeout(() => iframe.remove(), 2000); }, 1200); 
         };
 
         // 7. INITIALIZATION

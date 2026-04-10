@@ -11,8 +11,8 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#2563eb',
-                        secondary: '#60a5fa',
+                        primary: '#2563eb', 
+                        secondary: '#60a5fa', 
                     }
                 }
             }
@@ -22,20 +22,16 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Custom scrollbar */
         .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #93c5fd; border-radius: 4px; }
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background-color: #dbeafe; border-radius: 4px; }
 
-        /* Answer Reveal Logic */
         .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
         body.dark.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
 
-        /* Theory Question Styling */
         .theory-question { font-style: italic; color: #1e40af; font-weight: 500; background-color: #eff6ff; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb; line-height: 1.6; }
         
-        /* UI Components */
         .multiselect-container { position: relative; }
         .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         body.dark .multiselect-btn { background-color: #1f2937; border-color: #374151; color: #e5e7eb; }
@@ -90,7 +86,30 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative" onclick="closeAllDropdowns(event)">
 
-    <div class="w-full px-4 py-8" id="main-wrapper">
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark');
+        }
+    </script>
+
+    <nav class="fixed top-0 w-full z-50 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/95 backdrop-blur-md transition-colors">
+        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
+            <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/30">M</div>
+                <div class="leading-tight">
+                    <h1 class="font-bold text-lg tracking-tight text-gray-900 dark:text-white">MBBS <span class="text-blue-500">Profs Prep</span></h1>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Return to Portal</p>
+                </div>
+            </a>
+            <div class="flex items-center gap-3">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 text-xl transition-all" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto" id="main-wrapper">
         <header class="text-center mb-10">
             <h1 class="text-3xl md:text-5xl font-extrabold text-blue-800 dark:text-blue-400 tracking-tight mb-2">OBG Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-blue-600 dark:text-blue-300">MBBS PROFS PREP</h2>
@@ -365,7 +384,6 @@
             { q: "DGM120", type: "MCQ", stem: "Most common cause of puberty menorrhagia is:", ans_key: "B", options: ["pregnancy complication", "anovulatory cycles", "Von- Willebrand disease", "Endocrine dysfunction"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2021 Batch Prof Exam Paper-II" },
         ];
 
-        // --- FILTERING STATE ---
         const filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         const motivationalMessages = ["Hi [Name]! You are bringing life to your studies, just like in OBG!", "Hey [Name], remember: Every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!", "You're mastering the art of life and care, [Name]!"];
 
@@ -526,6 +544,13 @@
         function showModal(title, bodyHtml, footerHtml, iconHtml) { document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); }
         function closeModal() { modal.classList.add('hidden'); }
         function openChatGPT() { window.open('https://chat.openai.com/', '_blank'); closeModal(); }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const icon = document.getElementById('theme-icon');
+            if (icon) icon.innerText = isDark ? '☀️' : '🌙';
+        }
 
         // ==========================================
         // DECK VIEW INTEGRATION (NATIVE)
@@ -755,6 +780,10 @@
         }
 
         window.onload = () => { 
+            if (localStorage.getItem('theme') === 'dark') {
+                const icon = document.getElementById('theme-icon');
+                if (icon) icon.innerText = '☀️';
+            }
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             populateTable(); 
             populateFilters(); 

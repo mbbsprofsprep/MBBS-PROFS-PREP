@@ -93,7 +93,7 @@
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
     </style>
 </head>
-<body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative" onclick="closeAllDropdowns(event)">
+<body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
 
     <script>
         if (localStorage.getItem('theme') === 'dark') {
@@ -119,7 +119,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="window.toggleTheme()">
                     <span id="theme-icon">🌙</span>
                 </button>
             </div>
@@ -156,10 +156,10 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
-                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search (e.g., PPH, Fibroid, Eclampsia)..."
+                        <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search (e.g., PPH, Fibroid, Eclampsia)..."
                             class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
-                    <button id="summaryButton" onclick="handleSecretClick()" title="Generate Checklist (Hot Coffee)">☕️</button>
+                    <button id="summaryButton" onclick="window.handleSecretClick()" title="Generate Checklist (Hot Coffee)">☕️</button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
                 <div class="md:col-span-3" id="chapterFilterWrapper"></div>
@@ -180,14 +180,14 @@
                             <th scope="col" class="px-4 py-4 text-center text-xs font-bold text-white uppercase tracking-wider w-24">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-sm bg-white dark:bg-dark-bg text-slate-900 dark:text-slate-200"></tbody>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-sm bg-white dark:bg-dark-bg text-slate-900 dark:text-slate-200" id="tableBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900/75 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="fixed inset-0 bg-slate-900/75 transition-opacity backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
                 <div class="bg-white dark:bg-dark-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
@@ -218,17 +218,21 @@
     </footer>
 
     <script>
-        const COLLEGE_NAME = "AIIMS DEOGHAR";
-        const SECRET_CODE = "777pankaj";
-        const optionLetters = ['A', 'B', 'C', 'D'];
+        // Use global window attachment for everything to prevent scope failures
+        window.COLLEGE_NAME = "AIIMS DEOGHAR";
+        window.SECRET_CODE = "777pankaj";
+        window.optionLetters = ['A', 'B', 'C', 'D'];
 
-        // Secure Global State updated silently by Firebase
+        // Secure Global State
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
-        window.accessLevel = 'guest'; // 'guest', 'free', 'premium'
+        window.accessLevel = 'guest'; 
         window.displayData = [];
+        window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
+        
+        window.motivationalMessages = ["Hi [Name]! You are bringing life to your studies!", "Hey [Name], every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!"];
 
-        // Auth UI Helpers
+        // --- AUTH UI HELPERS ---
         window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };
         window.togglePassword = function() {
             const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
@@ -248,19 +252,20 @@
             else { alert(msg); }
         };
 
-        const curriculumData = [
+        // --- DATA DICTIONARIES ---
+        window.curriculumData = [
             { unit: "Obstetrics", chapters: [ "OBS Chapter 1: Anatomy of Female Reproductive Organs", "OBS Chapter 2: Fundamentals of Reproduction", "OBS Chapter 3: The Placenta and Fetal Membranes", "OBS Chapter 4: The Fetus", "OBS Chapter 5: Physiological Changes During Pregnancy", "OBS Chapter 6: Endocrinology in Relation to Reproduction", "OBS Chapter 7: Diagnosis of Pregnancy", "OBS Chapter 8: The Fetus-in-Utero", "OBS Chapter 9: Fetal Skull and Maternal Pelvis", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", "OBS Chapter 13: Normal Labor", "OBS Chapter 14: Normal Puerperium", "OBS Chapter 15: Vomiting in Pregnancy", "OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 19: Antepartum Hemorrhage", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 21: Gynecological Disorders in Pregnancy", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death", "OBS Chapter 23: Complicated Pregnancy", "OBS Chapter 24: Contracted Pelvis", "OBS Chapter 25: Abnormal Uterine Action", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse", "OBS Chapter 27: Prolonged Labor, Obstructed Labor, Dystocia Caused by Fetal Anomalies", "OBS Chapter 28: Complications of the Third Stage of Labor", "OBS Chapter 29: Injuries to the Birth Canal", "OBS Chapter 30: Abnormalities of the Puerperium", "OBS Chapter 31: The Term Newborn Infant", "OBS Chapter 32: Low Birth Weight Baby", "OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics", "OBS Chapter 35: Induction of Labor", "OBS Chapter 36: Population Dynamics and Control of Conception", "OBS Chapter 37: Operative Obstetrics", "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics", "OBS Chapter 39: Special Topics in Obstetrics", "OBS Chapter 40: Current Topics in Obstetrics", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests", "OBS Chapter 42: Practical Obstetrics" ] },
             { unit: "Gynaecology", chapters: [ "GYN Chapter 1: Anatomy of the Female Pelvic Organs", "GYN Chapter 2: Blood Vessels, Lymphatic Drainage and Innervation of Pelvic Organs", "GYN Chapter 3: Development of Genital Organs and Gonads", "GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 6: Menopause", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 8: Menstruation", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology", "GYN Chapter 11: Pelvic Infection", "GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 13: Infections of the Individual Pelvic Organ", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 17: Infertility", "GYN Chapter 18: Benign Lesions of the Vulva and Vagina", "GYN Chapter 19: Benign Lesions of the Cervix", "GYN Chapter 20: Benign Lesions of the Uterus", "GYN Chapter 21: Benign Lesions of the Ovary", "GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 23: Premalignant Lesions", "GYN Chapter 24: Genital Malignancy", "GYN Chapter 25: Urinary Problems in Gynecology", "GYN Chapter 26: Genitourinary Fistula", "GYN Chapter 27: Genital Tract Injuries and Anorectal Dysfunctions", "GYN Chapter 28: Disorders of Sexual Development", "GYN Chapter 29: Amenorrhea", "GYN Chapter 30: Contraception", "GYN Chapter 31: Basic Principles of Radiotherapy, Chemotherapy, Immunotherapy and Gene therapy in Gynecology", "GYN Chapter 32: Hormones in Gynecological Practice", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence", "GYN Chapter 34: Special Topics", "GYN Chapter 35: Operative Gynecology", "GYN Chapter 36: Endoscopic Surgery in Gynecology", "GYN Chapter 37: Current Topics in Gynecology", "GYN Chapter 38: Practical Gynecology" ] }
         ];
 
-        function getUnitForChapter(chapterName) {
-            for (const section of curriculumData) {
+        window.getUnitForChapter = function(chapterName) {
+            for (const section of window.curriculumData) {
                 if (section.chapters.includes(chapterName)) return section.unit;
             }
             return "";
-        }
+        };
 
-        const qnaData = [
+        window.qnaData = [
             // --- 2020 BATCH PROF EXAM PAPER-I: THEORY QUESTIONS ---
             { q: "DGT1", type: "Theory", stem: "A 28 years old Gravida 2 Abortion 1 reported to hospital with 1st Trimester Bleeding P/V.<br>a) What are the causes of 1st Trimester bleeding P/V?<br>b) How will you diagnose and manage a case of Vesicular mole? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2020 Batch Prof Exam Paper-I" },
             { q: "DGT2", type: "Theory", stem: "24 years primigravida presents to the antenatal clinic at 28 weeks with over distended uterus.<br>a) What are the causes of uterus being more than gestational age?<br>b) How will you manage dichorionic diamniotic twin pregnancy. [7 Marks]", ans_key: "", chapter: ["OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being"], examBatch: "2020 Batch Prof Exam Paper-I" },
@@ -274,7 +279,6 @@
             { q: "DGT10", type: "Theory", stem: "SAQ: Difference s between Placenta Previa & abruptio Placentae. Write down 2 dreaded complications of abruptio Placentae. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 19: Antepartum Hemorrhage"], examBatch: "2020 Batch Prof Exam Paper-I" },
             { q: "DGT11", type: "Theory", stem: "SAQ: Neonatal Jaundice-cause and management of Breast milk Jaundice. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 14: Normal Puerperium"], examBatch: "2020 Batch Prof Exam Paper-I" },
             { q: "DGT12", type: "Theory", stem: "SAQ: External cephalic version. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse"], examBatch: "2020 Batch Prof Exam Paper-I" },
-            
             // --- 2020 BATCH PROF EXAM PAPER-II: THEORY QUESTIONS ---
             { q: "DGT13", type: "Theory", stem: "A 24 years old female comes to you with delayed menstruation and scanty flow in menses. Her BMI is 30 kg/m^2.<br>a) Write 3 differential diagnosis.<br>b) Discuss the Rotterdam Criteria.<br>c) Enumerate the investigation & Management of PCOS. [8 Marks]", ans_key: "", chapter: ["GYN Chapter 29: Amenorrhea", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 17: Infertility"], examBatch: "2020 Batch Prof Exam Paper-II" },
             { q: "DGT14", type: "Theory", stem: "Write the mechanism of action of combined hormonal pills. Write its 4 advantages & 4 disadvantages. [7 Marks]", ans_key: "", chapter: ["GYN Chapter 30: Contraception", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2020 Batch Prof Exam Paper-II" },
@@ -288,7 +292,6 @@
             { q: "DGT22", type: "Theory", stem: "SAQ: Myomectomy. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 35: Operative Gynecology", "GYN Chapter 20: Benign Lesions of the Uterus"], examBatch: "2020 Batch Prof Exam Paper-II" },
             { q: "DGT23", type: "Theory", stem: "SAQ: Management/treatment of endometriosis. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", "GYN Chapter 17: Infertility"], examBatch: "2020 Batch Prof Exam Paper-II" },
             { q: "DGT24", type: "Theory", stem: "SAQ: Dermoid cyst. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 21: Benign Lesions of the Ovary"], examBatch: "2020 Batch Prof Exam Paper-II" },
-
             // --- 2021 BATCH PROF EXAM PAPER-I: THEORY QUESTIONS ---
             { q: "DGT25", type: "Theory", stem: "25-year-old primigravida at 30 weeks of pregnancy came to OPD with complaints of easy fatiguability and tiredness for the past one month. On clinical examination, she was ill-built and moderate pallor was present.<br>a) What is the most likely diagnosis?<br>b) Definition and Causes of this condition during pregnancy.<br>c) How will you evaluate this case and what is the indication of blood transfusion during pregnancy? [7 Marks]", ans_key: "", chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
             { q: "DGT26", type: "Theory", stem: "Define preterm labour? Causes for preterm labour? Management of women with preterm labour? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death"], examBatch: "2021 Batch Prof Exam Paper-I" },
@@ -455,85 +458,222 @@
             { q: "DGM120", type: "MCQ", stem: "Most common cause of puberty menorrhagia is:", ans_key: "B", options: ["pregnancy complication", "anovulatory cycles", "Von- Willebrand disease", "Endocrine dysfunction"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2021 Batch Prof Exam Paper-II" },
         ];
 
-        // --- FILTERING & PAYWALL STATE ---
-        window.accessLevel = 'guest'; // 'guest', 'free', 'premium'
-        window.displayData = [];
-        const filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
-        const motivationalMessages = ["Hi [Name]! You are bringing life to your studies, just like in OBG!", "Hey [Name], remember: Every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!", "You're mastering the art of life and care, [Name]!"];
+        window.userPanelApp = {
+            isOpen: false,
+            authMode: 'login', 
+            getEl: function(id) { return document.getElementById(id); },
+            toggle: function() { this.isOpen ? this.close() : this.open(); },
+            open: function() {
+                this.isOpen = true;
+                this.renderState();
+                this.getEl('user-panel-drawer').classList.remove('-translate-x-full');
+                this.getEl('user-panel-backdrop').classList.remove('opacity-0', 'pointer-events-none');
+            },
+            close: function() {
+                this.isOpen = false;
+                this.getEl('user-panel-drawer').classList.add('-translate-x-full');
+                this.getEl('user-panel-backdrop').classList.add('opacity-0', 'pointer-events-none');
+            },
+            renderState: function() {
+                const user = window.currentUserObj;
+                const bodyEl = this.getEl('user-panel-body');
+                const footerEl = this.getEl('user-panel-footer');
+                
+                if(!bodyEl || !footerEl) return;
+
+                if (user) {
+                    let badgeHtml = '';
+                    let daysHtml = '';
+                    if (window.globalUserStatus.isVIP) {
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
+                        const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center">
+                                <span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span>
+                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span>
+                                <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span>
+                            </div>`;
+                    } else if (window.globalUserStatus.expired) {
+                        const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">Expired</span>`;
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center">
+                                <span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended ${daysAgo} days ago.</span>
+                                <a href="checkout.html" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a>
+                            </div>`;
+                    } else {
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">Free Plan</span>`;
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center">
+                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span>
+                                <a href="checkout.html" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a>
+                            </div>`;
+                    }
+
+                    const nameToDisplay = user.displayName || "Welcome";
+                    const email = user.email || "";
+                    const initial = email ? email.charAt(0).toUpperCase() : "U";
+
+                    bodyEl.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
+                            <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
+                                ${initial}
+                            </div>
+                            <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
+                            <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${email}</p>
+                            ${badgeHtml}
+                            ${daysHtml}
+                        </div>
+                        <nav class="space-y-2">
+                            <a href="checkout.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                                <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> Subscription Plan
+                            </a>
+                        </nav>`;
+
+                    footerEl.innerHTML = `
+                        <button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
+                        </button>`;
+                } else {
+                    if (this.authMode === 'login') {
+                        bodyEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <div class="w-16 h-16 bg-brand-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner border border-brand-200 dark:border-slate-700">🔒</div>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Member Login</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 text-center">Sign in to access your premium modules.</p>
+                                <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                                <div class="w-full space-y-3 mb-6">
+                                    <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <div class="relative w-full">
+                                        <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400 hover:text-brand-500">
+                                            <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                        </button>
+                                    </div>
+                                    <div class="text-right w-full">
+                                        <button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 hover:text-brand-600 transition-colors uppercase tracking-wider">Forgot Password?</button>
+                                    </div>
+                                </div>
+                                <div class="w-full flex flex-col gap-3">
+                                    <button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 active:scale-95 transition-all">Sign In</button>
+                                    <div class="text-center mt-2">
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">Don't have an account?</span>
+                                        <button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Create One</button>
+                                    </div>
+                                </div>
+                            </div>`;
+                    } else {
+                        bodyEl.innerHTML = `
+                            <div class="flex flex-col items-center justify-start h-full pb-4">
+                                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner border border-green-200 dark:border-green-800">🌍</div>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 text-center">Join the community to track your progress.</p>
+                                <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                                <div class="w-full space-y-3 mb-6">
+                                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <input type="password" id="reg-pass" placeholder="Create Password (Min. 6 char)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <input type="number" id="reg-age" placeholder="Age" min="16" max="99" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                        <select id="reg-gender" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-slate-500 dark:text-slate-300 text-sm font-medium">
+                                            <option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                    <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                        <input type="text" id="reg-country" placeholder="Country" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    </div>
+                                </div>
+                                <div class="w-full flex flex-col gap-3">
+                                    <button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-500/30 hover:bg-green-700 active:scale-95 transition-all">Create Account</button>
+                                    <div class="text-center mt-2">
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">Already have an account?</span>
+                                        <button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Sign In</button>
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                    footerEl.innerHTML = ``;
+                }
+            }
+        };
 
         window.processDataForAccess = function() {
             if (window.accessLevel === 'premium') {
-                window.displayData = [...qnaData];
+                window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
-                const theoryQs = qnaData.filter(q => q.type === 'Theory').slice(0, 10);
-                const mcqQs = qnaData.filter(q => q.type === 'MCQ').slice(0, 10);
+                const theoryQs = window.qnaData.filter(q => q.type === 'Theory').slice(0, 10);
+                const mcqQs = window.qnaData.filter(q => q.type === 'MCQ').slice(0, 10);
                 window.displayData = [...theoryQs, ...mcqQs];
             } else {
                 window.displayData = [];
             }
-            populateTable();
+            window.populateTable();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
         };
 
-        function getUniqueValues(key) {
+        window.getUniqueValues = function(key) {
             const values = new Set();
-            if (key === 'chapter') return curriculumData; 
-            qnaData.forEach(item => { if (key === 'type') values.add(item.type); else if (key === 'exam') values.add(item.examBatch); else values.add(item[key]); });
+            if (key === 'chapter') return window.curriculumData; 
+            window.qnaData.forEach(item => { if (key === 'type') values.add(item.type); else if (key === 'exam') values.add(item.examBatch); else values.add(item[key]); });
             return Array.from(values).sort();
         }
 
-        function toggleDropdown(id) {
+        window.toggleDropdown = function(id) {
             document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); });
             document.getElementById(id + 'Menu').classList.toggle('show');
         }
 
-        function closeAllDropdowns(event) {
+        window.closeAllDropdowns = function(event) {
             if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
         }
 
-        function handleCheckboxChange(id, value, filterSetKey, label) {
-            const set = filterState[filterSetKey];
+        window.handleCheckboxChange = function(id, value, filterSetKey, label) {
+            const set = window.filterState[filterSetKey];
             if (set.has(value)) set.delete(value); else set.add(value);
-            updateButtonText(id, set, label);
-            filterTable();
+            window.updateButtonText(id, set, label);
+            window.filterTable();
         }
 
-        function toggleGroup(unitName, isChecked) {
+        window.toggleGroup = function(unitName, isChecked) {
             document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
-                if (cb.checked !== isChecked) { cb.checked = isChecked; handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
+                if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
             });
         }
 
-        function updateButtonText(id, set, label) {
+        window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
             if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
             else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
 
-        function createMultiSelect(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
+        window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
             const container = document.getElementById(containerId);
             let listHtml = '';
             if (isGrouped) {
                 items.forEach(group => {
-                    listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
+                    listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
                     group.chapters.forEach(chapter => {
-                         listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
+                         listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
                     });
                 });
             } else {
-                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
+                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
             }
-            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
+            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
-        function populateFilters() {
-            createMultiSelect('typeFilterWrapper', 'typeSelect', 'Type', getUniqueValues('type'), 'types');
-            createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Chapter', curriculumData, 'chapters', true);
-            createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', getUniqueValues('exam'), 'exams');
+        window.populateFilters = function() {
+            window.createMultiSelect('typeFilterWrapper', 'typeSelect', 'Type', window.getUniqueValues('type'), 'types');
+            window.createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Chapter', window.curriculumData, 'chapters', true);
+            window.createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', window.getUniqueValues('exam'), 'exams');
         }
 
-        function populateTable() {
-            const tbody = document.getElementById('qnaTable').getElementsByTagName('tbody')[0];
+        window.populateTable = function() {
+            const tbody = document.getElementById('tableBody');
+            if(!tbody) return;
             tbody.innerHTML = ''; 
             
             window.displayData.forEach((item, index) => {
@@ -549,7 +689,7 @@
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-slate-100">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
-                            const optionLetter = optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            const optionLetter = window.optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
@@ -564,19 +704,19 @@
                 let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800';
                 let chapterHtml = '';
                 item.chapter.forEach(ch => {
-                    const unitName = getUnitForChapter(ch);
+                    const unitName = window.getUnitForChapter(ch);
                     chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-300">${ch}</span></div>`;
                 });
                 cell_chapter.innerHTML = chapterHtml;
 
                 let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
-                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${item.examBatch}</div>`;
+                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${item.examBatch}</div>`;
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
-                cell_ai.innerHTML = `<button onclick="askAI(this, window.displayData[${index}])" class="bg-green-500/10 hover:bg-green-500 text-green-600 dark:text-green-400 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24 border border-green-500/20"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
+                cell_ai.innerHTML = `<button onclick="window.askAI(this, window.displayData[${index}])" class="bg-green-500/10 hover:bg-green-500 text-green-600 dark:text-green-400 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24 border border-green-500/20"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
             });
 
-            // ADD LOCK BANNERS BASED ON ACCESS LEVEL
+            // ADD LOCK BANNERS
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow();
                 row.setAttribute('data-locked-row', 'true');
@@ -598,22 +738,20 @@
                 cell.innerHTML = `
                     <div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                     <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3>
-                    <p class="text-slate-500 dark:text-slate-400 mb-6 font-medium max-w-md mx-auto">You are viewing a free preview (10 Theory + 10 MCQs). Upgrade to Pro to access all ${qnaData.length} premium questions.</p>
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 font-medium max-w-md mx-auto">You are viewing a free preview (10 Theory + 10 MCQs). Upgrade to Pro to access all ${window.qnaData.length} premium questions.</p>
                     <a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 hover:scale-105 transition-all">Upgrade to Pro</a>
                 `;
             }
         }
 
-        function filterTable() {
+        window.filterTable = function() {
             const searchText = document.getElementById("searchInput").value.toLowerCase();
             const table = document.getElementById("qnaTable");
+            if(!table) return;
             const tr = table.getElementsByTagName("tr");
 
             for (let i = 1; i < tr.length; i++) {
-                if (tr[i].getAttribute('data-locked-row') === "true") {
-                    tr[i].style.display = ""; 
-                    continue;
-                }
+                if (tr[i].getAttribute('data-locked-row') === "true") { tr[i].style.display = ""; continue; }
                 const dataIndex = tr[i].getAttribute('data-index'); 
                 const item = window.displayData[dataIndex];
                 if(!item) continue;
@@ -623,50 +761,52 @@
                     let rowText = (tr[i].cells[1].textContent || "") + (tr[i].cells[3].textContent || "") + (tr[i].cells[4].textContent || "");
                     if (rowText.toLowerCase().indexOf(searchText) === -1) showRow = false;
                 }
-                if (showRow && filterState.types.size > 0 && !filterState.types.has(item.type)) showRow = false;
-                if (showRow && filterState.chapters.size > 0 && !item.chapter.some(ch => filterState.chapters.has(ch))) showRow = false;
-                if (showRow && filterState.exams.size > 0 && !filterState.exams.has(item.examBatch)) showRow = false;
+                if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
+                if (showRow && window.filterState.chapters.size > 0 && !item.chapter.some(ch => window.filterState.chapters.has(ch))) showRow = false;
+                if (showRow && window.filterState.exams.size > 0 && !window.filterState.exams.has(item.examBatch)) showRow = false;
                 tr[i].style.display = showRow ? "" : "none";
             }
         }
 
-        function askAI(button, item) {
+        window.askAI = function(button, item) {
             let textToCopy;
             const cleanStem = item.stem.replace(/<[^>]*>/g, ""); const chapterString = item.chapter.join(", "); 
             if (item.type === 'MCQ') {
-                const optionsList = item.options ? item.options.map((opt, i) => `${optionLetters[i]}) ${opt}`).join('\n') : "Options not available";
+                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i]}) ${opt}`).join('\n') : "Options not available";
                 textToCopy = `I am studying for an OBG exam. Please explain this MCQ in detail:\n\nQuestion: ${cleanStem}\n\nOptions:\n${optionsList}\n\nCorrect Answer Key: ${item.ans_key}\n\nPlease explain why this option is correct and why the others are incorrect. Refer to Chapter(s): ${chapterString}`;
             } else { textToCopy = `I am studying for an OBG exam. Please provide a structured model answer for the following theory question:\n\n"${cleanStem}"\n\nInclude relevant headings, clinical features, and management steps. Context: ${chapterString}`; }
             
             const tempTextarea = document.createElement('textarea'); tempTextarea.value = textToCopy; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
-            showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready. Open ChatGPT?</p>`, `<button onclick="openChatGPT()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Go to ChatGPT</button> <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Stay Here</button>`, `<svg class="h-6 w-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
+            window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready. Open ChatGPT?</p>`, `<button onclick="window.openChatGPT()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Go to ChatGPT</button> <button type="button" onclick="window.closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Stay Here</button>`, `<svg class="h-6 w-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
         }
 
-        function handleSecretClick() { showModal("Welcome!", `<p class="text-slate-700 dark:text-slate-300 mb-4 font-medium">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-dark-surface text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">`, `<button type="button" onclick="handleNameSubmission()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Continue</button><button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Cancel</button>`, `<span class="text-2xl">☕️</span>`); }
+        window.handleSecretClick = function() { window.showModal("Welcome!", `<p class="text-slate-700 dark:text-slate-300 mb-4 font-medium">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-dark-surface text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">`, `<button type="button" onclick="window.handleNameSubmission()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Continue</button><button type="button" onclick="window.closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Cancel</button>`, `<span class="text-2xl">☕️</span>`); }
 
-        function handleNameSubmission() {
+        window.handleNameSubmission = function() {
             const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
-            if (name.toLowerCase() === SECRET_CODE) { closeModal(); copyForChatGPT(); } 
+            if (name.toLowerCase() === window.SECRET_CODE) { window.closeModal(); window.copyForChatGPT(); } 
             else if (name) {
-                const randomIndex = Math.floor(Math.random() * motivationalMessages.length); let message = motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
-                showModal("Study Motivation!", `<p class="text-slate-700 dark:text-slate-300 text-base font-semibold">${message}</p>`, `<button type="button" onclick="closeModal()" class="inline-flex w-full justify-center rounded-xl bg-green-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-green-600 sm:w-auto">Back to Study</button>`, `<span class="text-2xl">💪</span>`);
+                const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length); let message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
+                window.showModal("Study Motivation!", `<p class="text-slate-700 dark:text-slate-300 text-base font-semibold">${message}</p>`, `<button type="button" onclick="window.closeModal()" class="inline-flex w-full justify-center rounded-xl bg-green-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-green-600 sm:w-auto">Back to Study</button>`, `<span class="text-2xl">💪</span>`);
             }
         }
         
-        function copyForChatGPT() {
+        window.copyForChatGPT = function() {
             const visibleQuestions = []; const tr = document.getElementById("qnaTable").getElementsByTagName("tr");
             for (let i = 1; i < tr.length; i++) { if (tr[i].style.display !== "none" && tr[i].getAttribute('data-locked-row') !== "true") visibleQuestions.push(window.displayData[tr[i].getAttribute('data-index')]); }
             if(visibleQuestions.length === 0) return alert("No questions to copy");
             let clipboardText = `Create a checklist for these OBG questions:\n`;
             visibleQuestions.forEach(q => { clipboardText += `Q ${q.q}: ${q.stem.replace(/\*\*(.*?)\*\*/g, "$1").replace(/<[^>]*>/g, "")}\n` });
             const temp = document.createElement('textarea'); temp.value = clipboardText; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp);
-            showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400 font-medium">Copied ${visibleQuestions.length} questions to checklist.</p>`, `<button onclick="openChatGPT()" class="bg-brand-500 text-white font-bold px-4 py-3 rounded-xl w-full">Go to ChatGPT</button>`, `<span class="text-2xl">📋</span>`);
+            window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400 font-medium">Copied ${visibleQuestions.length} questions to checklist.</p>`, `<button onclick="window.openChatGPT()" class="bg-brand-500 text-white font-bold px-4 py-3 rounded-xl w-full">Go to ChatGPT</button>`, `<span class="text-2xl">📋</span>`);
         }
 
-        const modal = document.getElementById('actionModal');
-        function showModal(title, bodyHtml, footerHtml, iconHtml) { document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); }
-        function closeModal() { modal.classList.add('hidden'); }
-        function openChatGPT() { window.open('https://chat.openai.com/', '_blank'); closeModal(); }
+        window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 
+            const modal = document.getElementById('actionModal');
+            document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
+        }
+        window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
+        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
         window.toggleTheme = function() {
             const html = document.documentElement;
@@ -679,10 +819,10 @@
         // ==========================================
         // DECK VIEW INTEGRATION 
         // ==========================================
-        let isDeckMode = false;
-        let activeDeckQuestions = [];
-        let deckIndex = 0;
-        let deckStatus = {};
+        window.isDeckMode = false;
+        window.activeDeckQuestions = [];
+        window.deckIndex = 0;
+        window.deckStatus = {};
 
         window.syncDeckWithFilters = function() {
             const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
@@ -691,7 +831,7 @@
             const selectedBatches = getChecked('batch');
             const search = document.getElementById("searchInput").value.toLowerCase();
 
-            activeDeckQuestions = window.displayData.filter(q => {
+            window.activeDeckQuestions = window.displayData.filter(q => {
                 let show = true;
                 let rowText = (q.stem || "") + (q.chapter.join(" ") || "") + (q.examBatch || "");
                 if (search && rowText.toLowerCase().indexOf(search) === -1) show = false;
@@ -702,13 +842,13 @@
                 return show;
             });
             
-            deckIndex = 0;
+            window.deckIndex = 0;
             const sub = document.getElementById('deck-subtitle');
-            if (sub) sub.innerText = activeDeckQuestions.length === window.displayData.length ? `${activeDeckQuestions.length} Questions` : `${activeDeckQuestions.length} Filtered`;
-            renderDeckCard();
+            if (sub) sub.innerText = window.activeDeckQuestions.length === window.displayData.length ? `${window.activeDeckQuestions.length} Questions` : `${window.activeDeckQuestions.length} Filtered`;
+            window.renderDeckCard();
         }
 
-        function initDeckView() {
+        window.initDeckView = function() {
             const deckLayer = document.createElement('div');
             deckLayer.id = 'universal-deck-layer';
             deckLayer.innerHTML = `
@@ -717,7 +857,7 @@
                         <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="My Account">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
-                        <button onclick="toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Filters">
+                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Filters">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                         </button>
                         <div class="ml-1">
@@ -725,33 +865,33 @@
                             <div class="text-[10px] text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
                         </div>
                     </div>
-                    <button onclick="toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         <span id="deck-counter">1/1</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
                 <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
                 <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
-                    <button onclick="deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Previous</button>
-                    <button onclick="deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Next</button>
+                    <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Previous</button>
+                    <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Next</button>
                 </div>
                 <div id="deck-nav-drawer" class="deck-drawer">
-                    <div class="deck-drawer-bg" onclick="toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="toggleDeckDrawer(null)">✕</button></div>
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)">✕</button></div>
                         <div class="nav-grid" id="deck-nav-grid"></div>
                     </div>
                 </div>
                 <div id="deck-filter-drawer" class="deck-drawer">
-                    <div class="deck-drawer-bg" onclick="toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
                         <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                             <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
-                            <button onclick="resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
                         </div>
                         <div class="p-5 overflow-y-auto flex-1" id="deck-filter-content"></div>
                         <div class="p-4 border-t border-slate-200 dark:border-slate-700">
-                            <button onclick="window.syncDeckWithFilters(); toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Apply Filters</button>
+                            <button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Apply Filters</button>
                         </div>
                     </div>
                 </div>
@@ -762,16 +902,16 @@
             fab.id = 'view-toggle-btn';
             fab.innerHTML = '🎴';
             fab.title = "Switch to Deck View";
-            fab.onclick = toggleDeckMode;
+            fab.onclick = window.toggleDeckMode;
             document.body.appendChild(fab);
 
-            populateDeckFilters();
+            window.populateDeckFilters();
         }
 
-        function populateDeckFilters() {
-            const chapters = [...new Set(qnaData.flatMap(q => q.chapter))].sort();
-            const types = [...new Set(qnaData.map(q => q.type))].sort();
-            const batches = [...new Set(qnaData.map(q => q.examBatch))].sort();
+        window.populateDeckFilters = function() {
+            const chapters = [...new Set(window.qnaData.flatMap(q => q.chapter))].sort();
+            const types = [...new Set(window.qnaData.map(q => q.type))].sort();
+            const batches = [...new Set(window.qnaData.map(q => q.examBatch))].sort();
             
             const container = document.getElementById('deck-filter-content');
             const buildGroup = (label, category, opts) => {
@@ -786,15 +926,14 @@
             if(container) container.innerHTML = buildGroup('Chapters', 'chapter', chapters) + buildGroup('Type', 'type', types) + buildGroup('Exam Batch', 'batch', batches);
         }
 
-        function resetDeckFilters() {
+        window.resetDeckFilters = function() {
             document.querySelectorAll('.deck-filter-checkbox').forEach(cb => cb.checked = false);
             window.syncDeckWithFilters();
         }
 
-        function renderDeckCard() {
+        window.renderDeckCard = function() {
             const container = document.getElementById('deck-card-container');
             
-            // Render LOGIN GUEST CARD
             if (window.accessLevel === 'guest') {
                 container.innerHTML = `
                     <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
@@ -807,28 +946,27 @@
                 return;
             }
 
-            // Render UP-SELL CARD at end of Free preview
-            if (window.accessLevel === 'free' && deckIndex === activeDeckQuestions.length) {
+            if (window.accessLevel === 'free' && window.deckIndex === window.activeDeckQuestions.length) {
                 container.innerHTML = `
                     <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">End of Free Preview</h2>
-                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You've completed the free questions. Upgrade to Pro to unlock the remaining ${qnaData.length - 20} premium questions in this deck.</p>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You've completed the free questions. Upgrade to Pro to unlock the remaining ${window.qnaData.length - 20} premium questions in this deck.</p>
                         <a href="checkout.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Upgrade to Pro</a>
                     </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`;
                 return;
             }
 
-            if (activeDeckQuestions.length === 0) {
+            if (window.activeDeckQuestions.length === 0) {
                 container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No questions match these filters.</p></div>`;
                 document.getElementById('deck-counter').innerText = '0/0';
                 return;
             }
             
-            const q = activeDeckQuestions[deckIndex];
+            const q = window.activeDeckQuestions[window.deckIndex];
             const realIndex = window.displayData.indexOf(q); 
-            document.getElementById('deck-counter').innerText = `${deckIndex + 1}/${activeDeckQuestions.length}`;
+            document.getElementById('deck-counter').innerText = `${window.deckIndex + 1}/${window.activeDeckQuestions.length}`;
 
             const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             let questionHtml = ''; let optsHtml = '';
@@ -837,8 +975,8 @@
                 questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) {
                     optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => {
-                        const letter = optionLetters[i]; const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                        return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`;
+                        const letter = window.optionLetters[i]; const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`;
                     }).join('')}</div>`;
                 }
             } else {
@@ -849,7 +987,7 @@
                 <div class="deck-card glass-card">
                     <div class="mb-4 flex justify-between items-center">
                         <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
-                        <button onclick="askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
                     </div>
                     ${questionHtml}
                     ${optsHtml}
@@ -860,18 +998,18 @@
             container.scrollTop = 0;
         }
 
-        function checkDeckAnswer(btn, picked, correct) {
-            const q = activeDeckQuestions[deckIndex];
+        window.checkDeckAnswer = function(btn, picked, correct) {
+            const q = window.activeDeckQuestions[window.deckIndex];
             const p = picked.toUpperCase(); const c = correct.toUpperCase();
             btn.parentElement.querySelectorAll('button').forEach(b => b.disabled = true);
-            if (p === c) { btn.classList.add('deck-opt-correct'); deckStatus[q.q] = 'correct'; } 
+            if (p === c) { btn.classList.add('deck-opt-correct'); window.deckStatus[q.q] = 'correct'; } 
             else {
-                btn.classList.add('deck-opt-wrong'); deckStatus[q.q] = 'wrong';
-                btn.parentElement.querySelectorAll('button').forEach((b, i) => { if (optionLetters[i] === c) b.classList.add('deck-opt-correct'); });
+                btn.classList.add('deck-opt-wrong'); window.deckStatus[q.q] = 'wrong';
+                btn.parentElement.querySelectorAll('button').forEach((b, i) => { if (window.optionLetters[i] === c) b.classList.add('deck-opt-correct'); });
             }
         }
 
-        function toggleDeckDrawer(type) {
+        window.toggleDeckDrawer = function(type) {
             const nav = document.getElementById('deck-nav-drawer');
             const filt = document.getElementById('deck-filter-drawer');
             if (nav) nav.classList.remove('open');
@@ -879,36 +1017,35 @@
             
             if (type === 'nav') {
                 const grid = document.getElementById('deck-nav-grid');
-                grid.innerHTML = activeDeckQuestions.map((q, i) => {
-                    const st = deckStatus[q.q];
+                grid.innerHTML = window.activeDeckQuestions.map((q, i) => {
+                    const st = window.deckStatus[q.q];
                     let cls = "deck-nav-btn";
                     if (st === 'correct') cls += " correct";
                     if (st === 'wrong') cls += " wrong";
-                    if (i === deckIndex) cls += " active";
-                    return `<button onclick="deckIndex=${i}; toggleDeckDrawer(null); renderDeckCard();" class="${cls}">${q.q}</button>`;
+                    if (i === window.deckIndex) cls += " active";
+                    return `<button onclick="window.deckIndex=${i}; window.toggleDeckDrawer(null); window.renderDeckCard();" class="${cls}">${q.q}</button>`;
                 }).join('');
                 nav.classList.add('open');
             }
             if (type === 'filter') filt.classList.add('open');
         }
 
-        function deckNext() { 
-            if (deckIndex < activeDeckQuestions.length - 1) { 
-                deckIndex++; renderDeckCard(); 
-            } else if (window.accessLevel === 'free' && deckIndex === activeDeckQuestions.length - 1) {
-                // Advance one more step to show the Paywall Card
-                deckIndex++; renderDeckCard();
+        window.deckNext = function() { 
+            if (window.deckIndex < window.activeDeckQuestions.length - 1) { 
+                window.deckIndex++; window.renderDeckCard(); 
+            } else if (window.accessLevel === 'free' && window.deckIndex === window.activeDeckQuestions.length - 1) {
+                window.deckIndex++; window.renderDeckCard();
             }
         }
-        function deckPrev() { if (deckIndex > 0) { deckIndex--; renderDeckCard(); } }
+        window.deckPrev = function() { if (window.deckIndex > 0) { window.deckIndex--; window.renderDeckCard(); } }
 
-        function toggleDeckMode() {
-            isDeckMode = !isDeckMode;
+        window.toggleDeckMode = function() {
+            window.isDeckMode = !window.isDeckMode;
             const mainContent = document.getElementById('main-wrapper');
             const deck = document.getElementById('universal-deck-layer');
             const fab = document.getElementById('view-toggle-btn');
             
-            if (isDeckMode) {
+            if (window.isDeckMode) {
                 if (mainContent) mainContent.style.display = 'none';
                 deck.style.display = 'flex';
                 fab.innerHTML = '📋'; fab.title = "Switch to Table View";
@@ -921,15 +1058,11 @@
         }
 
         window.onload = () => { 
-            if (localStorage.getItem('theme') === 'dark') {
-                const icon = document.getElementById('theme-icon');
-                if (icon) icon.innerText = '☀️';
-            }
+            if (localStorage.getItem('theme') === 'dark') { const icon = document.getElementById('theme-icon'); if (icon) icon.innerText = '☀️'; }
+            const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
-            populateFilters(); 
-            initDeckView(); 
-            
-            // Run default access processing immediately (Assumes Guest mode until Firebase authenticates)
+            window.populateFilters(); 
+            window.initDeckView(); 
             window.processDataForAccess();
         };
     </script>
@@ -952,10 +1085,8 @@
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
-        // Your verified VIP List (Always open)
         const allowedVIPs = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
-        // --- AUTH EXPORTS FOR UI ---
         window.handleEmailLogin = function(btn) {
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-pass').value;
@@ -971,7 +1102,6 @@
                 let msg = "Login failed. Please try again.";
                 if(e.code === 'auth/invalid-credential') msg = "Incorrect email or password.";
                 if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
-                if(e.code === 'auth/wrong-password') msg = "Incorrect password.";
                 window.showAuthError(msg);
             });
         };
@@ -980,11 +1110,7 @@
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value;
-            const age = document.getElementById('reg-age').value.trim();
-            const gender = document.getElementById('reg-gender').value;
-            const phone = document.getElementById('reg-phone').value.trim();
             const college = document.getElementById('reg-college').value.trim();
-            const city = document.getElementById('reg-city').value.trim();
             const country = document.getElementById('reg-country').value.trim();
             
             if(!name || !email || !pass || !college || !country) {
@@ -998,17 +1124,15 @@
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                const user = userCredential.user;
-                await updateProfile(user, { displayName: name });
-                await set(ref(db, 'users/' + user.uid + '/profile'), {
-                    fullName: name, email: email, age: age || "Not provided", gender: gender || "Not provided", phone: phone || "Not provided", college: college, city: city || "Not provided", country: country, createdAt: new Date().toISOString()
+                await updateProfile(userCredential.user, { displayName: name });
+                await set(ref(db, 'users/' + userCredential.user.uid + '/profile'), {
+                    fullName: name, email: email, age: document.getElementById('reg-age').value.trim() || "Not provided", gender: document.getElementById('reg-gender').value || "Not provided", phone: document.getElementById('reg-phone').value.trim() || "Not provided", college: college, city: document.getElementById('reg-city').value.trim() || "Not provided", country: country, createdAt: new Date().toISOString()
                 });
             } catch(e) {
                 btn.innerText = originalText;
                 btn.disabled = false;
                 let msg = "Signup failed.";
-                if(e.code === 'auth/email-already-in-use') msg = "An account with this email already exists. Please Sign In.";
-                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
+                if(e.code === 'auth/email-already-in-use') msg = "An account with this email already exists.";
                 window.showAuthError(msg);
             }
         };
@@ -1019,23 +1143,15 @@
             sendPasswordResetEmail(auth, email).then(() => {
                 const errDiv = document.getElementById('auth-error-msg');
                 errDiv.innerText = "Password reset link sent! Check your inbox.";
-                errDiv.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
+                errDiv.classList.remove('bg-red-50', 'text-red-600', 'border-red-200', 'hidden');
                 errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
-                errDiv.classList.remove('hidden');
-            }).catch(e => {
-                let msg = "Error sending reset email.";
-                if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
-                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
-                window.showAuthError(msg);
-            });
+            }).catch(e => { window.showAuthError("Error sending reset email."); });
         };
 
         window.firebaseSignOut = function() {
-            localStorage.removeItem('medqs_user_email');
             signOut(auth).then(() => window.location.reload());
         };
 
-        // --- AUTH & PAYWALL LISTENER ---
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
 
@@ -1044,42 +1160,28 @@
                 localStorage.setItem('medqs_user_email', email);
 
                 if (allowedVIPs.includes(email)) {
-                    // VIP bypass
-                    window.accessLevel = 'premium';
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
+                    window.accessLevel = 'premium';
                     window.processDataForAccess();
                     window.userPanelApp.renderState();
                 } else {
-                    // Standard User: Check Database Expiry
-                    const subRef = ref(db, 'users/' + user.uid + '/subscription');
-                    onValue(subRef, (snapshot) => {
-                        let hasAccess = false;
+                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (snapshot) => {
                         let subDataObj = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-
                         if (snapshot.exists()) {
                             const subData = snapshot.val();
                             const today = new Date(); today.setHours(0,0,0,0);
                             const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
-                            const diffTime = expiry - today;
-                            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
-                            if (daysLeft >= 0 && subData.status === "active") {
-                                hasAccess = true;
-                                subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
-                            } else {
-                                subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
-                            }
+                            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                            if (daysLeft >= 0 && subData.status === "active") subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
+                            else subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
                         }
-                        
                         window.globalUserStatus = subDataObj;
-                        window.accessLevel = hasAccess ? 'premium' : 'free';
+                        window.accessLevel = subDataObj.isVIP ? 'premium' : 'free';
                         window.processDataForAccess();
                         window.userPanelApp.renderState();
                     });
                 }
             } else {
-                // Not logged in -> Guest Mode (Completely Locked)
-                localStorage.removeItem('medqs_user_email');
                 window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
                 window.accessLevel = 'guest';
                 window.processDataForAccess();

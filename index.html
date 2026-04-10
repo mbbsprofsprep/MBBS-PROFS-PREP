@@ -161,21 +161,25 @@
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="pdfSmartApp.close()"></div>
 
     <script>
+        // Secure Global State updated silently by Firebase
+        window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+        window.currentUserObj = null;
+
         window.toggleAuthMode = function(mode) {
             window.userPanelApp.authMode = mode;
             window.userPanelApp.renderState();
         };
 
         window.togglePassword = function() {
-            const input = document.getElementById('login-pass');
+            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
             const icon = document.getElementById('eye-icon');
             if (!input) return;
             if (input.type === "password") {
                 input.type = "text";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
             } else {
                 input.type = "password";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
             }
         };
 
@@ -184,52 +188,9 @@
             if(errDiv) {
                 errDiv.innerText = msg;
                 errDiv.classList.remove('hidden');
-                // Auto hide error after 5 seconds
                 setTimeout(() => errDiv.classList.add('hidden'), 5000);
             } else {
                 alert(msg);
-            }
-        };
-
-        window.subApp = {
-            database: {
-                'pankajmahto109@gmail.com': '2025-12-31','pankajkumarmahto1009@gmail.com': '2026-12-31',
-                'educateindiainstitute@gmail.com': '2029-01-31',
-                '3081krishnamahto7brssis@gmail.com': '2026-10-31',
-                'abhaykr2376@gmail.com': '2026-01-18', 'aryanavinash69@gmail.com': '2026-05-31', 'ayushkumar120603jha@gmail.com': '2026-03-14',
-                'akhilesh4754667@gmail.com': '2026-04-09',
-                'amitdas03112003@gmail.com': '2026-01-18','ashwanikumarr.098@gmail.com':'2026-12-31',
-                'bgminewidtwitter@gmail.com': '2026-12-31',
-                'harshpratapsingh04@gmail.com': '2026-06-31',
-                'indrajeet91434@gmail.com': '2026-04-19',
-                'jangidhimanshu2607@gmail.com': '2026-02-21',
-                'khushikumari22404@gmail.com': '2026-03-17',
-                'laxmimundhra2@gmail.com': '2026-02-12',
-                'mbbsk57@gmail.com': '2026-02-12',
-                'naveenagrawal826@gmail.com': '2026-02-12',
-                'pkt16june@gmail.com': '2026-02-12',
-                'rajputyashsingh67@gmail.com': '2026-02-22','roberto374890@gmail.com': '2026-03-13',
-                'shibanarayanjena001@gmail.com': '2026-03-10',
-                'tammaytubakale@gmail.com': '2026-04-14',
-                'yaesh544@gmail.com': '2026-01-18',
-                'yashwardhan334@gmail.com': '2026-05-16',
-                'expired@user.com': '2023-01-01'
-            },
-            purchaseUrl: "https://medqs-official.blogspot.com/p/payment-page.html",
-            checkStatus: function(email, callback) {
-                const expiryStr = this.database[email];
-                if (!expiryStr) { callback(false, "You are not a member."); return; }
-                const daysLeft = this.getDaysLeft(expiryStr);
-                if (daysLeft >= 0) { callback(true, { days: daysLeft, date: this.formatDate(expiryStr) }); } 
-                else { const daysAgo = Math.abs(daysLeft); callback(false, `Oops! Your subscription ended ${daysAgo} days ago.`); }
-            },
-            getDaysLeft: function(dateStr) {
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                const expiry = new Date(dateStr); expiry.setHours(0, 0, 0, 0);
-                return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-            },
-            formatDate: function(dateStr) {
-                return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
         };
 
@@ -262,9 +223,9 @@
         };
 
         // --- USER ACCOUNT PANEL LOGIC ---
-        const userPanelApp = {
+        window.userPanelApp = {
             isOpen: false,
-            authMode: 'login', // 'login' or 'register'
+            authMode: 'login', 
             els: {
                 drawer: document.getElementById('user-panel-drawer'),
                 backdrop: document.getElementById('user-panel-backdrop'),
@@ -286,64 +247,63 @@
             },
 
             renderState: function() {
-                const email = localStorage.getItem('medqs_user_email');
+                const user = window.currentUserObj;
                 
-                if (email) {
+                if (user) {
                     // USER IS LOGGED IN
-                    window.subApp.checkStatus(email, (isValid, data) => {
-                        let badgeHtml = '';
-                        let daysHtml = '';
-                        
-                        if (isValid) {
-                            badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
-                            daysHtml = `
-                                <div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center">
-                                    <span class="text-2xl font-black text-green-600 dark:text-green-400">${data.days}</span>
-                                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span>
-                                    <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${data.date}</span>
-                                </div>`;
-                        } else {
-                            const isExpired = data.toLowerCase().includes("ended");
-                            if (isExpired) {
-                                badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">Expired</span>`;
-                                daysHtml = `
-                                <div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center">
-                                    <span class="text-xs font-bold text-red-600 dark:text-red-400">${data}</span>
-                                    <a href="${window.subApp.purchaseUrl}" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a>
-                                </div>`;
-                            } else {
-                                badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">Free Plan</span>`;
-                                daysHtml = `
-                                <div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center">
-                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span>
-                                    <a href="${window.subApp.purchaseUrl}" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a>
-                                </div>`;
-                            }
-                        }
+                    let badgeHtml = '';
+                    let daysHtml = '';
+                    
+                    if (window.globalUserStatus.isVIP) {
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
+                        const formattedDate = new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center">
+                                <span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft}</span>
+                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span>
+                                <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${formattedDate}</span>
+                            </div>`;
+                    } else if (window.globalUserStatus.expired) {
+                        const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">Expired</span>`;
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center">
+                                <span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended ${daysAgo} days ago.</span>
+                                <a href="checkout.html" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a>
+                            </div>`;
+                    } else {
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">Free Plan</span>`;
+                        daysHtml = `
+                            <div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center">
+                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span>
+                                <a href="checkout.html" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a>
+                            </div>`;
+                    }
 
-                        const initial = email.charAt(0).toUpperCase();
+                    const nameToDisplay = user.displayName || "Welcome";
+                    const email = user.email;
+                    const initial = email.charAt(0).toUpperCase();
 
-                        this.els.body.innerHTML = `
-                            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
-                                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
-                                    ${initial}
-                                </div>
-                                <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm" id="user-display-name">Welcome</h3>
-                                <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${email}</p>
-                                ${badgeHtml}
-                                ${daysHtml}
+                    this.els.body.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
+                            <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
+                                ${initial}
                             </div>
-                            <nav class="space-y-2">
-                                <a href="${window.subApp.purchaseUrl}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
-                                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> Subscription Plan
-                                </a>
-                            </nav>`;
+                            <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm" id="user-display-name">${nameToDisplay}</h3>
+                            <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${email}</p>
+                            ${badgeHtml}
+                            ${daysHtml}
+                        </div>
+                        <nav class="space-y-2">
+                            <a href="checkout.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                                <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> Subscription Plan
+                            </a>
+                        </nav>`;
 
-                        this.els.footer.innerHTML = `
-                            <button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
-                            </button>`;
-                    });
+                    this.els.footer.innerHTML = `
+                        <button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
+                        </button>`;
                 } else {
                     // NOT LOGGED IN - SHOW LOGIN OR REGISTER FORM
                     if (this.authMode === 'login') {
@@ -373,12 +333,12 @@
                                     <button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 active:scale-95 transition-all">Sign In</button>
                                     <div class="text-center mt-2">
                                         <span class="text-xs text-slate-500 dark:text-slate-400">Don't have an account?</span>
-                                        <button onclick="toggleAuthMode('register')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Create One</button>
+                                        <button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Create One</button>
                                     </div>
                                 </div>
                             </div>`;
                     } else {
-                        // REGISTRATION FORM (Robust Global Profile)
+                        // REGISTRATION FORM
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-start h-full pb-4">
                                 <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner border border-green-200 dark:border-green-800">🌍</div>
@@ -389,9 +349,7 @@
 
                                 <div class="w-full space-y-3 mb-6">
                                     <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-                                    
                                     <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-                                    
                                     <input type="password" id="reg-pass" placeholder="Create Password (Min. 6 char)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
 
                                     <div class="grid grid-cols-2 gap-3">
@@ -400,13 +358,10 @@
                                             <option value="">Gender</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
-                                            <option value="Prefer not to say">Prefer not to say</option>
                                         </select>
                                     </div>
 
                                     <input type="tel" id="reg-phone" placeholder="Phone Number (e.g. +91...)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-
                                     <input type="text" id="reg-college" placeholder="College / University Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
 
                                     <div class="grid grid-cols-2 gap-3">
@@ -419,7 +374,7 @@
                                     <button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-500/30 hover:bg-green-700 active:scale-95 transition-all">Create Account</button>
                                     <div class="text-center mt-2">
                                         <span class="text-xs text-slate-500 dark:text-slate-400">Already have an account?</span>
-                                        <button onclick="toggleAuthMode('login')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Sign In</button>
+                                        <button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Sign In</button>
                                     </div>
                                 </div>
                             </div>`;
@@ -432,6 +387,26 @@
         const app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },
+            
+            checkDeogharVIP: function(instName) {
+                const DESTINATION = "schedules.html"; 
+                const triggerTitle = document.getElementById('selected-institute-name');
+                if (!triggerTitle) return;
+
+                triggerTitle.style.cursor = "default";
+                triggerTitle.classList.remove('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
+                const newTitle = triggerTitle.cloneNode(true);
+                triggerTitle.parentNode.replaceChild(newTitle, triggerTitle);
+
+                if (instName.includes("Deoghar")) {
+                    if (window.globalUserStatus && window.globalUserStatus.isVIP) {
+                        newTitle.classList.add('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
+                        newTitle.setAttribute('title', 'Open Schedules');
+                        newTitle.addEventListener('click', () => window.location.href = DESTINATION);
+                    }
+                }
+            },
+
             goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
             goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
             goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
@@ -453,6 +428,8 @@
             renderYears: function(inst) {
                 this.toggleView('years');
                 document.getElementById('selected-institute-name').innerText = inst.name;
+                this.checkDeogharVIP(inst.name);
+                
                 document.getElementById('years-grid').innerHTML = DATA.years.map(year => {
                     if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">${year.sub}</p></div>`;
                     return `<div onclick="app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-400/20 transition-colors">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400 text-slate-900 dark:text-white">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p></div>`;
@@ -515,10 +492,8 @@
             isOpen: false, stack: [],
             els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
             
-            init: function() { setInterval(() => this.checkVisibility(), 1500); },
             checkVisibility: function() {
-                const email = localStorage.getItem('medqs_user_email');
-                const isVIP = email && Object.keys(window.subApp.database).includes(email.toLowerCase().trim());
+                const isVIP = window.globalUserStatus.isVIP;
                 this.els.trigger.style.display = isVIP ? 'flex' : 'none';
                 if(!isVIP && this.isOpen) this.close();
             },
@@ -528,11 +503,11 @@
             goBack: function() { if(this.stack.length > 1) { this.stack.pop(); this.renderList(this.stack[this.stack.length-1].val, false); } else this.close(); },
             renderHome: function(push=true) {
                 if(push) this.stack.push({type:'home'}); this.els.title.innerText="Library";
-                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white">${name} ➝</div>`).join('');
+                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="window.pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white">${name} ➝</div>`).join('');
             },
             renderList: function(col, push=true) {
                 if(push) this.stack.push({type:'list', val:col}); this.els.title.innerText=col;
-                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800">📄 ${sub}</div>`).join('');
+                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="window.pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800">📄 ${sub}</div>`).join('');
             },
             renderViewer: function(url) {
                 let fUrl = url.includes('drive.google') ? url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview') : url;
@@ -562,15 +537,15 @@
             if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
             init3D(); 
             app.init(); 
-            pdfSmartApp.init();
-            userPanelApp.renderState(); 
+            // The Firebase Auth listener will call renderState and checkVisibility
+            window.userPanelApp.renderState(); 
         });
     </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
@@ -590,7 +565,6 @@
         window.handleEmailLogin = function(btn) {
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-pass').value;
-            
             if(!email || !pass) return window.showAuthError("Please enter both email and password.");
             
             const originalText = btn.innerText;
@@ -608,9 +582,8 @@
             });
         };
 
-        // 2. ROBUST GLOBAL REGISTRATION 
+        // 2. REGISTRATION
         window.handleEmailSignUp = async function(btn) {
-            // Get all fields
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value;
@@ -621,7 +594,6 @@
             const city = document.getElementById('reg-city').value.trim();
             const country = document.getElementById('reg-country').value.trim();
             
-            // Basic Validation
             if(!name || !email || !pass || !college || !country) {
                 return window.showAuthError("Please fill out all mandatory fields (Name, Email, Password, College, Country).");
             }
@@ -632,14 +604,12 @@
             btn.disabled = true;
 
             try {
-                // A. Create the User Auth Account
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
                 const user = userCredential.user;
 
-                // B. Update the Auth Profile Display Name
                 await updateProfile(user, { displayName: name });
 
-                // C. Save detailed global profile to Realtime Database
+                // Save detailed profile to Realtime Database
                 await set(ref(db, 'users/' + user.uid + '/profile'), {
                     fullName: name,
                     email: email,
@@ -651,8 +621,6 @@
                     country: country,
                     createdAt: new Date().toISOString()
                 });
-
-                // Success handled by onAuthStateChanged listener below
             } catch(e) {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -688,21 +656,50 @@
             signOut(auth).then(() => window.location.reload());
         };
 
-        // 5. STATE LISTENER (Runs instantly when logged in/out)
+        // 5. MASTER STATE LISTENER (Automated Database Check)
         onAuthStateChanged(auth, (user) => {
+            window.currentUserObj = user;
+
             if (user) {
                 localStorage.setItem('medqs_user_email', user.email.toLowerCase());
                 
-                // Update display name instantly if available
-                const nameDisplay = document.getElementById('user-display-name');
-                if (nameDisplay && user.displayName) {
-                    nameDisplay.innerText = user.displayName;
-                }
+                // Real-time listener for the user's subscription
+                const subRef = ref(db, 'users/' + user.uid + '/subscription');
+                onValue(subRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const subData = snapshot.val();
+                        const today = new Date(); 
+                        today.setHours(0,0,0,0);
+                        
+                        const expiry = new Date(subData.validUntil); 
+                        expiry.setHours(0,0,0,0);
+                        
+                        const diffTime = expiry - today;
+                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (daysLeft >= 0 && subData.status === "active") {
+                            // Active VIP
+                            window.globalUserStatus = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
+                        } else {
+                            // Expired VIP
+                            window.globalUserStatus = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
+                        }
+                    } else {
+                        // No subscription found
+                        window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                    }
+                    
+                    // Update UI across the app instantly
+                    window.userPanelApp.renderState();
+                    window.pdfSmartApp.checkVisibility();
+                });
                 
-                userPanelApp.renderState();
             } else {
+                // Completely logged out
                 localStorage.removeItem('medqs_user_email');
-                userPanelApp.renderState();
+                window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                window.userPanelApp.renderState();
+                window.pdfSmartApp.checkVisibility();
             }
         });
     </script>

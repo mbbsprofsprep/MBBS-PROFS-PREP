@@ -973,7 +973,7 @@
             const group = new THREE.Group(); 
             scene.add(group); 
             const geo = new THREE.SphereGeometry(0.3, 8, 8);
-            let mb = new MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
+            let mb = new THREE.MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
             for(let i=0; i<150; i++) { 
                 const a=i*0.4; 
                 group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); 

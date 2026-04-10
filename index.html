@@ -198,8 +198,40 @@
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
 
-        // Shared App Logo to keep consistency
+        // Shared App Logo
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
+
+        // ==========================================
+        // THESE THREE FUNCTIONS WERE MISSING!
+        // ==========================================
+        window.toggleAuthMode = function(mode) {
+            window.userPanelApp.authMode = mode;
+            window.userPanelApp.renderState();
+        };
+
+        window.togglePassword = function() {
+            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
+            const icon = document.getElementById('eye-icon');
+            if (!input) return;
+            if (input.type === "password") {
+                input.type = "text";
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
+            } else {
+                input.type = "password";
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+            }
+        };
+
+        window.showAuthError = function(msg) {
+            const errDiv = document.getElementById('auth-error-msg');
+            if(errDiv) {
+                errDiv.innerText = msg;
+                errDiv.classList.remove('hidden');
+                setTimeout(() => errDiv.classList.add('hidden'), 5000);
+            } else {
+                alert(msg);
+            }
+        };
 
         // UI Routing Data
         window.DATA = {
@@ -305,7 +337,10 @@
                     </div>`;
 
                 if (user) {
+                    // --------- LOGGED IN VIEWS ---------
+                    
                     if (this.viewMode === 'menu') {
+                        // 1. MAIN DASHBOARD VIEW
                         let badgeHtml = ''; 
                         let daysHtml = '';
                         
@@ -475,6 +510,8 @@
                     }
                     
                 } else {
+                    // --------- LOGGED OUT VIEWS ---------
+                    
                     if (this.authMode === 'login') {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
@@ -542,27 +579,7 @@
             }
         };
 
-        window.togglePassword = function() {
-            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
-            if (!input) return;
-            if (input.type === "password") {
-                input.type = "text";
-            } else {
-                input.type = "password";
-            }
-        };
-
-        window.showAuthError = function(msg) {
-            const errDiv = document.getElementById('auth-error-msg');
-            if(errDiv) {
-                errDiv.innerText = msg;
-                errDiv.classList.remove('hidden');
-                setTimeout(() => errDiv.classList.add('hidden'), 5000);
-            } else {
-                alert(msg);
-            }
-        };
-
+        // UI View Logic
         window.app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },

@@ -1,108 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBBS PROFS PREP - OBG Exam Review</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
         tailwind.config = {
-            darkMode: 'class', 
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        primary: '#2563eb', 
-                        secondary: '#60a5fa', 
-                    }
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' },
+                        accent: { yellow: '#ffc107', yellowHover: '#e0a800' },
+                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        
-        .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
-        .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #93c5fd; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background-color: #dbeafe; border-radius: 4px; }
 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
+        body { font-family: 'Inter', sans-serif; background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
+        html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
+        
+        /* Glass Card Sync */
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
+
+        /* Custom scrollbar */
+        .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #bae6fd; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
+        html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
+
+        /* Answer Reveal Logic */
         .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
-        body.dark.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
+        html.dark body.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
 
-        .theory-question { font-style: italic; color: #1e40af; font-weight: 500; background-color: #eff6ff; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb; line-height: 1.6; }
+        /* Theory Question Styling */
+        .theory-question { font-style: italic; color: #0284c7; font-weight: 500; background-color: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3395ff; line-height: 1.6; }
+        html.dark .theory-question { background-color: rgba(15, 23, 42, 0.8); color: #bae6fd; border-left-color: #0ea5e9; }
         
+        /* Dropdown Components */
         .multiselect-container { position: relative; }
-        .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-        body.dark .multiselect-btn { background-color: #1f2937; border-color: #374151; color: #e5e7eb; }
-        .multiselect-btn:hover { border-color: #2563eb; }
+        .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        html.dark .multiselect-btn { background-color: #0f172a; border-color: #1e293b; color: #e5e7eb; }
+        .multiselect-btn:hover { border-color: #3395ff; }
         
-        .multiselect-menu { display: none; position: absolute; z-index: 50; top: 100%; left: 0; right: 0; margin-top: 0.25rem; background-color: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-height: 300px; overflow-y: auto; }
+        .multiselect-menu { display: none; position: absolute; z-index: 50; top: 100%; left: 0; right: 0; margin-top: 0.25rem; background-color: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-height: 300px; overflow-y: auto; }
         .multiselect-menu.show { display: block; }
-        body.dark .multiselect-menu { background-color: #1f2937; border-color: #374151; }
+        html.dark .multiselect-menu { background-color: #0f172a; border-color: #1e293b; }
 
-        .multiselect-option { padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; font-size: 0.875rem; color: #374151; }
-        body.dark .multiselect-option { color: #d1d5db; }
-        .multiselect-option:hover { background-color: #eff6ff; }
-        body.dark .multiselect-option:hover { background-color: #374151; }
-        .multiselect-option input[type="checkbox"] { margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #2563eb; }
+        .multiselect-option { padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; font-size: 0.875rem; color: #334155; }
+        html.dark .multiselect-option { color: #cbd5e1; }
+        .multiselect-option:hover { background-color: #f0f9ff; }
+        html.dark .multiselect-option:hover { background-color: #1e293b; }
+        .multiselect-option input[type="checkbox"] { margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #3395ff; }
 
-        .multiselect-group-header { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #1e40af; background-color: #dbeafe; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; cursor: pointer; }
-        body.dark .multiselect-group-header { background-color: #111827; color: #60a5fa; }
-        .multiselect-group-header input[type="checkbox"] { margin-right: 0.75rem; accent-color: #1e40af; }
+        .multiselect-group-header { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #0284c7; background-color: #e0f2fe; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; cursor: pointer; }
+        html.dark .multiselect-group-header { background-color: #020617; color: #38bdf8; }
+        .multiselect-group-header input[type="checkbox"] { margin-right: 0.75rem; accent-color: #0284c7; }
         
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
 
         /* DECK VIEW SPECIFIC STYLES */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
-        .dark #universal-deck-layer { background: #111827; color: white; }
+        html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
-        .dark .deck-card { background: #1f2937; border: 1px solid #374151; }
-        .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #374151; cursor: pointer; position: relative; }
-        .dark .deck-option-btn { border-color: #374151; background: rgba(31, 41, 55, 0.5); color: #d1d5db; }
+        html.dark .deck-card { background: #0f172a; border: 1px solid #1e293b; }
+        .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #334155; cursor: pointer; position: relative; }
+        html.dark .deck-option-btn { border-color: #1e293b; background: rgba(30, 41, 59, 0.5); color: #cbd5e1; }
         .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; }
-        .dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
+        html.dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
         .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; }
-        .dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
+        html.dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
         
-        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #2563eb; color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
+        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
         
         .deck-drawer { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
         .deck-drawer.open { pointer-events: auto; opacity: 1; }
         .deck-drawer-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .deck-drawer-content { position: absolute; top: 0; right: 0; bottom: 0; width: 85%; max-width: 320px; background: white; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
-        .dark .deck-drawer-content { background: #111827; border-left: 1px solid #374151; }
+        html.dark .deck-drawer-content { background: #0f172a; border-left: 1px solid #1e293b; }
         .deck-drawer.open .deck-drawer-content { transform: translateX(0); }
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; overflow-y: auto; }
-        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .dark .deck-nav-btn { background: #374151; color: #f3f4f6; border-color: #4b5563; }
-        .deck-nav-btn.active { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
+        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        html.dark .deck-nav-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+        .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
-        .filter-group { margin-bottom: 20px; }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative" onclick="closeAllDropdowns(event)">
+<body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative" onclick="closeAllDropdowns(event)">
 
     <script>
         if (localStorage.getItem('theme') === 'dark') {
-            document.body.classList.add('dark');
+            document.documentElement.classList.add('dark');
         }
     </script>
 
-    <nav class="fixed top-0 w-full z-50 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/95 backdrop-blur-md transition-colors">
+    <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
             <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
-                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/30">M</div>
+                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
                 <div class="leading-tight">
-                    <h1 class="font-bold text-lg tracking-tight text-gray-900 dark:text-white">MBBS <span class="text-blue-500">Profs Prep</span></h1>
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Return to Portal</p>
+                    <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Return to Portal</p>
                 </div>
             </a>
             <div class="flex items-center gap-3">
-                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 text-xl transition-all" onclick="toggleTheme()">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
                     <span id="theme-icon">🌙</span>
                 </button>
             </div>
@@ -110,21 +125,22 @@
     </nav>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto" id="main-wrapper">
+        
         <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-blue-800 dark:text-blue-400 tracking-tight mb-2">OBG Exam Review</h1>
-            <h2 class="text-xl md:text-2xl font-semibold text-blue-600 dark:text-blue-300">MBBS PROFS PREP</h2>
-            <p class="mt-3 text-md text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions (Obstetrics & Gynaecology).</p>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2">OBG Exam Review</h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300">MBBS PROFS PREP</h2>
+            <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions (Obstetrics & Gynaecology).</p>
         </header>
 
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <div class="glass-card p-6 rounded-xl mb-6">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div class="md:col-span-4 flex items-center gap-2">
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
                         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search (e.g., PPH, Fibroid, Eclampsia)..."
-                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out">
+                            class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
                     <button id="summaryButton" onclick="handleSecretClick()" title="Generate Checklist (Hot Coffee)">☕️</button>
                 </div>
@@ -134,10 +150,10 @@
             </div>
         </div>
         
-        <div class="overflow-hidden rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+        <div class="overflow-hidden rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 glass-card p-0">
             <div class="overflow-x-auto table-container">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="qnaTable">
-                    <thead class="bg-blue-600 dark:bg-blue-900 border-b dark:border-gray-700">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800" id="qnaTable">
+                    <thead class="bg-brand-500 dark:bg-dark-surface border-b dark:border-slate-700">
                         <tr>
                             <th scope="col" class="px-4 py-4 text-center text-xs font-bold text-white uppercase tracking-wider w-16">Q No.</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[350px]">Question Content / Description</th>
@@ -147,26 +163,26 @@
                             <th scope="col" class="px-4 py-4 text-center text-xs font-bold text-white uppercase tracking-wider w-24">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"></tbody>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-sm bg-white dark:bg-dark-bg text-slate-900 dark:text-slate-200"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="fixed inset-0 bg-slate-900/75 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm">
-                <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
+                <div class="bg-white dark:bg-dark-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
-                        <div id="modalIcon" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"></div>
+                        <div id="modalIcon" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30 sm:mx-0 sm:h-10 sm:w-10"></div>
                         <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 class="text-lg font-bold leading-6 text-gray-900 dark:text-white" id="modal-title"></h3>
-                            <div id="modal-body-content" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></div>
+                            <h3 class="text-lg font-bold leading-6 text-slate-900 dark:text-white" id="modal-title"></h3>
+                            <div id="modal-body-content" class="mt-2 text-sm text-slate-500 dark:text-slate-400"></div>
                         </div>
                     </div>
                 </div>
-                <div id="modal-footer-buttons" class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
+                <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-dark-bg px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
             </div>
         </div>
     </div>
@@ -369,7 +385,7 @@
             { q: "DGM105", type: "MCQ", stem: "Metabolic syndrome predisposes women to which carcinoma?", ans_key: "A", options: ["Endometrial", "Ovarian", "Cervical", "Breast"], chapter: ["GYN Chapter 24: Genital Malignancy"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM106", type: "MCQ", stem: "Clomiphene citrate is:", ans_key: "C", options: ["Androgenic", "Estrogenic", "Anti-estrogenic", "None of the above"], chapter: ["GYN Chapter 17: Infertility", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM107", type: "MCQ", stem: "HRT is indicated in all except:", ans_key: "D", options: ["Hot flushes", "Osteoporosis", "Atrophic vaginitis", "Cardiovascular disorder"], chapter: ["GYN Chapter 6: Menopause", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2021 Batch Prof Exam Paper-II" },
-            { q: "DGM108", type: "MCQ", stem: "Identify the following HSG:<br>[Image missing]", ans_key: "B", options: ["Normal uterus", "Septate uterus", "Arcuate uterus", "Bicornuate uterus"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM108", type: "MCQ", stem: "Identify the following HSG:<br><img src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi2SR5PWcj_-m_ftT5ElRureZAlOA9UJu7ukcfSNXOiv_W-AiymNyKajror-SRnE0Eam-NBPlwYyk-J3cCoCsPYYqy5l8sjRSJJmdZPdTuSVUVSlrnY6kIc178RONv4h6vbUx5jJktyBfu02rqHWMz-Lsvy0OGwS2EtsmATYpIWS8BB7csrlgCjqfGyDl0/s266/1000185750.jpg' alt='HSG Image' style='max-width: 100%; height: auto; margin-top: 12px; border-radius: 8px;' />", ans_key: "B", options: ["Normal uterus", "Septate uterus", "Arcuate uterus", "Bicornuate uterus"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM109", type: "MCQ", stem: "Which is false regarding Mayer Rokitansky Kuster Hauser Syndrome?", ans_key: "D", options: ["Karyotype is 46 XX", "Associated with renal abnormalities", "Associated with skeletal abnormalities", "Secondary sexual characteristics are not developed"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM110", type: "MCQ", stem: "False about Androgen insensitivity syndrome:", ans_key: "D", options: ["Short vagina", "Karyotype 46XY", "Ovaries are absent", "Pubic hair is present"], chapter: ["GYN Chapter 28: Disorders of Sexual Development", "GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM111", type: "MCQ", stem: "Clue cells are seen in:", ans_key: "B", options: ["Trichomoniasis", "Bacterial vaginosis", "Candidiasis", "Gonorrhoea"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2021 Batch Prof Exam Paper-II" },
@@ -418,8 +434,8 @@
 
         function updateButtonText(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
-            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-gray-500 dark:text-gray-400"; } 
-            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-blue-700 dark:text-blue-400 font-semibold"; }
+            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
+            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
 
         function createMultiSelect(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
@@ -435,7 +451,7 @@
             } else {
                 items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
             }
-            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-gray-500 dark:text-gray-400">All ${label}s</span><svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
+            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
         function populateFilters() {
@@ -449,42 +465,42 @@
             tbody.innerHTML = ''; 
             qnaData.forEach((item, index) => {
                 const row = tbody.insertRow();
-                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-800 group transition duration-150 ease-in-out border-b dark:border-gray-700'; 
+                row.className = 'hover:bg-brand-50 dark:hover:bg-slate-800 group transition duration-150 ease-in-out border-b border-slate-200 dark:border-slate-800'; 
                 row.setAttribute('data-index', index);
                 
-                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 align-middle'; cell1.innerHTML = item.q;
+                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
                 if (item.type === 'MCQ') {
-                    qHtml += `<span class="block font-semibold mb-2 text-gray-900 dark:text-gray-100">${cleanStem}</span><div class="space-y-1">`;
+                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-slate-100">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
                             const optionLetter = optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                            qHtml += isCorrect ? `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
+                            qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
                     qHtml += '</div>';
-                } else { qHtml += `<div class="theory-question shadow-sm dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-500"><span>${cleanStem}</span></div>`; }
+                } else { qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500"><span>${cleanStem}</span></div>`; }
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
-                const badgeColor = item.type === 'Theory' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700';
+                const badgeColor = item.type === 'Theory' ? 'bg-accent-yellow/20 text-accent-yellowHover border-accent-yellow/40' : 'bg-brand-100 text-brand-800 border-brand-200 dark:bg-brand-900/30 dark:text-brand-200 dark:border-brand-700';
                 cell_type.innerHTML = `<span class="${badgeColor} border px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap inline-block">${item.type}</span>`;
                 
-                let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle';
+                let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800';
                 let chapterHtml = '';
                 item.chapter.forEach(ch => {
                     const unitName = getUnitForChapter(ch);
-                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-gray-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-gray-700 dark:text-gray-300">${ch}</span></div>`;
+                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-300">${ch}</span></div>`;
                 });
                 cell_chapter.innerHTML = chapterHtml;
 
-                let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-gray-700 align-middle';
-                cell_exam.innerHTML = `<div>${COLLEGE_NAME}</div><div class="font-semibold text-blue-600 dark:text-blue-400 mt-1">${item.examBatch}</div>`;
+                let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
+                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${item.examBatch}</div>`;
 
-                let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle';
-                cell_ai.innerHTML = `<button onclick="askAI(this, qnaData[${index}])" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
+                let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
+                cell_ai.innerHTML = `<button onclick="askAI(this, qnaData[${index}])" class="bg-green-500/10 hover:bg-green-500 text-green-600 dark:text-green-400 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24 border border-green-500/20"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
             });
         }
 
@@ -516,17 +532,17 @@
             } else { textToCopy = `I am studying for an OBG exam. Please provide a structured model answer for the following theory question:\n\n"${cleanStem}"\n\nInclude relevant headings, clinical features, and management steps. Context: ${chapterString}`; }
             
             const tempTextarea = document.createElement('textarea'); tempTextarea.value = textToCopy; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
-            showModal("Copied to Clipboard!", `<p class="text-sm text-gray-500 dark:text-gray-400">The question is ready. Open ChatGPT?</p>`, `<button onclick="openChatGPT()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Go to ChatGPT</button> <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Stay Here</button>`, `<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
+            showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready. Open ChatGPT?</p>`, `<button onclick="openChatGPT()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Go to ChatGPT</button> <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Stay Here</button>`, `<svg class="h-6 w-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
         }
 
-        function handleSecretClick() { showModal("Welcome!", `<p class="text-gray-700 dark:text-gray-300 mb-4">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white">`, `<button type="button" onclick="handleNameSubmission()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Continue</button><button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Cancel</button>`, `<span class="text-2xl">☕️</span>`); }
+        function handleSecretClick() { showModal("Welcome!", `<p class="text-slate-700 dark:text-slate-300 mb-4 font-medium">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-dark-surface text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">`, `<button type="button" onclick="handleNameSubmission()" class="inline-flex w-full justify-center rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-600 sm:w-auto">Continue</button><button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-3 text-sm font-bold text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 sm:mt-0 sm:w-auto">Cancel</button>`, `<span class="text-2xl">☕️</span>`); }
 
         function handleNameSubmission() {
             const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
             if (name.toLowerCase() === SECRET_CODE) { closeModal(); copyForChatGPT(); } 
             else if (name) {
                 const randomIndex = Math.floor(Math.random() * motivationalMessages.length); let message = motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
-                showModal("Study Motivation!", `<p class="text-gray-700 dark:text-gray-300 text-base font-semibold">${message}</p>`, `<button type="button" onclick="closeModal()" class="inline-flex w-full justify-center rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:w-auto">Back to Study</button>`, `<span class="text-2xl">💪</span>`);
+                showModal("Study Motivation!", `<p class="text-slate-700 dark:text-slate-300 text-base font-semibold">${message}</p>`, `<button type="button" onclick="closeModal()" class="inline-flex w-full justify-center rounded-xl bg-green-500 px-3 py-3 text-sm font-bold text-white shadow-sm hover:bg-green-600 sm:w-auto">Back to Study</button>`, `<span class="text-2xl">💪</span>`);
             }
         }
         
@@ -537,7 +553,7 @@
             let clipboardText = `Create a checklist for these OBG questions:\n`;
             visibleQuestions.forEach(q => { clipboardText += `Q ${q.q}: ${q.stem.replace(/\*\*(.*?)\*\*/g, "$1").replace(/<[^>]*>/g, "")}\n` });
             const temp = document.createElement('textarea'); temp.value = clipboardText; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp);
-            showModal("Copied!", `<p class="text-gray-600 dark:text-gray-400">Copied ${visibleQuestions.length} questions.</p>`, `<button onclick="openChatGPT()" class="bg-blue-600 text-white px-4 py-2 rounded">Go to ChatGPT</button>`, `<span>📋</span>`);
+            showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400 font-medium">Copied ${visibleQuestions.length} questions to checklist.</p>`, `<button onclick="openChatGPT()" class="bg-brand-500 text-white font-bold px-4 py-3 rounded-xl w-full">Go to ChatGPT</button>`, `<span class="text-2xl">📋</span>`);
         }
 
         const modal = document.getElementById('actionModal');
@@ -546,7 +562,8 @@
         function openChatGPT() { window.open('https://chat.openai.com/', '_blank'); closeModal(); }
 
         function toggleTheme() {
-            const isDark = document.body.classList.toggle('dark');
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
             const icon = document.getElementById('theme-icon');
             if (icon) icon.innerText = isDark ? '☀️' : '🌙';
@@ -564,43 +581,43 @@
             const deckLayer = document.createElement('div');
             deckLayer.id = 'universal-deck-layer';
             deckLayer.innerHTML = `
-                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10 shrink-0">
+                <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
                     <div class="flex items-center gap-3">
-                        <button onclick="toggleDeckDrawer('filter')" class="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
+                        <button onclick="toggleDeckDrawer('filter')" class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                         </button>
                         <div>
-                            <h1 class="font-bold text-lg text-blue-600 dark:text-blue-400 truncate">Review Mode</h1>
-                            <div class="text-xs text-gray-500" id="deck-subtitle">Loading...</div>
+                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate">Review Mode</h1>
+                            <div class="text-xs text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
                         </div>
                     </div>
-                    <button onclick="toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                    <button onclick="toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         <span id="deck-counter">1/1</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
-                <div class="flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-gray-900" id="deck-card-container"></div>
-                <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-3 z-10 shrink-0 pb-20">
-                    <button onclick="deckPrev()" class="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 font-bold text-gray-600 dark:text-gray-300">Previous</button>
-                    <button onclick="deckNext()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30">Next</button>
+                <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
+                <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
+                    <button onclick="deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Previous</button>
+                    <button onclick="deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Next</button>
                 </div>
                 <div id="deck-nav-drawer" class="deck-drawer">
                     <div class="deck-drawer-bg" onclick="toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold flex justify-between text-gray-800 dark:text-white"><span>Navigator</span><button onclick="toggleDeckDrawer(null)">✕</button></div>
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="toggleDeckDrawer(null)">✕</button></div>
                         <div class="nav-grid" id="deck-nav-grid"></div>
                     </div>
                 </div>
                 <div id="deck-filter-drawer" class="deck-drawer">
                     <div class="deck-drawer-bg" onclick="toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                            <span class="font-bold text-lg text-gray-800 dark:text-white">Filters</span>
-                            <button onclick="resetDeckFilters()" class="text-xs text-blue-600 font-bold bg-blue-50 dark:bg-gray-800 px-3 py-1 rounded-full border border-blue-100 dark:border-gray-700">RESET</button>
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
+                            <button onclick="resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
                         </div>
                         <div class="p-5 overflow-y-auto flex-1" id="deck-filter-content"></div>
-                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-                            <button onclick="applyDeckFilters(); toggleDeckDrawer(null);" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30">Apply Filters</button>
+                        <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                            <button onclick="applyDeckFilters(); toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Apply Filters</button>
                         </div>
                     </div>
                 </div>
@@ -626,9 +643,9 @@
             const buildGroup = (label, category, opts) => {
                 if (!opts || opts.length <= 1) return '';
                 return `<div class="mb-6 filter-group">
-                            <div class="font-bold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">${label}</div>
+                            <div class="font-bold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">${label}</div>
                             <div class="space-y-2">
-                                ${opts.map(opt => `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors group"><input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500" data-category="${category}"><span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white leading-snug">${opt}</span></label>`).join('')}
+                                ${opts.map(opt => `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"><input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900" data-category="${category}"><span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span></label>`).join('')}
                             </div>
                         </div>`;
             };
@@ -676,7 +693,7 @@
         function renderDeckCard() {
             const container = document.getElementById('deck-card-container');
             if (activeDeckQuestions.length === 0) {
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-gray-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-gray-600 dark:text-gray-400">No questions match these filters.</p></div>`;
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No questions match these filters.</p></div>`;
                 document.getElementById('deck-counter').innerText = '0/0';
                 return;
             }
@@ -691,29 +708,29 @@
             let optsHtml = '';
 
             if (q.type === 'MCQ') {
-                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-gray-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) {
                     optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => {
                         const letter = optionLetters[i];
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                        return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 text-sm font-bold flex items-center justify-center border border-gray-200 dark:border-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">${letter}</span><span class="text-gray-700 dark:text-gray-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`;
+                        return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`;
                     }).join('')}</div>`;
                 }
             } else {
-                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-500 text-left"><span>${cleanStem}</span></div></div>`;
+                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`;
                 optsHtml = ''; 
             }
 
             container.innerHTML = `
-                <div class="deck-card">
+                <div class="deck-card glass-card">
                     <div class="mb-4 flex justify-between items-center">
-                        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">${q.q}</span>
-                        <button onclick="askAI(this, qnaData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                        <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
+                        <button onclick="askAI(this, qnaData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
                     </div>
                     ${questionHtml}
                     ${optsHtml}
-                    <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
-                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">${ch}</span>`).join('')}
+                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
+                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
                     </div>
                 </div>`;
             container.scrollTop = 0;
@@ -780,10 +797,6 @@
         }
 
         window.onload = () => { 
-            if (localStorage.getItem('theme') === 'dark') {
-                const icon = document.getElementById('theme-icon');
-                if (icon) icon.innerText = '☀️';
-            }
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             populateTable(); 
             populateFilters(); 

@@ -558,28 +558,36 @@
             const deckLayer = document.createElement('div');
             deckLayer.id = 'universal-deck-layer';
             
-            // EXACT HTML from the requested "previous style"
             deckLayer.innerHTML = `
                 <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    <div class="flex items-center gap-2 md:gap-3">
+                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="My Account">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
-                        <div>
-                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate">Review Mode</h1>
-                            <div class="text-xs text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
+                        
+                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Filters">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                        </button>
+                        
+                        <div class="ml-1">
+                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate leading-tight">Review Mode</h1>
+                            <div class="text-[10px] text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
                         </div>
                     </div>
+                    
                     <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         <span id="deck-counter">1/1</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
+                
                 <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
+                
                 <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
                     <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Previous</button>
                     <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Next</button>
                 </div>
+                
                 <div id="deck-nav-drawer" class="deck-drawer">
                     <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
@@ -587,6 +595,7 @@
                         <div class="nav-grid" id="deck-nav-grid"></div>
                     </div>
                 </div>
+                
                 <div id="deck-filter-drawer" class="deck-drawer">
                     <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">

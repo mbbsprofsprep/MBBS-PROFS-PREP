@@ -26,26 +26,21 @@
         body { font-family: 'Inter', sans-serif; background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
         html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
         
-        /* Glass Card Sync */
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
 
-        /* Custom scrollbar */
         .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #bae6fd; border-radius: 10px; }
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
         html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
 
-        /* Answer Reveal Logic */
         .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
         html.dark body.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
 
-        /* Theory Question Styling */
         .theory-question { font-style: italic; color: #0284c7; font-weight: 500; background-color: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3395ff; line-height: 1.6; }
         html.dark .theory-question { background-color: rgba(15, 23, 42, 0.8); color: #bae6fd; border-left-color: #0ea5e9; }
         
-        /* Dropdown Components */
         .multiselect-container { position: relative; }
         .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         html.dark .multiselect-btn { background-color: #0f172a; border-color: #1e293b; color: #e5e7eb; }
@@ -68,7 +63,6 @@
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
 
-        /* DECK VIEW SPECIFIC STYLES */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
         html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
@@ -123,7 +117,6 @@
     </nav>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto" id="main-wrapper">
-        
         <header class="text-center mb-10">
             <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2">OBG Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300">MBBS PROFS PREP</h2>
@@ -186,7 +179,6 @@
     </div>
 
     <script>
-        // --- CONFIGURATION & DATA ---
         const COLLEGE_NAME = "AIIMS DEOGHAR";
         const SECRET_CODE = "777pankaj";
         const optionLetters = ['A', 'B', 'C', 'D'];
@@ -399,19 +391,22 @@
         ];
 
         // --- FILTERING & PAYWALL STATE ---
-        window.isPremium = false;
+        window.accessLevel = 'guest'; // 'guest', 'free', 'premium'
         window.displayData = [];
         const filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         const motivationalMessages = ["Hi [Name]! You are bringing life to your studies, just like in OBG!", "Hey [Name], remember: Every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!", "You're mastering the art of life and care, [Name]!"];
 
         window.processDataForAccess = function() {
-            if (window.isPremium) {
+            if (window.accessLevel === 'premium') {
                 window.displayData = [...qnaData];
-            } else {
+            } else if (window.accessLevel === 'free') {
                 // Free Tier: First 10 Theory, First 10 MCQ
                 const theoryQs = qnaData.filter(q => q.type === 'Theory').slice(0, 10);
                 const mcqQs = qnaData.filter(q => q.type === 'MCQ').slice(0, 10);
                 window.displayData = [...theoryQs, ...mcqQs];
+            } else {
+                // Guest Tier: No questions
+                window.displayData = [];
             }
             populateTable();
             if (typeof syncDeckWithFilters === 'function') syncDeckWithFilters();
@@ -518,8 +513,20 @@
                 cell_ai.innerHTML = `<button onclick="askAI(this, window.displayData[${index}])" class="bg-green-500/10 hover:bg-green-500 text-green-600 dark:text-green-400 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24 border border-green-500/20"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
             });
 
-            // ADD LOCK BANNER IF NOT PREMIUM
-            if (!window.isPremium) {
+            // ADD LOCK BANNERS BASED ON ACCESS LEVEL
+            if (window.accessLevel === 'guest') {
+                const row = tbody.insertRow();
+                row.setAttribute('data-locked-row', 'true');
+                const cell = row.insertCell();
+                cell.colSpan = 6;
+                cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
+                cell.innerHTML = `
+                    <div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
+                    <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Login Required</h3>
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 font-medium max-w-md mx-auto">You must be signed in to view the free preview modules.</p>
+                    <a href="index.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 hover:scale-105 transition-all">Sign In to Continue</a>
+                `;
+            } else if (window.accessLevel === 'free') {
                 const row = tbody.insertRow();
                 row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell();
@@ -721,8 +728,21 @@
         function renderDeckCard() {
             const container = document.getElementById('deck-card-container');
             
-            // Render PRO Up-Sell Card if user hits the limit
-            if (!window.isPremium && deckIndex === activeDeckQuestions.length) {
+            // Render LOGIN GUEST CARD
+            if (window.accessLevel === 'guest') {
+                container.innerHTML = `
+                    <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
+                        <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
+                        <a href="index.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Sign In / Register</a>
+                    </div>`;
+                document.getElementById('deck-counter').innerText = `🔒`;
+                return;
+            }
+
+            // Render UP-SELL CARD at end of Free preview
+            if (window.accessLevel === 'free' && deckIndex === activeDeckQuestions.length) {
                 container.innerHTML = `
                     <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
@@ -809,8 +829,8 @@
         function deckNext() { 
             if (deckIndex < activeDeckQuestions.length - 1) { 
                 deckIndex++; renderDeckCard(); 
-            } else if (!window.isPremium && deckIndex === activeDeckQuestions.length - 1) {
-                // Show Upsell Card
+            } else if (window.accessLevel === 'free' && deckIndex === activeDeckQuestions.length - 1) {
+                // Advance one more step to show the Paywall Card
                 deckIndex++; renderDeckCard();
             }
         }
@@ -843,7 +863,7 @@
             populateFilters(); 
             initDeckView(); 
             
-            // Run default access processing immediately (Guest mode)
+            // Run default access processing immediately (Assumes Guest mode until Firebase authenticates)
             window.processDataForAccess();
         };
     </script>
@@ -874,7 +894,7 @@
                 const email = user.email.toLowerCase().trim();
                 if (allowedVIPs.includes(email)) {
                     // VIP bypass
-                    window.isPremium = true;
+                    window.accessLevel = 'premium';
                     window.processDataForAccess();
                 } else {
                     // Standard User: Check Database Expiry
@@ -890,13 +910,14 @@
                                 hasAccess = true;
                             }
                         }
-                        window.isPremium = hasAccess;
+                        
+                        window.accessLevel = hasAccess ? 'premium' : 'free';
                         window.processDataForAccess();
                     });
                 }
             } else {
-                // Not logged in -> Guest Mode (Locked)
-                window.isPremium = false;
+                // Not logged in -> Guest Mode (Completely Locked)
+                window.accessLevel = 'guest';
                 window.processDataForAccess();
             }
         });

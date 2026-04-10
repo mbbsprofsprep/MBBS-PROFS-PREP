@@ -173,8 +173,10 @@
         const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
 
         // --- 2. GOOGLE FORM CONFIGURATION ---
+        // Your exact Google Form URL
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyrbdPKqYpuDybUciriOrsztmkgG2LsjY5EArVj0Gn4B6w1w/formResponse";
         
+        // Your exact Entry IDs mapping to the data
         const FORM_IDS = {
             name: "entry.245228386", 
             email: "entry.2074813470", 
@@ -369,7 +371,7 @@
                     purchaseDate: new Date().toISOString()
                 });
 
-                // B. SILENTLY SUBMIT TO GOOGLE FORMS
+                // B. SILENTLY SUBMIT TO GOOGLE FORMS (Fetch method)
                 silentGoogleFormSubmit(
                     userProfile.fullName, 
                     userProfile.email, 
@@ -393,42 +395,32 @@
             }
         };
 
-        // THE INVISIBLE FORM SUBMITTER
+        // THE INVISIBLE FORM SUBMITTER (MODERN FETCH METHOD)
         function silentGoogleFormSubmit(name, email, joinYear, city, phone, country, plan, payId) {
-            const iframeName = 'hidden_iframe_' + Date.now();
-            const iframe = document.createElement('iframe'); 
-            iframe.name = iframeName; 
-            iframe.style.display = 'none'; 
-            document.body.appendChild(iframe);
+            const params = new URLSearchParams();
             
-            const form = document.createElement('form'); 
-            form.method = 'POST'; 
-            form.action = GOOGLE_FORM_URL; 
-            form.target = iframeName; 
-            form.style.display = 'none';
+            params.append(FORM_IDS.name, name || "Not Provided");
+            params.append(FORM_IDS.email, email || "Not Provided");
+            params.append(FORM_IDS.joinYear, joinYear || "Not Provided");
+            params.append(FORM_IDS.city, city || "Not Provided");
+            params.append(FORM_IDS.phone, phone || "Not Provided");
+            params.append(FORM_IDS.country, country || "Not Provided");
+            params.append(FORM_IDS.plan, plan || "Not Provided");
+            params.append(FORM_IDS.payId, payId || "Not Provided");
 
-            const formData = {};
-            formData[FORM_IDS.name] = name;
-            formData[FORM_IDS.email] = email;
-            formData[FORM_IDS.joinYear] = joinYear;
-            formData[FORM_IDS.city] = city;
-            formData[FORM_IDS.phone] = phone;
-            formData[FORM_IDS.country] = country;
-            formData[FORM_IDS.plan] = plan;
-            formData[FORM_IDS.payId] = payId;
-
-            for (let key in formData) {
-                let input = document.createElement('input'); 
-                input.name = key; 
-                input.value = formData[key]; 
-                form.appendChild(input);
-            }
-
-            document.body.appendChild(form); 
-            form.submit();
-            
-            // Clean up invisible iframe after 4 seconds
-            setTimeout(() => { iframe.remove(); form.remove(); }, 4000);
+            // Send silently in the background bypassing strict browser blockers
+            fetch(GOOGLE_FORM_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params.toString()
+            }).then(() => {
+                console.log("Google Form Successfully Updated!");
+            }).catch((err) => {
+                console.error("Google Form Error:", err);
+            });
         }
 
         // Apply dark mode if user selected it

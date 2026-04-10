@@ -201,7 +201,7 @@
         // Shared App Logo to keep consistency
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
-        // UI Routing Data (Expanded for clarity)
+        // UI Routing Data
         window.DATA = {
             locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
             institutes: [
@@ -305,10 +305,7 @@
                     </div>`;
 
                 if (user) {
-                    // --------- LOGGED IN VIEWS ---------
-                    
                     if (this.viewMode === 'menu') {
-                        // 1. MAIN DASHBOARD VIEW
                         let badgeHtml = ''; 
                         let daysHtml = '';
                         
@@ -387,7 +384,7 @@
                         `;
 
                     } else if (this.viewMode === 'bookmarks') {
-                        // 2. FULLY FUNCTIONAL BOOKMARKS VIEW
+                        // 2. BOOKMARKS VIEW
                         const bookmarks = JSON.parse(localStorage.getItem('medqs_bookmarks')) || [];
                         let bookmarksHtml = '';
                         
@@ -478,8 +475,6 @@
                     }
                     
                 } else {
-                    // --------- LOGGED OUT VIEWS ---------
-                    
                     if (this.authMode === 'login') {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
@@ -547,7 +542,27 @@
             }
         };
 
-        // UI View Logic
+        window.togglePassword = function() {
+            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
+            if (!input) return;
+            if (input.type === "password") {
+                input.type = "text";
+            } else {
+                input.type = "password";
+            }
+        };
+
+        window.showAuthError = function(msg) {
+            const errDiv = document.getElementById('auth-error-msg');
+            if(errDiv) {
+                errDiv.innerText = msg;
+                errDiv.classList.remove('hidden');
+                setTimeout(() => errDiv.classList.add('hidden'), 5000);
+            } else {
+                alert(msg);
+            }
+        };
+
         window.app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },
@@ -904,8 +919,11 @@
             const j = document.getElementById('reg-join-year').value; 
             const c = document.getElementById('reg-college').value; 
             const cy = document.getElementById('reg-country').value;
+            const city = document.getElementById('reg-city').value;
+            const phone = document.getElementById('reg-phone').value;
             
-            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all fields");
+            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
+            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
             
             const originalText = btn.innerText;
             btn.disabled = true;
@@ -920,7 +938,8 @@
                     joinYear: j, 
                     college: c, 
                     country: cy, 
-                    city: document.getElementById('reg-city').value, 
+                    city: city || "Not provided", 
+                    phone: phone || "Not provided",
                     createdAt: new Date().toISOString() 
                 });
             } catch(err) { 
@@ -954,7 +973,7 @@
                     window.userPanelApp.renderState(); 
                 });
                 
-                // VIP BYPASS LOGIC RESTORED
+                // VIP BYPASS LOGIC
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.userPanelApp.renderState();

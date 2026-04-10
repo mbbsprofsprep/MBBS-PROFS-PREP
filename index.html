@@ -30,38 +30,38 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; }
         body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
-        body.dark { background-color: #020617 !important; color: #f8fafc !important; }
+        html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 10px; }
-        body.dark ::-webkit-scrollbar-track { background: #020617; }
-        body.dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
+        html.dark ::-webkit-scrollbar-track { background: #020617; }
+        html.dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
         
         #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.5s ease; }
         
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        body.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
+        html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
         .glass-card:hover { transform: translateY(-5px); }
-        body.dark .glass-card:hover { border-color: #3395ff; box-shadow: 0 10px 30px -5px rgba(51, 149, 255, 0.2); }
+        html.dark .glass-card:hover { border-color: #3395ff; box-shadow: 0 10px 30px -5px rgba(51, 149, 255, 0.2); }
     </style>
 </head>
 
-<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg dark:text-white transition-colors duration-300">
+<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300">
 
     <div id="canvas-container"></div>
 
     <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
-        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center">
+        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
             <a class="flex items-center gap-3 group cursor-pointer" onclick="app.goHome(true)">
-                <div class="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-brand-500/30">M</div>
+                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
                 <div class="leading-tight">
-                    <h1 class="font-bold text-lg tracking-tight text-black dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                    <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Central Portal</p>
                 </div>
             </a>
             <div class="hidden md:block flex-1 max-w-md mx-8">
-                <input class="w-full px-4 py-2 bg-brand-50 dark:bg-dark-surface border border-brand-100 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-brand-400 outline-none transition-all text-sm" id="globalSearch" placeholder="Search..." type="text"/>
+                <input class="w-full px-4 py-2 bg-brand-50 dark:bg-dark-surface border border-brand-100 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-brand-400 outline-none transition-all text-sm text-slate-900 dark:text-white placeholder-slate-400" id="globalSearch" placeholder="Search..." type="text"/>
             </div>
             <div class="flex items-center gap-3">
                 <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
@@ -125,7 +125,7 @@
                 <button class="p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-600 dark:text-slate-300" onclick="pdfSmartApp.goBack()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
                 </button>
-                <h2 class="text-sm font-bold uppercase tracking-wider" id="pdf-smart-title">Library</h2>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white" id="pdf-smart-title">Library</h2>
             </div>
             <button class="p-2 rounded-lg text-slate-400 hover:text-red-500 transition-colors" onclick="pdfSmartApp.close()">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
@@ -220,8 +220,8 @@
             renderInstitutes: function() {
                 this.toggleView('institutes');
                 document.getElementById('institutes-grid').innerHTML = DATA.institutes.map(inst => {
-                    if (inst.locked) return `<div onclick="app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-lg mb-4">${inst.badge}</div><h3 class="font-bold text-lg mb-1">${inst.name}</h3><p class="text-sm text-slate-400">${inst.city}</p></div>`;
-                    return `<div onclick="app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer group hover:scale-[1.02] transition-transform"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow">↗</span></div><h3 class="font-bold text-lg mb-1 group-hover:text-brand-400">${inst.name}</h3><p class="text-sm text-slate-500">${inst.city}</p></div>`;
+                    if (inst.locked) return `<div onclick="app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase dark:bg-slate-700">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300 dark:border-slate-600">${inst.badge}</div><h3 class="font-bold text-lg mb-1 text-slate-500 dark:text-slate-400">${inst.name}</h3><p class="text-sm text-slate-400 dark:text-slate-500">${inst.city}</p></div>`;
+                    return `<div onclick="app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer group hover:scale-[1.02] transition-transform"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg dark:bg-brand-900/30 dark:border dark:border-brand-800">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow dark:text-slate-600">↗</span></div><h3 class="font-bold text-lg mb-1 group-hover:text-brand-400 text-slate-900 dark:text-white">${inst.name}</h3><p class="text-sm text-slate-500 dark:text-slate-400">${inst.city}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -232,8 +232,8 @@
                 this.checkDeogharVIP(inst.name);
                 
                 document.getElementById('years-grid').innerHTML = DATA.years.map(year => {
-                    if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-4 right-4 bg-slate-200 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2">${year.name}</h3><p class="text-xs font-bold text-slate-400 uppercase">${year.sub}</p></div>`;
-                    return `<div onclick="app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 mb-4 group-hover:text-brand-400/20">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 uppercase">${year.sub}</p></div>`;
+                    if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">${year.sub}</p></div>`;
+                    return `<div onclick="app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-400/20 transition-colors">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400 text-slate-900 dark:text-white">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -243,8 +243,8 @@
                 document.getElementById('selected-year-name').innerText = year.name;
                 document.getElementById('selected-inst-sub-name').innerText = inst.name;
                 document.getElementById('subjects-grid').innerHTML = DATA.subjects[year.id].map(sub => {
-                    if (sub.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${sub.id}`))) return `<div onclick="app.showLockedModal('${sub.name}')" class="glass-card p-6 rounded-xl relative opacity-70 grayscale flex items-center gap-4 bg-slate-100"><div class="absolute top-2 right-2 bg-slate-200 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-4xl opacity-50">${sub.icon}</div><div><h3 class="text-xl font-bold">${sub.name}</h3></div></div>`;
-                    return `<div onclick="app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold group-hover:text-accent-yellow">${sub.name}</h3><p class="text-xs text-slate-400 font-bold uppercase">Open ➝</p></div></div>`;
+                    if (sub.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${sub.id}`))) return `<div onclick="app.showLockedModal('${sub.name}')" class="glass-card p-6 rounded-xl relative opacity-70 grayscale flex items-center gap-4 bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-2 right-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-4xl opacity-50">${sub.icon}</div><div><h3 class="text-xl font-bold text-slate-500 dark:text-slate-400">${sub.name}</h3></div></div>`;
+                    return `<div onclick="app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold group-hover:text-accent-yellow text-slate-900 dark:text-white transition-colors">${sub.name}</h3><p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">Open ➝</p></div></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -255,7 +255,7 @@
                 document.getElementById('resources-grid').innerHTML = links.map(link => {
                     const isPDF = link.url.includes('drive.google.com') || link.url.includes('.pdf');
                     const finalUrl = isPDF ? `viewer.html?title=${encodeURIComponent(link.label)}&url=${encodeURIComponent(link.url)}` : link.url;
-                    return `<a href="${finalUrl}" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center justify-between hover:border-brand-400"><span class="font-bold text-lg group-hover:text-brand-400">${link.label}</span><span class="text-slate-300 group-hover:text-brand-400">↗</span></a>`;
+                    return `<a href="${finalUrl}" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center justify-between hover:border-brand-400"><span class="font-bold text-lg group-hover:text-brand-400 text-slate-900 dark:text-white transition-colors">${link.label}</span><span class="text-slate-300 dark:text-slate-600 group-hover:text-brand-400">↗</span></a>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -311,16 +311,16 @@
             goBack: function() { if(this.stack.length > 1) { this.stack.pop(); this.renderList(this.stack[this.stack.length-1].val, false); } else this.close(); },
             renderHome: function(push=true) {
                 if(push) this.stack.push({type:'home'}); this.els.title.innerText="Library";
-                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900">${name} ➝</div>`).join('');
+                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white">${name} ➝</div>`).join('');
             },
             renderList: function(col, push=true) {
                 if(push) this.stack.push({type:'list', val:col}); this.els.title.innerText=col;
-                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900">📄 ${sub}</div>`).join('');
+                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800">📄 ${sub}</div>`).join('');
             },
             renderViewer: function(url) {
                 let fUrl = url.includes('drive.google') ? url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview') : url;
                 this.stack.push({type:'viewer'}); this.els.title.innerText="Viewing";
-                this.els.body.innerHTML = `<iframe src="${fUrl}" class="w-full h-full rounded-xl bg-white border" frameborder="0"></iframe>`;
+                this.els.body.innerHTML = `<iframe src="${fUrl}" class="w-full h-full rounded-xl bg-white border dark:border-slate-800" frameborder="0"></iframe>`;
             }
         };
 
@@ -332,17 +332,17 @@
             let mb = new THREE.MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
             for(let i=0; i<150; i++) { const a=i*0.4; group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); }
             (function animate() { requestAnimationFrame(animate); group.rotation.x+=0.002; renderer.render(scene, camera); })();
-            window.update3D = () => container.style.opacity = document.body.classList.contains('dark') ? 0.1 : 0.6;
+            window.update3D = () => container.style.opacity = document.documentElement.classList.contains('dark') ? 0.1 : 0.6;
             window.update3D();
         }
 
         function toggleTheme() {
-            const d = document.body.classList.toggle('dark'); localStorage.setItem('theme', d?'dark':'light');
+            const d = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', d?'dark':'light');
             document.getElementById('theme-icon').innerText = d?'☀️':'🌙'; if(window.update3D) window.update3D();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('theme') === 'dark') { document.body.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
+            if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
             init3D(); app.init(); pdfSmartApp.init();
         });
     </script>

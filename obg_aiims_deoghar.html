@@ -23,99 +23,79 @@
         body { font-family: 'Inter', sans-serif; }
         
         /* Custom scrollbar */
-        .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar {
-            height: 8px; width: 8px;
-        }
-        .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb {
-            background-color: #93c5fd; border-radius: 4px;
-        }
-        .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track {
-            background-color: #dbeafe; border-radius: 4px;
-        }
+        .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #93c5fd; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background-color: #dbeafe; border-radius: 4px; }
 
         /* Answer Reveal Logic */
-        .correct-option {
-            font-weight: 400; color: inherit; background-color: transparent;
-            padding: 0; border-radius: 0; display: inline;
-        }
-
-        /* Revealed state */
-        body.show-answers .correct-option {
-            font-weight: 700; color: #15803d; background-color: #dcfce7;
-            padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e;
-        }
-        body.dark.show-answers .correct-option {
-            color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d;
-        }
+        .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
+        body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
+        body.dark.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
 
         /* Theory Question Styling */
-        .theory-question {
-            font-style: italic; color: #1e40af; font-weight: 500;
-            background-color: #eff6ff; padding: 12px; border-radius: 8px;
-            border-left: 4px solid #2563eb;
-        }
+        .theory-question { font-style: italic; color: #1e40af; font-weight: 500; background-color: #eff6ff; padding: 12px; border-radius: 8px; border-left: 4px solid #2563eb; }
         
         /* UI Components */
         .multiselect-container { position: relative; }
-        .multiselect-btn {
-            text-align: left; width: 100%; background-color: white; border: 1px solid #d1d5db;
-            border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;
-        }
+        .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         body.dark .multiselect-btn { background-color: #1f2937; border-color: #374151; color: #e5e7eb; }
         .multiselect-btn:hover { border-color: #2563eb; }
         
-        .multiselect-menu {
-            display: none; position: absolute; z-index: 50; top: 100%; left: 0; right: 0;
-            margin-top: 0.25rem; background-color: white; border: 1px solid #e5e7eb;
-            border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            max-height: 300px; overflow-y: auto;
-        }
+        .multiselect-menu { display: none; position: absolute; z-index: 50; top: 100%; left: 0; right: 0; margin-top: 0.25rem; background-color: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-height: 300px; overflow-y: auto; }
         .multiselect-menu.show { display: block; }
         body.dark .multiselect-menu { background-color: #1f2937; border-color: #374151; }
 
-        .multiselect-option {
-            padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center;
-            font-size: 0.875rem; color: #374151;
-        }
+        .multiselect-option { padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; font-size: 0.875rem; color: #374151; }
         body.dark .multiselect-option { color: #d1d5db; }
         .multiselect-option:hover { background-color: #eff6ff; }
         body.dark .multiselect-option:hover { background-color: #374151; }
+        .multiselect-option input[type="checkbox"] { margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #2563eb; }
 
-        .multiselect-option input[type="checkbox"] {
-            margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #2563eb;
-        }
-
-        .multiselect-group-header {
-            padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700;
-            text-transform: uppercase; color: #1e40af; background-color: #dbeafe;
-            position: sticky; top: 0; z-index: 10; display: flex; align-items: center;
-            cursor: pointer;
-        }
+        .multiselect-group-header { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #1e40af; background-color: #dbeafe; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; cursor: pointer; }
         body.dark .multiselect-group-header { background-color: #111827; color: #60a5fa; }
         .multiselect-group-header input[type="checkbox"] { margin-right: 0.75rem; accent-color: #1e40af; }
         
-        #summaryButton {
-            font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none;
-            cursor: pointer; transition: transform 0.3s ease;
-        }
+        #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
+
+        /* ========================================== */
+        /* DECK VIEW SPECIFIC STYLES                  */
+        /* ========================================== */
+        #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
+        .dark #universal-deck-layer { background: #111827; color: white; }
+        .deck-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+        .dark .deck-card { background: #1f2937; border: 1px solid #374151; }
+        .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 600; color: #374151; cursor: pointer; position: relative; }
+        .dark .deck-option-btn { border-color: #374151; background: rgba(31, 41, 55, 0.5); color: #d1d5db; }
+        .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; }
+        .dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; }
+        .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
+        .dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+        
+        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #2563eb; color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
+        #view-toggle-btn:active { transform: scale(0.90); }
+        
+        .deck-drawer { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+        .deck-drawer.open { pointer-events: auto; opacity: 1; }
+        .deck-drawer-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        .deck-drawer-content { position: absolute; top: 0; right: 0; bottom: 0; width: 85%; max-width: 320px; background: white; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .dark .deck-drawer-content { background: #111827; border-left: 1px solid #374151; }
+        .deck-drawer.open .deck-drawer-content { transform: translateX(0); }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; overflow-y: auto; }
+        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 800; font-size: 13px; background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .deck-nav-btn.active { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
+        .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
+        .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative" onclick="closeAllDropdowns(event)">
 
-    <div class="w-full px-4 py-8">
+    <div class="w-full px-4 py-8" id="main-wrapper">
         
         <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-blue-800 dark:text-blue-400 tracking-tight mb-2">
-                OBG Exam Review
-            </h1>
-            <h2 class="text-xl md:text-2xl font-semibold text-blue-600 dark:text-blue-300">
-                MBBS PROFS PREP | AIIMS DEOGHAR
-            </h2>
-            <p class="mt-3 text-md text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-                Comprehensive Index of High-Yield Questions (Obstetrics & Gynaecology).
-            </p>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-blue-800 dark:text-blue-400 tracking-tight mb-2">OBG Exam Review</h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-blue-600 dark:text-blue-300">MBBS PROFS PREP</h2>
+            <p class="mt-3 text-md text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions (Obstetrics & Gynaecology).</p>
         </header>
 
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
@@ -149,15 +129,10 @@
                             <th scope="col" class="px-4 py-4 text-center text-xs font-bold text-white uppercase tracking-wider w-24">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
-                        </tbody>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"></tbody>
                 </table>
             </div>
         </div>
-
-        <footer class="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>Data compiled from MBBS PROFS PREP | AIIMS Deoghar Examinations.</p>
-        </footer>
     </div>
 
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -179,103 +154,14 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- CONFIGURATION & DATA ---
         const COLLEGE_NAME = "AIIMS DEOGHAR";
         const SECRET_CODE = "777pankaj";
         const optionLetters = ['A', 'B', 'C', 'D'];
 
-        // --- DATA: CURRICULUM (OBSTETRICS + GYNAECOLOGY - GROUPED) ---
         const curriculumData = [
-            {
-                unit: "Obstetrics",
-                chapters: [
-                    "OBS Chapter 1: Anatomy of Female Reproductive Organs",
-                    "OBS Chapter 2: Fundamentals of Reproduction",
-                    "OBS Chapter 3: The Placenta and Fetal Membranes",
-                    "OBS Chapter 4: The Fetus",
-                    "OBS Chapter 5: Physiological Changes During Pregnancy",
-                    "OBS Chapter 6: Endocrinology in Relation to Reproduction",
-                    "OBS Chapter 7: Diagnosis of Pregnancy",
-                    "OBS Chapter 8: The Fetus-in-Utero",
-                    "OBS Chapter 9: Fetal Skull and Maternal Pelvis",
-                    "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care",
-                    "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being",
-                    "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis",
-                    "OBS Chapter 13: Normal Labor",
-                    "OBS Chapter 14: Normal Puerperium",
-                    "OBS Chapter 15: Vomiting in Pregnancy",
-                    "OBS Chapter 16: Hemorrhage in Early Pregnancy",
-                    "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord",
-                    "OBS Chapter 18: Hypertensive Disorders in Pregnancy",
-                    "OBS Chapter 19: Antepartum Hemorrhage",
-                    "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy",
-                    "OBS Chapter 21: Gynecological Disorders in Pregnancy",
-                    "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death",
-                    "OBS Chapter 23: Complicated Pregnancy",
-                    "OBS Chapter 24: Contracted Pelvis",
-                    "OBS Chapter 25: Abnormal Uterine Action",
-                    "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse",
-                    "OBS Chapter 27: Prolonged Labor, Obstructed Labor, Dystocia Caused by Fetal Anomalies",
-                    "OBS Chapter 28: Complications of the Third Stage of Labor",
-                    "OBS Chapter 29: Injuries to the Birth Canal",
-                    "OBS Chapter 30: Abnormalities of the Puerperium",
-                    "OBS Chapter 31: The Term Newborn Infant",
-                    "OBS Chapter 32: Low Birth Weight Baby",
-                    "OBS Chapter 33: Disease of the Fetus and the Newborn",
-                    "OBS Chapter 34: Pharmacotherapeutics in Obstetrics",
-                    "OBS Chapter 35: Induction of Labor",
-                    "OBS Chapter 36: Population Dynamics and Control of Conception",
-                    "OBS Chapter 37: Operative Obstetrics",
-                    "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics",
-                    "OBS Chapter 39: Special Topics in Obstetrics",
-                    "OBS Chapter 40: Current Topics in Obstetrics",
-                    "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests",
-                    "OBS Chapter 42: Practical Obstetrics"
-                ]
-            },
-            {
-                unit: "Gynaecology",
-                chapters: [
-                    "GYN Chapter 1: Anatomy of the Female Pelvic Organs",
-                    "GYN Chapter 2: Blood Vessels, Lymphatic Drainage and Innervation of Pelvic Organs",
-                    "GYN Chapter 3: Development of Genital Organs and Gonads",
-                    "GYN Chapter 4: Congenital Malformation of Female Genital Organs",
-                    "GYN Chapter 5: Puberty—Normal and Abnormal",
-                    "GYN Chapter 6: Menopause",
-                    "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction",
-                    "GYN Chapter 8: Menstruation",
-                    "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures",
-                    "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology",
-                    "GYN Chapter 11: Pelvic Infection",
-                    "GYN Chapter 12: Sexually Transmitted Infections",
-                    "GYN Chapter 13: Infections of the Individual Pelvic Organ",
-                    "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles",
-                    "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)",
-                    "GYN Chapter 16: Displacement of the Uterus",
-                    "GYN Chapter 17: Infertility",
-                    "GYN Chapter 18: Benign Lesions of the Vulva and Vagina",
-                    "GYN Chapter 19: Benign Lesions of the Cervix",
-                    "GYN Chapter 20: Benign Lesions of the Uterus",
-                    "GYN Chapter 21: Benign Lesions of the Ovary",
-                    "GYN Chapter 22: Endometriosis and Adenomyosis",
-                    "GYN Chapter 23: Premalignant Lesions",
-                    "GYN Chapter 24: Genital Malignancy",
-                    "GYN Chapter 25: Urinary Problems in Gynecology",
-                    "GYN Chapter 26: Genitourinary Fistula",
-                    "GYN Chapter 27: Genital Tract Injuries and Anorectal Dysfunctions",
-                    "GYN Chapter 28: Disorders of Sexual Development",
-                    "GYN Chapter 29: Amenorrhea",
-                    "GYN Chapter 30: Contraception",
-                    "GYN Chapter 31: Basic Principles of Radiotherapy, Chemotherapy, Immunotherapy and Gene therapy in Gynecology",
-                    "GYN Chapter 32: Hormones in Gynecological Practice",
-                    "GYN Chapter 33: Gynecological Problems from Birth to Adolescence",
-                    "GYN Chapter 34: Special Topics",
-                    "GYN Chapter 35: Operative Gynecology",
-                    "GYN Chapter 36: Endoscopic Surgery in Gynecology",
-                    "GYN Chapter 37: Current Topics in Gynecology",
-                    "GYN Chapter 38: Practical Gynecology"
-                ]
-            }
+            { unit: "Obstetrics", chapters: [ "OBS Chapter 1: Anatomy of Female Reproductive Organs", "OBS Chapter 2: Fundamentals of Reproduction", "OBS Chapter 3: The Placenta and Fetal Membranes", "OBS Chapter 4: The Fetus", "OBS Chapter 5: Physiological Changes During Pregnancy", "OBS Chapter 6: Endocrinology in Relation to Reproduction", "OBS Chapter 7: Diagnosis of Pregnancy", "OBS Chapter 8: The Fetus-in-Utero", "OBS Chapter 9: Fetal Skull and Maternal Pelvis", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", "OBS Chapter 13: Normal Labor", "OBS Chapter 14: Normal Puerperium", "OBS Chapter 15: Vomiting in Pregnancy", "OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 19: Antepartum Hemorrhage", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 21: Gynecological Disorders in Pregnancy", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death", "OBS Chapter 23: Complicated Pregnancy", "OBS Chapter 24: Contracted Pelvis", "OBS Chapter 25: Abnormal Uterine Action", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse", "OBS Chapter 27: Prolonged Labor, Obstructed Labor, Dystocia Caused by Fetal Anomalies", "OBS Chapter 28: Complications of the Third Stage of Labor", "OBS Chapter 29: Injuries to the Birth Canal", "OBS Chapter 30: Abnormalities of the Puerperium", "OBS Chapter 31: The Term Newborn Infant", "OBS Chapter 32: Low Birth Weight Baby", "OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics", "OBS Chapter 35: Induction of Labor", "OBS Chapter 36: Population Dynamics and Control of Conception", "OBS Chapter 37: Operative Obstetrics", "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics", "OBS Chapter 39: Special Topics in Obstetrics", "OBS Chapter 40: Current Topics in Obstetrics", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests", "OBS Chapter 42: Practical Obstetrics" ] },
+            { unit: "Gynaecology", chapters: [ "GYN Chapter 1: Anatomy of the Female Pelvic Organs", "GYN Chapter 2: Blood Vessels, Lymphatic Drainage and Innervation of Pelvic Organs", "GYN Chapter 3: Development of Genital Organs and Gonads", "GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 6: Menopause", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 8: Menstruation", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology", "GYN Chapter 11: Pelvic Infection", "GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 13: Infections of the Individual Pelvic Organ", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 17: Infertility", "GYN Chapter 18: Benign Lesions of the Vulva and Vagina", "GYN Chapter 19: Benign Lesions of the Cervix", "GYN Chapter 20: Benign Lesions of the Uterus", "GYN Chapter 21: Benign Lesions of the Ovary", "GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 23: Premalignant Lesions", "GYN Chapter 24: Genital Malignancy", "GYN Chapter 25: Urinary Problems in Gynecology", "GYN Chapter 26: Genitourinary Fistula", "GYN Chapter 27: Genital Tract Injuries and Anorectal Dysfunctions", "GYN Chapter 28: Disorders of Sexual Development", "GYN Chapter 29: Amenorrhea", "GYN Chapter 30: Contraception", "GYN Chapter 31: Basic Principles of Radiotherapy, Chemotherapy, Immunotherapy and Gene therapy in Gynecology", "GYN Chapter 32: Hormones in Gynecological Practice", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence", "GYN Chapter 34: Special Topics", "GYN Chapter 35: Operative Gynecology", "GYN Chapter 36: Endoscopic Surgery in Gynecology", "GYN Chapter 37: Current Topics in Gynecology", "GYN Chapter 38: Practical Gynecology" ] }
         ];
 
         function getUnitForChapter(chapterName) {
@@ -285,211 +171,254 @@
             return "";
         }
 
-        // --- DATA: HIGH YIELD OBG QUESTIONS ---
         window.qnaData = [
-    // --- THEORY QUESTIONS ---
-    { q: "DGT1", type: "Theory", stem: "A 28 years old Gravida 2 Abortion 1 reported to hospital with 1st Trimester Bleeding P/V.<br>a) What are the causes of 1st Trimester bleeding P/V?<br>b) How will you diagnose and manage a case of Vesicular mole? [8 Marks]", ans_key: "", chapter: "OBS Chapter 16: Hemorrhage in Early Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT2", type: "Theory", stem: "24 years primigravida presents to the antenatal clinic at 28 weeks with over distended uterus.<br>a) What are the causes of uterus being more than gestational age?<br>b) How will you manage dichorionic diamniotic twin pregnancy. [7 Marks]", ans_key: "", chapter: "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT3", type: "Theory", stem: "SAQ: Enumerate complication of 3rd stage of labour. How do you manage PPH? [5 Marks]", ans_key: "", chapter: "OBS Chapter 28: Complications of the Third Stage of Labor", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT4", type: "Theory", stem: "SAQ: Write briefly on the cardiovascular changes in normal pregnancy. [5 Marks]", ans_key: "", chapter: "OBS Chapter 5: Physiological Changes During Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT5", type: "Theory", stem: "SAQ: A 24 years old, gravida 1 para 0, presented with acute abdominal pain. Her last period was scanty. She had done a pregnancy test that was positive. A TVUS showed an unruptured right tubal ectopic pregnancy. The serum HCG level was 1000mIU/ml. What would be the treatment options for this woman? [5 Marks]", ans_key: "", chapter: "OBS Chapter 16: Hemorrhage in Early Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT6", type: "Theory", stem: "SAQ: Non Stress Test. [5 Marks]", ans_key: "", chapter: "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT7", type: "Theory", stem: "A 32 year old second gravida was brought to labour room at 30 weeks of gestation with convulsions on the way to hospital. There was a history of high Blood pressure for last 1weeks and headache for 1day. On examination, patient was not conscious, was restless and BP of 170/110mmHg.<br>Write classification of Hypertensive disorder during Pregnancy. What will be your diagnosis and how will you manage this patient? [8 Marks]", ans_key: "", chapter: "OBS Chapter 18: Hypertensive Disorders in Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT8", type: "Theory", stem: "Define maternal mortality. What are the causes and what are the steps taken to reduce maternal mortality of India. [7 Marks]", ans_key: "", chapter: "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT9", type: "Theory", stem: "SAQ: Indication and complication of Forceps delivery. [5 Marks]", ans_key: "", chapter: "OBS Chapter 37: Operative Obstetrics", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT10", type: "Theory", stem: "SAQ: Difference s between Placenta Previa & abruptio Placentae. Write down 2 dreaded complications of abruptio Placentae. [5 Marks]", ans_key: "", chapter: "OBS Chapter 19: Antepartum Hemorrhage", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT11", type: "Theory", stem: "SAQ: Neonatal Jaundice-cause and management of Breast milk Jaundice. [5 Marks]", ans_key: "", chapter: "OBS Chapter 33: Disease of the Fetus and the Newborn", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGT12", type: "Theory", stem: "SAQ: External cephalic version. [5 Marks]", ans_key: "", chapter: "OBS Chapter 37: Operative Obstetrics", examBatch: "2020 Batch Prof Exam Paper-I" },
-      // --- THEORY QUESTIONS (PAPER II) ---
-    { q: "DGT13", type: "Theory", stem: "A 24 years old female comes to you with delayed menstruation and scanty flow in menses. Her BMI is 30 kg/m^2.<br>a) Write 3 differential diagnosis.<br>b) Discuss the Rotterdam Criteria.<br>c) Enumerate the investigation & Management of PCOS. [8 Marks]", ans_key: "", chapter: "GYN Chapter 29: Amenorrhea", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT14", type: "Theory", stem: "Write the mechanism of action of combined hormonal pills. Write its 4 advantages & 4 disadvantages. [7 Marks]", ans_key: "", chapter: "GYN Chapter 30: Contraception", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT15", type: "Theory", stem: "SAQ: Neuroendocrine control of menstrual cycle. [5 Marks]", ans_key: "", chapter: "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT16", type: "Theory", stem: "SAQ: Role of hysterosalpingography in gynecology. [5 Marks]", ans_key: "", chapter: "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT17", type: "Theory", stem: "SAQ: STD in adolescents. [5 Marks]", ans_key: "", chapter: "GYN Chapter 12: Sexually Transmitted Infections", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT18", type: "Theory", stem: "SAQ: PID. [5 Marks]", ans_key: "", chapter: "GYN Chapter 11: Pelvic Infection", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT19", type: "Theory", stem: "A 39 years old P1L1 woman came to gynae OPD with frequent and heavy menses for last one year. Having ultrasound report suggestive of 8x9 cm intramural fibroid.<br>a) Define Abnormal uterine bleeding.<br>b) Discuss PALM COIEN classification.<br>c) How will you evaluate this patient and what her treatment option. [8 Marks]", ans_key: "", chapter: "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT20", type: "Theory", stem: "Write FIGO staging of carcinoma cervix. Discuss the management of Carcinoma cervix (stage-2). [7 Marks]", ans_key: "", chapter: "GYN Chapter 24: Genital Malignancy", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT21", type: "Theory", stem: "SAQ: POP-Q. [5 Marks]", ans_key: "", chapter: "GYN Chapter 16: Displacement of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT22", type: "Theory", stem: "SAQ: Myomectomy. [5 Marks]", ans_key: "", chapter: "GYN Chapter 35: Operative Gynecology", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT23", type: "Theory", stem: "SAQ: Management/treatment of endometriosis. [5 Marks]", ans_key: "", chapter: "GYN Chapter 22: Endometriosis and Adenomyosis", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGT24", type: "Theory", stem: "SAQ: Dermoid cyst. [5 Marks]", ans_key: "", chapter: "GYN Chapter 21: Benign Lesions of the Ovary", examBatch: "2020 Batch Prof Exam Paper-II" },
+            // --- 2020 BATCH PROF EXAM PAPER-I: THEORY QUESTIONS ---
+            { q: "DGT1", type: "Theory", stem: "A 28 years old Gravida 2 Abortion 1 reported to hospital with 1st Trimester Bleeding P/V.<br>a) What are the causes of 1st Trimester bleeding P/V?<br>b) How will you diagnose and manage a case of Vesicular mole? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT2", type: "Theory", stem: "24 years primigravida presents to the antenatal clinic at 28 weeks with over distended uterus.<br>a) What are the causes of uterus being more than gestational age?<br>b) How will you manage dichorionic diamniotic twin pregnancy. [7 Marks]", ans_key: "", chapter: ["OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT3", type: "Theory", stem: "SAQ: Enumerate complication of 3rd stage of labour. How do you manage PPH? [5 Marks]", ans_key: "", chapter: ["OBS Chapter 28: Complications of the Third Stage of Labor", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT4", type: "Theory", stem: "SAQ: Write briefly on the cardiovascular changes in normal pregnancy. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 5: Physiological Changes During Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT5", type: "Theory", stem: "SAQ: A 24 years old, gravida 1 para 0, presented with acute abdominal pain. Her last period was scanty. She had done a pregnancy test that was positive. A TVUS showed an unruptured right tubal ectopic pregnancy. The serum HCG level was 1000mIU/ml. What would be the treatment options for this woman? [5 Marks]", ans_key: "", chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "GYN Chapter 35: Operative Gynecology"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT6", type: "Theory", stem: "SAQ: Non Stress Test. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 8: The Fetus-in-Utero"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT7", type: "Theory", stem: "A 32 year old second gravida was brought to labour room at 30 weeks of gestation with convulsions on the way to hospital. There was a history of high Blood pressure for last 1weeks and headache for 1day. On examination, patient was not conscious, was restless and BP of 170/110mmHg.<br>Write classification of Hypertensive disorder during Pregnancy. What will be your diagnosis and how will you manage this patient? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT8", type: "Theory", stem: "Define maternal mortality. What are the causes and what are the steps taken to reduce maternal mortality of India. [7 Marks]", ans_key: "", chapter: ["OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT9", type: "Theory", stem: "SAQ: Indication and complication of Forceps delivery. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT10", type: "Theory", stem: "SAQ: Difference s between Placenta Previa & abruptio Placentae. Write down 2 dreaded complications of abruptio Placentae. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 19: Antepartum Hemorrhage"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT11", type: "Theory", stem: "SAQ: Neonatal Jaundice-cause and management of Breast milk Jaundice. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 14: Normal Puerperium"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGT12", type: "Theory", stem: "SAQ: External cephalic version. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            
+            // --- 2020 BATCH PROF EXAM PAPER-II: THEORY QUESTIONS ---
+            { q: "DGT13", type: "Theory", stem: "A 24 years old female comes to you with delayed menstruation and scanty flow in menses. Her BMI is 30 kg/m^2.<br>a) Write 3 differential diagnosis.<br>b) Discuss the Rotterdam Criteria.<br>c) Enumerate the investigation & Management of PCOS. [8 Marks]", ans_key: "", chapter: ["GYN Chapter 29: Amenorrhea", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 17: Infertility"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT14", type: "Theory", stem: "Write the mechanism of action of combined hormonal pills. Write its 4 advantages & 4 disadvantages. [7 Marks]", ans_key: "", chapter: ["GYN Chapter 30: Contraception", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT15", type: "Theory", stem: "SAQ: Neuroendocrine control of menstrual cycle. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 8: Menstruation"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT16", type: "Theory", stem: "SAQ: Role of hysterosalpingography in gynecology. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology", "GYN Chapter 17: Infertility"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT17", type: "Theory", stem: "SAQ: STD in adolescents. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT18", type: "Theory", stem: "SAQ: PID. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 11: Pelvic Infection", "GYN Chapter 13: Infections of the Individual Pelvic Organ"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT19", type: "Theory", stem: "A 39 years old P1L1 woman came to gynae OPD with frequent and heavy menses for last one year. Having ultrasound report suggestive of 8x9 cm intramural fibroid.<br>a) Define Abnormal uterine bleeding.<br>b) Discuss PALM COIEN classification.<br>c) How will you evaluate this patient and what her treatment option. [8 Marks]", ans_key: "", chapter: ["GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 20: Benign Lesions of the Uterus"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT20", type: "Theory", stem: "Write FIGO staging of carcinoma cervix. Discuss the management of Carcinoma cervix (stage-2). [7 Marks]", ans_key: "", chapter: ["GYN Chapter 24: Genital Malignancy", "GYN Chapter 23: Premalignant Lesions"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT21", type: "Theory", stem: "SAQ: POP-Q. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT22", type: "Theory", stem: "SAQ: Myomectomy. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 35: Operative Gynecology", "GYN Chapter 20: Benign Lesions of the Uterus"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT23", type: "Theory", stem: "SAQ: Management/treatment of endometriosis. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", "GYN Chapter 17: Infertility"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGT24", type: "Theory", stem: "SAQ: Dermoid cyst. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 21: Benign Lesions of the Ovary"], examBatch: "2020 Batch Prof Exam Paper-II" },
 
-    // --- MCQ QUESTIONS ---
-    { q: "DGM1", type: "MCQ", stem: "A 22-year-old woman Gravida4 para3 living3 with 34weeks of gestation presents to the hospital with heavy painless vaginal bleeding. Her pulse rate is 100/min. Blood pressure is 90/50 mmHg. Per abdomen uterus is relaxed, non-tender. FHR is 160/min. What is the most likely diagnosis?", ans_key: "B", options: ["Concealed abruption", "Placenta previa", "Premature labor", "Revealed abruption"], chapter: "OBS Chapter 19: Antepartum Hemorrhage", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM2", type: "MCQ", stem: "Which of the following is a parameter used in fetal biophysical profiling?", ans_key: "B", options: ["Abdominal circumference", "Amniotic fluid index", "Biparietal diameter", "Head circumference"], chapter: "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM3", type: "MCQ", stem: "23-year-old Primigravida comes with history of 3 months amenorrhea and pain abdomen. She had two episodes of spotting per vagina. Her vitals are stable. On vaginal examination - uterus corresponds to 12 weeks size and cervical os is closed. The most probable diagnosis is", ans_key: "B", options: ["Septic abortion", "Threatened abortion", "Incomplete abortion", "Complete abortion"], chapter: "OBS Chapter 16: Hemorrhage in Early Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM4", type: "MCQ", stem: "Definitive sign of pregnancy:", ans_key: "D", options: ["Uterine souffle", "abdominal distension", "Uterine enlargement", "Fetal heart sound"], chapter: "OBS Chapter 7: Diagnosis of Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM5", type: "MCQ", stem: "The following have been associated with bacteriuria in pregnancy:", ans_key: "A", options: ["Preterm birth", "post term birth", "ectopic pregnancy", "gestational trophoblastic diseases"], chapter: "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM6", type: "MCQ", stem: "Separation of placenta occurs in which stage of delivery:", ans_key: "C", options: ["first stage", "second stage", "third stage", "Fourth stage"], chapter: "OBS Chapter 13: Normal Labor", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM7", type: "MCQ", stem: "Lactation occurs because of:", ans_key: "A", options: ["Prolactin", "Oxytocin", "HCG", "Progesterone"], chapter: "OBS Chapter 14: Normal Puerperium", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM8", type: "MCQ", stem: "Vomiting in pregnancy occurs due to:", ans_key: "A", options: ["HCG", "Estrogen", "Progesterone", "Prolactin"], chapter: "OBS Chapter 15: Vomiting in Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM9", type: "MCQ", stem: "Indications for medical treatment of ectopic pregnancy include the following except:", ans_key: "A", options: ["Presence of cardiac activity", "Beta HCG titers less than 5000mIU/ml", "Unruptured ectopic", "gsac = 3cms"], chapter: "OBS Chapter 16: Hemorrhage in Early Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM10", type: "MCQ", stem: "The aims of the antenatal care are:", ans_key: "D", options: ["Promote and maintain health in pregnancy.", "Detect and treat conditions pre-existing or arising in pregnancy.", "Make a delivery plan.", "All of the above."], chapter: "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM11", type: "MCQ", stem: "20 years female comes to OPD with complaints of amenorrhea, what is your first step:", ans_key: "C", options: ["Do CBC", "get USG abdomen", "UPT test", "advice lifestyle modification"], chapter: "GYN Chapter 29: Amenorrhea", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM12", type: "MCQ", stem: "In ANC, which vaccine is advised?", ans_key: "A", options: ["Tetanus", "HbsAg", "OPV", "BCG"], chapter: "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM13", type: "MCQ", stem: "Risk factors for ectopic pregnancy are:", ans_key: "A", options: ["IUD use", "parous women", "pre-eclampsia in previous pregnancy", "Gestation diabetes"], chapter: "OBS Chapter 16: Hemorrhage in Early Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM14", type: "MCQ", stem: "What are the criteria for hypertension in pregnancy:", ans_key: "A", options: ["BP >140/90 mmHg measured two times with at least 4 hours interval", "BP> 130/90mmHg measured two times with at least 4 hours interval", "BP > 140/100mmHg measured two times with at least 4 hours interval", "BP > 130/100mmHg measured two times with at least 6 hours interval"], chapter: "OBS Chapter 18: Hypertensive Disorders in Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM15", type: "MCQ", stem: "Which is NOT the predisposing factor for Hyperemesis Gravidarum?", ans_key: "D", options: ["Multiple Pregnancy", "Primi para", "First Trimester", "Malnutrition"], chapter: "OBS Chapter 15: Vomiting in Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM16", type: "MCQ", stem: "What is the recommended period for taking a post-coital contraception pill after unprotected intercourse?", ans_key: "C", options: ["Within a week", "Within 4 days", "Within 3 days", "Within 5 days"], chapter: "GYN Chapter 30: Contraception", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM17", type: "MCQ", stem: "Which of the following hepatic enzymes is increased in normal pregnancy?", ans_key: "A", options: ["Alkaline phosphatase", "Alanine transaminase", "Aspartate transaminase", "γ-Glutamyl transpeptidase"], chapter: "OBS Chapter 5: Physiological Changes During Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM18", type: "MCQ", stem: "Management of hyperemesis gravidarum does NOT include:", ans_key: "B", options: ["Intravenous fluids", "Antibiotics", "Antiemetics", "Antacids"], chapter: "OBS Chapter 15: Vomiting in Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM19", type: "MCQ", stem: "What vitamin is virtually absent in human breast milk?", ans_key: "C", options: ["Vitamin C", "Vitamin A", "Vitamin K", "All vitamins are equally represented in breast milk"], chapter: "OBS Chapter 31: The Term Newborn Infant", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM20", type: "MCQ", stem: "Which of the following is correct about the measurement of uterus fundal height at various stage of gestation in pregnant women?", ans_key: "D", options: ["At 6 week, you can feel it in abdomen", "At 12 week, it is at umbilical level", "At 20 weeks, is reaches pelvic girdle", "At 36 week, it felt at lower part of sternum"], chapter: "OBS Chapter 7: Diagnosis of Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM21", type: "MCQ", stem: "Which of the following present at birth and gone within hours or days?", ans_key: "C", options: ["Preparietal bleed", "Cephalohematoma", "Caput succedaneum", "Subgaleal hemorrhage"], chapter: "OBS Chapter 33: Disease of the Fetus and the Newborn", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM22", type: "MCQ", stem: "What type of suture is typically used to complete the tubal ligation picture below?<br><img src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjcmi26_NCkPkhY7QIadcDh2-w1m7hQfMBJARS9dooH9RBGYE14XOZh9GFY1LKEeksce_M1guoULhpN2DFvqVC3KGRQWRdz91dc-2nfjEt95mFFv_SZSghYSDHDz8OKoFZu6RsPpONgjWdmgoRKreUberKN2BT-0H9jHmkIqWSsh7fPsahm4xYbO1e8TDU/s1164/1000175485.jpg' alt='Tubal ligation image' style='max-width: 100%; height: auto; margin-top: 12px; border-radius: 8px;' />", ans_key: "D", options: ["Vicryl", "Chromic", "Monocryl", "Plain catgut"], chapter: "GYN Chapter 30: Contraception", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM23", type: "MCQ", stem: "Which infection poses the greatest risk to a newborn during delivery?", ans_key: "C", options: ["Influenza", "Rubella", "Group B Streptococcus (GBS)", "Varicella (chickenpox)"], chapter: "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM24", type: "MCQ", stem: "When is the best time to perform a glucose tolerance test for gestational diabetes?", ans_key: "C", options: ["8 weeks gestation", "16 weeks gestation", "24-28 weeks gestation", "32 weeks gestation"], chapter: "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM25", type: "MCQ", stem: "What is the purpose of the Non-Stress Test (NST) during pregnancy?", ans_key: "C", options: ["Assessing maternal heart rate", "Evaluating fetal lung maturity", "Monitoring fetal heart rate response to movement", "Measuring amniotic fluid index"], chapter: "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM26", type: "MCQ", stem: "Which condition involves the abnormal implantation of the placenta over the cervical os?", ans_key: "B", options: ["Placenta accrete", "Placenta previa", "Placental abruption", "Ectopic pregnancy"], chapter: "OBS Chapter 19: Antepartum Hemorrhage", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM27", type: "MCQ", stem: "What is the primary purpose of the Nitrazine test in obstetrics?", ans_key: "B", options: ["Assessing fetal heart rate", "Determining amniotic fluid pH", "Screening for gestational diabetes", "Evaluating cervical dilation"], chapter: "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM28", type: "MCQ", stem: "What is the most common cause of neonatal respiratory distress syndrome?", ans_key: "A", options: ["Premature birth", "Maternal smoking", "Fetal alcohol syndrome", "Intrauterine growth restriction (IUGR)"], chapter: "OBS Chapter 33: Disease of the Fetus and the Newborn", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM29", type: "MCQ", stem: "Which maternal factor is associated with an increased risk of neural tube defects in the baby?", ans_key: "D", options: ["Advanced maternal age", "Maternal obesity", "Maternal smoking", "Maternal diabetes"], chapter: "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", examBatch: "2020 Batch Prof Exam Paper-I" },
-    { q: "DGM30", type: "MCQ", stem: "Which drug is contraindicated in cardiac disease complicating pregnancy?", ans_key: "B", options: ["Oxytocin", "Ergometrine", "Diuretics", "Morphine"], chapter: "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", examBatch: "2020 Batch Prof Exam Paper-I" },
-         
+            // --- 2021 BATCH PROF EXAM PAPER-I: THEORY QUESTIONS ---
+            { q: "DGT25", type: "Theory", stem: "25-year-old primigravida at 30 weeks of pregnancy came to OPD with complaints of easy fatiguability and tiredness for the past one month. On clinical examination, she was ill-built and moderate pallor was present.<br>a) What is the most likely diagnosis?<br>b) Definition and Causes of this condition during pregnancy.<br>c) How will you evaluate this case and what is the indication of blood transfusion during pregnancy? [7 Marks]", ans_key: "", chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT26", type: "Theory", stem: "Define preterm labour? Causes for preterm labour? Management of women with preterm labour? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT27", type: "Theory", stem: "SAQ: Biophysical profile [5 Marks]", ans_key: "", chapter: ["OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT28", type: "Theory", stem: "SAQ: Fetal circulation [5 Marks]", ans_key: "", chapter: ["OBS Chapter 4: The Fetus", "OBS Chapter 5: Physiological Changes During Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT29", type: "Theory", stem: "SAQ: Advantages of breastfeeding [5 Marks]", ans_key: "", chapter: ["OBS Chapter 14: Normal Puerperium", "OBS Chapter 31: The Term Newborn Infant"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT30", type: "Theory", stem: "SAQ: Haematological changes during pregnancy [5 Marks]", ans_key: "", chapter: ["OBS Chapter 5: Physiological Changes During Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT31", type: "Theory", stem: "30-year-old G2P1L1 with history of previous LSCS admitted at 30weeks with complaints of sudden onset, painless bleeding per vaginum. Her vitals are stable at the time of admission.<br>a) What is your most probable diagnosis?<br>b) Causes of bleeding per vaginum in late pregnancy.<br>c) How will you manage this case? [7 Marks]", ans_key: "", chapter: ["OBS Chapter 19: Antepartum Hemorrhage"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT32", type: "Theory", stem: "What is septic abortion? What are the clinical features of septic abortion? Evaluation and management of septic abortion? [8 Marks]", ans_key: "", chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "GYN Chapter 11: Pelvic Infection"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT33", type: "Theory", stem: "SAQ: Active management of 3rd stage of labour? [5 Marks]", ans_key: "", chapter: ["OBS Chapter 13: Normal Labor", "OBS Chapter 28: Complications of the Third Stage of Labor"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT34", type: "Theory", stem: "SAQ: Hydrops foetalis [5 Marks]", ans_key: "", chapter: ["OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT35", type: "Theory", stem: "SAQ: Differentiate symmetrical and asymmetrical FGR? [5 Marks]", ans_key: "", chapter: ["OBS Chapter 23: Complicated Pregnancy", "OBS Chapter 8: The Fetus-in-Utero"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGT36", type: "Theory", stem: "SAQ: HELLP syndrome? [5 Marks]", ans_key: "", chapter: ["OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+           // --- 2021 BATCH PROF EXAM PAPER-II: THEORY QUESTIONS ---
+            { q: "DGT37", type: "Theory", stem: "Enumerate the causes of postmenopausal bleeding. What is the most common cause of postmenopausal bleeding and write its management? [4+1+2=7]", ans_key: "", chapter: ["GYN Chapter 6: Menopause", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 24: Genital Malignancy"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT38", type: "Theory", stem: "What are the supports of the uterus? How do you classify prolapse? How will you manage third-degree prolapse in a 50-year-old female? [2+2+4=8]", ans_key: "", chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 1: Anatomy of the Female Pelvic Organs", "GYN Chapter 35: Operative Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT39", type: "Theory", stem: "SAQ: Emergency contraception. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 30: Contraception"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT40", type: "Theory", stem: "SAQ: Bartholin cyst. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 18: Benign Lesions of the Vulva and Vagina", "GYN Chapter 35: Operative Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT41", type: "Theory", stem: "SAQ: Enumerate causes of secondary amenorrhoea. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT42", type: "Theory", stem: "SAQ: Puberty menorrhagia. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT43", type: "Theory", stem: "A 45 years old female (P1L1) visited OPD with c/o severe dysmenorrhea and heavy menstrual bleeding for last 2 years. On Bimanual per vaginal examination her uterus is found to be irregularly enlarged to 14 - to - 16 weeks size.<br>a) What is your probable diagnosis?<br>b) How will you evaluate and manage this case. [2+2+3=7]", ans_key: "", chapter: ["GYN Chapter 20: Benign Lesions of the Uterus", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 22: Endometriosis and Adenomyosis"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT44", type: "Theory", stem: "Enumerate the risk factors of Carcinoma Cervix. Write the staging of CaCx and elaborate screening protocol of Carcinoma cervix. [2+3+3=8]", ans_key: "", chapter: ["GYN Chapter 24: Genital Malignancy", "GYN Chapter 23: Premalignant Lesions"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT45", type: "Theory", stem: "SAQ: Enumerate the Investigations of PCOS. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 29: Amenorrhea", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", "GYN Chapter 17: Infertility"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT46", type: "Theory", stem: "SAQ: Management of genital tuberculosis. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 13: Infections of the Individual Pelvic Organ", "GYN Chapter 11: Pelvic Infection"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT47", type: "Theory", stem: "SAQ: Female Sterilization. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 30: Contraception"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGT48", type: "Theory", stem: "SAQ: Bacterial vaginosis. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 11: Pelvic Infection"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            // --- 2022 BATCH 6TH SEM: THEORY QUESTIONS ---
+            { q: "DGT49", type: "Theory", stem: "35 years old G5P4L4 woman with 30 weeks of pregnancy comes to you with complaints of weakness, lethargy, anorexia and inability to go upstairs for last 5 months. Her obstetric events (previous deliveries) went uneventful. Clinically, pallor++. Her pulse rate is 105/min and BP is 90/60mmHg. Bilateral pedal edema present.<br>a) What is the most probable diagnosis? (1)<br>b) Enumerate the causes for this condition?(2)<br>c) How will you manage this case?(3)<br>d) What are the indications for blood transfusion in this condition?(2)", ans_key: "", chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT50", type: "Theory", stem: "30-year-old G4P3L3 presents at 33weeks of gestation with painless bleeding per vaginum from last night. She had soaked 1pad. She had a similar episode 1 month back. Currently, she is appreciating fetal movements well. On examination, there is mild pallor, her pulse rate is 100/min and BP 110/60mmHg. On examination, abdomen corresponding to the gestational age and its relaxed uterus. On auscultation, fetal heart rate was 130bpm.<br>a) What is the probable diagnosis? (1)<br>b) What investigations and action should be taken in this case? (4)<br>c) What are the complications associated with this condition? (2)", ans_key: "", chapter: ["OBS Chapter 19: Antepartum Hemorrhage"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT51", type: "Theory", stem: "SAQ: Enumerate the main functions of placenta. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 3: The Placenta and Fetal Membranes", "OBS Chapter 4: The Fetus"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT52", type: "Theory", stem: "SAQ: Development of female genital tract. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 3: Development of Genital Organs and Gonads"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT53", type: "Theory", stem: "SAQ: Hematological changes during pregnancy. [5 Marks]", ans_key: "", chapter: ["OBS Chapter 5: Physiological Changes During Pregnancy"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT54", type: "Theory", stem: "A 21-year-old primigravida at 14 weeks of gestation, came with c/o excessive vomiting and irregular vaginal bleeding and passage of grapes like vesicles since last 5 days. On examination: BP-110/70, pulse- 90, per abdomen- uterus enlarged up to 20 weeks, FHS - not heard, external ballotment is absent.<br>a) What is your provisional diagnosis ? (1)<br>b) What investigations are needed for the purpose of confirmation of diagnosis ?(2)<br>c) Discuss treatment briefly and follow up in this case. (5)", ans_key: "", chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "GYN Chapter 24: Genital Malignancy"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT55", type: "Theory", stem: "30-year-old married female presents to you with complaints of pain lower abdomen, foul smelling discharge p/v and with history of fever for last 5days. She lives in village; her husband works in factory away from the state. Her pulse rate is 120/min, BP100/60mmHg and temperature of 100 degree.<br>a) Write the possible diagnosis for this woman.(1)<br>b) Outline treatment plan for this patient? (4)<br>c) What are the advantages and disadvantages of syndromic approach? (2)", ans_key: "", chapter: ["GYN Chapter 11: Pelvic Infection", "GYN Chapter 12: Sexually Transmitted Infections"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT56", type: "Theory", stem: "SAQ: Lymphatic drainage of cervix [5 Marks]", ans_key: "", chapter: ["GYN Chapter 2: Blood Vessels, Lymphatic Drainage and Innervation of Pelvic Organs", "GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT57", type: "Theory", stem: "SAQ: Tanner staging. [5 Marks]", ans_key: "", chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence"], examBatch: "2022 Batch 6th Sem" },
+            { q: "DGT58", type: "Theory", stem: "SAQ: Long Acting Reversible Contraception [5 Marks]", ans_key: "", chapter: ["GYN Chapter 30: Contraception"], examBatch: "2022 Batch 6th Sem" },
+            // --- 2020 BATCH PROF EXAM PAPER-I: MCQ QUESTIONS ---
+            { q: "DGM1", type: "MCQ", stem: "A 22-year-old woman Gravida4 para3 living3 with 34weeks of gestation presents to the hospital with heavy painless vaginal bleeding. Her pulse rate is 100/min. Blood pressure is 90/50 mmHg. Per abdomen uterus is relaxed, non-tender. FHR is 160/min. What is the most likely diagnosis?", ans_key: "B", options: ["Concealed abruption", "Placenta previa", "Premature labor", "Revealed abruption"], chapter: ["OBS Chapter 19: Antepartum Hemorrhage", "OBS Chapter 23: Complicated Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM2", type: "MCQ", stem: "Which of the following is a parameter used in fetal biophysical profiling?", ans_key: "B", options: ["Abdominal circumference", "Amniotic fluid index", "Biparietal diameter", "Head circumference"], chapter: ["OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM3", type: "MCQ", stem: "23-year-old Primigravida comes with history of 3 months amenorrhea and pain abdomen. She had two episodes of spotting per vagina. Her vitals are stable. On vaginal examination - uterus corresponds to 12 weeks size and cervical os is closed. The most probable diagnosis is", ans_key: "B", options: ["Septic abortion", "Threatened abortion", "Incomplete abortion", "Complete abortion"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 7: Diagnosis of Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM4", type: "MCQ", stem: "Definitive sign of pregnancy:", ans_key: "D", options: ["Uterine souffle", "abdominal distension", "Uterine enlargement", "Fetal heart sound"], chapter: ["OBS Chapter 7: Diagnosis of Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM5", type: "MCQ", stem: "The following have been associated with bacteriuria in pregnancy:", ans_key: "A", options: ["Preterm birth", "post term birth", "ectopic pregnancy", "gestational trophoblastic diseases"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM6", type: "MCQ", stem: "Separation of placenta occurs in which stage of delivery:", ans_key: "C", options: ["first stage", "second stage", "third stage", "Fourth stage"], chapter: ["OBS Chapter 13: Normal Labor"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM7", type: "MCQ", stem: "Lactation occurs because of:", ans_key: "A", options: ["Prolactin", "Oxytocin", "HCG", "Progesterone"], chapter: ["OBS Chapter 14: Normal Puerperium", "OBS Chapter 6: Endocrinology in Relation to Reproduction"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM8", type: "MCQ", stem: "Vomiting in pregnancy occurs due to:", ans_key: "A", options: ["HCG", "Estrogen", "Progesterone", "Prolactin"], chapter: ["OBS Chapter 15: Vomiting in Pregnancy", "OBS Chapter 6: Endocrinology in Relation to Reproduction"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM9", type: "MCQ", stem: "Indications for medical treatment of ectopic pregnancy include the following except:", ans_key: "A", options: ["Presence of cardiac activity", "Beta HCG titers less than 5000mIU/ml", "Unruptured ectopic", "gsac = 3cms"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM10", type: "MCQ", stem: "The aims of the antenatal care are:", ans_key: "D", options: ["Promote and maintain health in pregnancy.", "Detect and treat conditions pre-existing or arising in pregnancy.", "Make a delivery plan.", "All of the above."], chapter: ["OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM11", type: "MCQ", stem: "20 years female comes to OPD with complaints of amenorrhea, what is your first step:", ans_key: "C", options: ["Do CBC", "get USG abdomen", "UPT test", "advice lifestyle modification"], chapter: ["GYN Chapter 29: Amenorrhea", "OBS Chapter 7: Diagnosis of Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM12", type: "MCQ", stem: "In ANC, which vaccine is advised?", ans_key: "A", options: ["Tetanus", "HbsAg", "OPV", "BCG"], chapter: ["OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM13", type: "MCQ", stem: "Risk factors for ectopic pregnancy are:", ans_key: "A", options: ["IUD use", "parous women", "pre-eclampsia in previous pregnancy", "Gestation diabetes"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM14", type: "MCQ", stem: "What are the criteria for hypertension in pregnancy:", ans_key: "A", options: ["BP >140/90 mmHg measured two times with at least 4 hours interval", "BP> 130/90mmHg measured two times with at least 4 hours interval", "BP > 140/100mmHg measured two times with at least 4 hours interval", "BP > 130/100mmHg measured two times with at least 6 hours interval"], chapter: ["OBS Chapter 18: Hypertensive Disorders in Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM15", type: "MCQ", stem: "Which is NOT the predisposing factor for Hyperemesis Gravidarum?", ans_key: "D", options: ["Multiple Pregnancy", "Primi para", "First Trimester", "Malnutrition"], chapter: ["OBS Chapter 15: Vomiting in Pregnancy", "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM16", type: "MCQ", stem: "What is the recommended period for taking a post-coital contraception pill after unprotected intercourse?", ans_key: "C", options: ["Within a week", "Within 4 days", "Within 3 days", "Within 5 days"], chapter: ["GYN Chapter 30: Contraception"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM17", type: "MCQ", stem: "Which of the following hepatic enzymes is increased in normal pregnancy?", ans_key: "A", options: ["Alkaline phosphatase", "Alanine transaminase", "Aspartate transaminase", "γ-Glutamyl transpeptidase"], chapter: ["OBS Chapter 5: Physiological Changes During Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM18", type: "MCQ", stem: "Management of hyperemesis gravidarum does NOT include:", ans_key: "B", options: ["Intravenous fluids", "Antibiotics", "Antiemetics", "Antacids"], chapter: ["OBS Chapter 15: Vomiting in Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM19", type: "MCQ", stem: "What vitamin is virtually absent in human breast milk?", ans_key: "C", options: ["Vitamin C", "Vitamin A", "Vitamin K", "All vitamins are equally represented in breast milk"], chapter: ["OBS Chapter 31: The Term Newborn Infant", "OBS Chapter 14: Normal Puerperium"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM20", type: "MCQ", stem: "Which of the following is correct about the measurement of uterus fundal height at various stage of gestation in pregnant women?", ans_key: "D", options: ["At 6 week, you can feel it in abdomen", "At 12 week, it is at umbilical level", "At 20 weeks, is reaches pelvic girdle", "At 36 week, it felt at lower part of sternum"], chapter: ["OBS Chapter 7: Diagnosis of Pregnancy", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM21", type: "MCQ", stem: "Which of the following present at birth and gone within hours or days?", ans_key: "C", options: ["Preparietal bleed", "Cephalohematoma", "Caput succedaneum", "Subgaleal hemorrhage"], chapter: ["OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 13: Normal Labor"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM22", type: "MCQ", stem: "What type of suture is typically used to complete the tubal ligation picture below?<br> [Image missing]", ans_key: "D", options: ["Vicryl", "Chromic", "Monocryl", "Plain catgut"], chapter: ["GYN Chapter 30: Contraception", "GYN Chapter 35: Operative Gynecology"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM23", type: "MCQ", stem: "Which infection poses the greatest risk to a newborn during delivery?", ans_key: "C", options: ["Influenza", "Rubella", "Group B Streptococcus (GBS)", "Varicella (chickenpox)"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 33: Disease of the Fetus and the Newborn"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM24", type: "MCQ", stem: "When is the best time to perform a glucose tolerance test for gestational diabetes?", ans_key: "C", options: ["8 weeks gestation", "16 weeks gestation", "24-28 weeks gestation", "32 weeks gestation"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM25", type: "MCQ", stem: "What is the purpose of the Non-Stress Test (NST) during pregnancy?", ans_key: "C", options: ["Assessing maternal heart rate", "Evaluating fetal lung maturity", "Monitoring fetal heart rate response to movement", "Measuring amniotic fluid index"], chapter: ["OBS Chapter 11: Antenatal Assessment of Fetal Well-Being"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM26", type: "MCQ", stem: "Which condition involves the abnormal implantation of the placenta over the cervical os?", ans_key: "B", options: ["Placenta accrete", "Placenta previa", "Placental abruption", "Ectopic pregnancy"], chapter: ["OBS Chapter 19: Antepartum Hemorrhage"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM27", type: "MCQ", stem: "What is the primary purpose of the Nitrazine test in obstetrics?", ans_key: "B", options: ["Assessing fetal heart rate", "Determining amniotic fluid pH", "Screening for gestational diabetes", "Evaluating cervical dilation"], chapter: ["OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM28", type: "MCQ", stem: "What is the most common cause of neonatal respiratory distress syndrome?", ans_key: "A", options: ["Premature birth", "Maternal smoking", "Fetal alcohol syndrome", "Intrauterine growth restriction (IUGR)"], chapter: ["OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM29", type: "MCQ", stem: "Which maternal factor is associated with an increased risk of neural tube defects in the baby?", ans_key: "D", options: ["Advanced maternal age", "Maternal obesity", "Maternal smoking", "Maternal diabetes"], chapter: ["OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2020 Batch Prof Exam Paper-I" },
+            { q: "DGM30", type: "MCQ", stem: "Which drug is contraindicated in cardiac disease complicating pregnancy?", ans_key: "B", options: ["Oxytocin", "Ergometrine", "Diuretics", "Morphine"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2020 Batch Prof Exam Paper-I" },
 
-    // --- MCQ QUESTIONS (PAPER II) ---
-    { q: "DGM31", type: "MCQ", stem: "The capacity of a non-pregnant uterine cavity is:", ans_key: "C", options: ["30 ml", "300 ml", "3 ml", "None of the above"], chapter: "GYN Chapter 1: Anatomy of the Female Pelvic Organs", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM32", type: "MCQ", stem: "True about endometrial thickness (ET):", ans_key: "D", options: ["ET Of 8-12 mm is considered normal in the premenstrual phase", "In menopausal women, ET should not exceed 4 mm", "Both a & b are false", "Both a & b are true"], chapter: "GYN Chapter 8: Menstruation", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM33", type: "MCQ", stem: "Hypothalamus secretes GnRH. Choose the false option below:", ans_key: "B", options: ["GnRH is a decapeptide", "GnRH is a nonapeptide", "GnRH is synthesized in arcuate nucleus & released at the nerve endings near tuber cinereum", "GnRH has a half-life of 2 - 4 min"], chapter: "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM34", type: "MCQ", stem: "The following HPV types are the most significant and account for 70% of all cancer cervix:", ans_key: "D", options: ["6 & 12", "12 & 14", "14 & 16", "16 & 18"], chapter: "GYN Chapter 23: Premalignant Lesions", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM35", type: "MCQ", stem: "False about secondary sexual characteristics is:", ans_key: "A", options: ["The adolescent breast development is divided into 4 stages (Tanner)", "The first menstrual period generally follows thelarche by about 2 years", "Prepubertal uterus/cervix ratio is 1:1 which changes to 2:1 or 3:1 during puberty to reach adulthood", "None of the above"], chapter: "GYN Chapter 5: Puberty—Normal and Abnormal", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM36", type: "MCQ", stem: "WHO defines Osteopenia as a Bone mineral density ............... the young adult mean peak?", ans_key: "A", options: ["Between 1 and 2.5 SD", "2.5 SD or more below", "0.5 SD", "None of the above"], chapter: "GYN Chapter 6: Menopause", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM37", type: "MCQ", stem: "In hysteroscopy, to provide adequate uterine distension, the intrauterine pressure needed by liquid media:", ans_key: "A", options: ["70-100 mmHg", "120 mm HG", "40-50 mmHg", "10-20 mmHg"], chapter: "GYN Chapter 36: Endoscopic Surgery in Gynecology", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM38", type: "MCQ", stem: "The test to detect presence of glycogen in superficial cells of vaginal epithelium:", ans_key: "C", options: ["Papanicolaou Test", "Hanging drop test", "Schiller Test", "None of the above"], chapter: "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM39", type: "MCQ", stem: "CIN 1 corresponds to:", ans_key: "A", options: ["Low SIL (squamous intraepithelial lesion) in SIL Bethesda 1988 classification", "High SIL (squamous intraepithelial lesion) in SIL Bethesda 1988 classification", "ASCUS (Atypical squamous cells of undetermined significance)", "None of the above"], chapter: "GYN Chapter 23: Premalignant Lesions", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM40", type: "MCQ", stem: "Choose the correct option:", ans_key: "D", options: ["Ovary starts to develop by 5th week of intrauterine life", "At birth ovaries are located at pelvic brim", "Only a is correct", "Both a & b are correct"], chapter: "GYN Chapter 3: Development of Genital Organs and Gonads", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM41", type: "MCQ", stem: "In Swyer’s syndrome:", ans_key: "C", options: ["46 XY gonadal dysgenesis with uterus & cervix", "There is poorly developed breasts and undeveloped testes", "Both a & b correct", "None of the above"], chapter: "GYN Chapter 28: Disorders of Sexual Development", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM42", type: "MCQ", stem: "Condyloma acuminata is caused by:", ans_key: "B", options: ["Treponema pallidum", "HPV 6, 11", "Gonococcus", "Trichomonas"], chapter: "GYN Chapter 12: Sexually Transmitted Infections", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM43", type: "MCQ", stem: "Bactec rapid culture for TB gives result in:", ans_key: "D", options: ["24 hours", "12 hours", "48 hours", "5-7 days"], chapter: "GYN Chapter 13: Infections of the Individual Pelvic Organ", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM44", type: "MCQ", stem: "A 48 years old woman pain in loin, high fever, rigors, headache. Her urine is turbid and contains pus cells. Urine culture report is awaited. She should be treated for?", ans_key: "C", options: ["Cystitis", "Urethritis", "Pyelonephritis", "Urethral syndrome"], chapter: "GYN Chapter 25: Urinary Problems in Gynecology", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM45", type: "MCQ", stem: "Burch Colposuspension is done for:", ans_key: "B", options: ["Urge incontinence", "Stress urinary incontinence", "Vesicovaginal fistula", "Ureterovaginal fistula"], chapter: "GYN Chapter 25: Urinary Problems in Gynecology", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM46", type: "MCQ", stem: "The receptors for FSH and testosterone are present in men in:", ans_key: "A", options: ["Sertoli cells", "Leydig cells", "Interstitial cells", "None of the above"], chapter: "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM47", type: "MCQ", stem: "Knaus-Ogino is:", ans_key: "A", options: ["Calendar method of natural contraception", "Mucus method of contraception", "A microcomputer attached to a micro-laboratory to detect fertile period", "None of the above"], chapter: "GYN Chapter 30: Contraception", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM48", type: "MCQ", stem: "Mirena is an LNG-IUS containing 52 mg LNG, eluting 20 mcg LNG daily. Its failure rate is:", ans_key: "B", options: ["1 per 100 woman years", "0.1 - 0.4 per 100 woman years", "3 - 5 per 100 woman year", "None of the above"], chapter: "GYN Chapter 30: Contraception", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM49", type: "MCQ", stem: "Correct option for Halban’s Disease is:", ans_key: "B", options: ["Irregular Ripening", "Persistent corpus luteum leads to timely but prolonged menses, although not heavy.", "An ovulatory bleeding due to deficient corpus luteal function - breakthrough spotting before expected date of menses", "None of the above"], chapter: "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM50", type: "MCQ", stem: "Uterosacral ligament is which level of support to genital tract (DeLancey)?", ans_key: "A", options: ["I", "II", "III", "IV"], chapter: "GYN Chapter 16: Displacement of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM51", type: "MCQ", stem: "Abdominal repair of enterocele by several purse-string sutures:", ans_key: "A", options: ["Moschcowitz repair", "Schauta's procedure", "Sacrospinous fixation", "None of the above"], chapter: "GYN Chapter 16: Displacement of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM52", type: "MCQ", stem: "Baldy-Webster Operation is done for:", ans_key: "A", options: ["Retroverted uterus", "Vesicovaginal fistula", "Urethral stricture", "None of the above"], chapter: "GYN Chapter 16: Displacement of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM53", type: "MCQ", stem: "Gartner's cyst is a remnant of?", ans_key: "A", options: ["Mesonephric duct", "Cloaca", "Paramesonephric duct", "None of the above"], chapter: "GYN Chapter 4: Congenital Malformation of Female Genital Organs", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM54", type: "MCQ", stem: "......................in smear is/are pathognomic of bacterial vaginosis.", ans_key: "C", options: ["Gram stain", "KOH test", "Clue cells", "None of the above"], chapter: "GYN Chapter 12: Sexually Transmitted Infections", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM55", type: "MCQ", stem: "Sarcomatous change in myoma occurs in:", ans_key: "A", options: ["Less than 0.5%", "Approximately 15%", "Approximately 5%", "None of the above"], chapter: "GYN Chapter 20: Benign Lesions of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM56", type: "MCQ", stem: "Contraindication(s) of uterine artery embolization", ans_key: "C", options: ["Subserous and pedunculated fibroid", "Calcified fibroid", "Both a & b", "None of the above"], chapter: "GYN Chapter 20: Benign Lesions of the Uterus", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM57", type: "MCQ", stem: "A 42 years female comes to gynecology OPD with severe dysmenorrhea, heavy menses and gives past history of infertility. In IVF she had implantation failures. Her only child was borne preterm due to P-PROM at 29 weeks. On examination her uterus is 12 weeks in size, regularly enlarged, firm, tender on movement. What is the most likely diagnosis?", ans_key: "A", options: ["Adenomyosis", "Leiomyoma", "Polyp", "Ovarian tumor"], chapter: "GYN Chapter 22: Endometriosis and Adenomyosis", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM58", type: "MCQ", stem: "A 65 years old postmenopausal woman comes with bleeding per vaginum. On ultrasound of abdomen and pelvis uterine endometrial thickness is 12 mm, a left sided solid ovarian tumor is present. She gives no current/past history of hormone replacement therapy. What is the most probable diagnosis in this patient?", ans_key: "B", options: ["Serous cystadenocarcinoma", "Theca cell tumor", "Fibroma", "Pedunculated fibroid"], chapter: "GYN Chapter 24: Genital Malignancy", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM59", type: "MCQ", stem: "On colour doppler study, a malignant ovarian tumor shows", ans_key: "D", options: ["Increased vascularity", "Pulsatility index < 1", "Resistance index < 0.4", "All of the above"], chapter: "GYN Chapter 24: Genital Malignancy", examBatch: "2020 Batch Prof Exam Paper-II" },
-    { q: "DGM60", type: "MCQ", stem: "A 50 years woman comes to OPD with complaint of deep dyspareunia for last 14 months. She underwent hysterectomy 2 years back for fibroid uterus. She also complaints of cyclical lower abdominal pain. Her serum FSH value is 10 mIU/ml. what is her provisional clinical diagnosis?", ans_key: "A", options: ["Ovarian remnant syndrome", "Menopausal vaginitis", "Fitz-Hugh Curtis syndrome", "None of the above"], chapter: "GYN Chapter 34: Special Topics", examBatch: "2020 Batch Prof Exam Paper-II" },
+            // --- 2020 BATCH PROF EXAM PAPER-II: MCQ QUESTIONS ---
+            { q: "DGM31", type: "MCQ", stem: "The capacity of a non-pregnant uterine cavity is:", ans_key: "C", options: ["30 ml", "300 ml", "3 ml", "None of the above"], chapter: ["GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM32", type: "MCQ", stem: "True about endometrial thickness (ET):", ans_key: "D", options: ["ET Of 8-12 mm is considered normal in the premenstrual phase", "In menopausal women, ET should not exceed 4 mm", "Both a & b are false", "Both a & b are true"], chapter: ["GYN Chapter 8: Menstruation", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM33", type: "MCQ", stem: "Hypothalamus secretes GnRH. Choose the false option below:", ans_key: "B", options: ["GnRH is a decapeptide", "GnRH is a nonapeptide", "GnRH is synthesized in arcuate nucleus & released at the nerve endings near tuber cinereum", "GnRH has a half-life of 2 - 4 min"], chapter: ["GYN Chapter 7: Neuroendocrinology in Relation to Reproduction"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM34", type: "MCQ", stem: "The following HPV types are the most significant and account for 70% of all cancer cervix:", ans_key: "D", options: ["6 & 12", "12 & 14", "14 & 16", "16 & 18"], chapter: ["GYN Chapter 23: Premalignant Lesions", "GYN Chapter 24: Genital Malignancy"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM35", type: "MCQ", stem: "False about secondary sexual characteristics is:", ans_key: "A", options: ["The adolescent breast development is divided into 4 stages (Tanner)", "The first menstrual period generally follows thelarche by about 2 years", "Prepubertal uterus/cervix ratio is 1:1 which changes to 2:1 or 3:1 during puberty to reach adulthood", "None of the above"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM36", type: "MCQ", stem: "WHO defines Osteopenia as a Bone mineral density ............... the young adult mean peak?", ans_key: "A", options: ["Between 1 and 2.5 SD", "2.5 SD or more below", "0.5 SD", "None of the above"], chapter: ["GYN Chapter 6: Menopause"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM37", type: "MCQ", stem: "In hysteroscopy, to provide adequate uterine distension, the intrauterine pressure needed by liquid media:", ans_key: "A", options: ["70-100 mmHg", "120 mm HG", "40-50 mmHg", "10-20 mmHg"], chapter: ["GYN Chapter 36: Endoscopic Surgery in Gynecology", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM38", type: "MCQ", stem: "The test to detect presence of glycogen in superficial cells of vaginal epithelium:", ans_key: "C", options: ["Papanicolaou Test", "Hanging drop test", "Schiller Test", "None of the above"], chapter: ["GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM39", type: "MCQ", stem: "CIN 1 corresponds to:", ans_key: "A", options: ["Low SIL (squamous intraepithelial lesion) in SIL Bethesda 1988 classification", "High SIL (squamous intraepithelial lesion) in SIL Bethesda 1988 classification", "ASCUS (Atypical squamous cells of undetermined significance)", "None of the above"], chapter: ["GYN Chapter 23: Premalignant Lesions"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM40", type: "MCQ", stem: "Choose the correct option:", ans_key: "D", options: ["Ovary starts to develop by 5th week of intrauterine life", "At birth ovaries are located at pelvic brim", "Only a is correct", "Both a & b are correct"], chapter: ["GYN Chapter 3: Development of Genital Organs and Gonads"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM41", type: "MCQ", stem: "In Swyer’s syndrome:", ans_key: "C", options: ["46 XY gonadal dysgenesis with uterus & cervix", "There is poorly developed breasts and undeveloped testes", "Both a & b correct", "None of the above"], chapter: ["GYN Chapter 28: Disorders of Sexual Development", "GYN Chapter 29: Amenorrhea"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM42", type: "MCQ", stem: "Condyloma acuminata is caused by:", ans_key: "B", options: ["Treponema pallidum", "HPV 6, 11", "Gonococcus", "Trichomonas"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 18: Benign Lesions of the Vulva and Vagina"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM43", type: "MCQ", stem: "Bactec rapid culture for TB gives result in:", ans_key: "D", options: ["24 hours", "12 hours", "48 hours", "5-7 days"], chapter: ["GYN Chapter 13: Infections of the Individual Pelvic Organ"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM44", type: "MCQ", stem: "A 48 years old woman pain in loin, high fever, rigors, headache. Her urine is turbid and contains pus cells. Urine culture report is awaited. She should be treated for?", ans_key: "C", options: ["Cystitis", "Urethritis", "Pyelonephritis", "Urethral syndrome"], chapter: ["GYN Chapter 25: Urinary Problems in Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM45", type: "MCQ", stem: "Burch Colposuspension is done for:", ans_key: "B", options: ["Urge incontinence", "Stress urinary incontinence", "Vesicovaginal fistula", "Ureterovaginal fistula"], chapter: ["GYN Chapter 25: Urinary Problems in Gynecology", "GYN Chapter 35: Operative Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM46", type: "MCQ", stem: "The receptors for FSH and testosterone are present in men in:", ans_key: "A", options: ["Sertoli cells", "Leydig cells", "Interstitial cells", "None of the above"], chapter: ["GYN Chapter 7: Neuroendocrinology in Relation to Reproduction"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM47", type: "MCQ", stem: "Knaus-Ogino is:", ans_key: "A", options: ["Calendar method of natural contraception", "Mucus method of contraception", "A microcomputer attached to a micro-laboratory to detect fertile period", "None of the above"], chapter: ["GYN Chapter 30: Contraception"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM48", type: "MCQ", stem: "Mirena is an LNG-IUS containing 52 mg LNG, eluting 20 mcg LNG daily. Its failure rate is:", ans_key: "B", options: ["1 per 100 woman years", "0.1 - 0.4 per 100 woman years", "3 - 5 per 100 woman year", "None of the above"], chapter: ["GYN Chapter 30: Contraception"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM49", type: "MCQ", stem: "Correct option for Halban’s Disease is:", ans_key: "B", options: ["Irregular Ripening", "Persistent corpus luteum leads to timely but prolonged menses, although not heavy.", "An ovulatory bleeding due to deficient corpus luteal function - breakthrough spotting before expected date of menses", "None of the above"], chapter: ["GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM50", type: "MCQ", stem: "Uterosacral ligament is which level of support to genital tract (DeLancey)?", ans_key: "A", options: ["I", "II", "III", "IV"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM51", type: "MCQ", stem: "Abdominal repair of enterocele by several purse-string sutures:", ans_key: "A", options: ["Moschcowitz repair", "Schauta's procedure", "Sacrospinous fixation", "None of the above"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 35: Operative Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM52", type: "MCQ", stem: "Baldy-Webster Operation is done for:", ans_key: "A", options: ["Retroverted uterus", "Vesicovaginal fistula", "Urethral stricture", "None of the above"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 35: Operative Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM53", type: "MCQ", stem: "Gartner's cyst is a remnant of?", ans_key: "A", options: ["Mesonephric duct", "Cloaca", "Paramesonephric duct", "None of the above"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 18: Benign Lesions of the Vulva and Vagina"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM54", type: "MCQ", stem: "......................in smear is/are pathognomic of bacterial vaginosis.", ans_key: "C", options: ["Gram stain", "KOH test", "Clue cells", "None of the above"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM55", type: "MCQ", stem: "Sarcomatous change in myoma occurs in:", ans_key: "A", options: ["Less than 0.5%", "Approximately 15%", "Approximately 5%", "None of the above"], chapter: ["GYN Chapter 20: Benign Lesions of the Uterus", "GYN Chapter 24: Genital Malignancy"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM56", type: "MCQ", stem: "Contraindication(s) of uterine artery embolization", ans_key: "C", options: ["Subserous and pedunculated fibroid", "Calcified fibroid", "Both a & b", "None of the above"], chapter: ["GYN Chapter 20: Benign Lesions of the Uterus", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM57", type: "MCQ", stem: "A 42 years female comes to gynecology OPD with severe dysmenorrhea, heavy menses and gives past history of infertility. In IVF she had implantation failures. Her only child was borne preterm due to P-PROM at 29 weeks. On examination her uterus is 12 weeks in size, regularly enlarged, firm, tender on movement. What is the most likely diagnosis?", ans_key: "A", options: ["Adenomyosis", "Leiomyoma", "Polyp", "Ovarian tumor"], chapter: ["GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM58", type: "MCQ", stem: "A 65 years old postmenopausal woman comes with bleeding per vaginum. On ultrasound of abdomen and pelvis uterine endometrial thickness is 12 mm, a left sided solid ovarian tumor is present. She gives no current/past history of hormone replacement therapy. What is the most probable diagnosis in this patient?", ans_key: "B", options: ["Serous cystadenocarcinoma", "Theca cell tumor", "Fibroma", "Pedunculated fibroid"], chapter: ["GYN Chapter 24: Genital Malignancy", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM59", type: "MCQ", stem: "On colour doppler study, a malignant ovarian tumor shows", ans_key: "D", options: ["Increased vascularity", "Pulsatility index < 1", "Resistance index < 0.4", "All of the above"], chapter: ["GYN Chapter 24: Genital Malignancy", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2020 Batch Prof Exam Paper-II" },
+            { q: "DGM60", type: "MCQ", stem: "A 50 years woman comes to OPD with complaint of deep dyspareunia for last 14 months. She underwent hysterectomy 2 years back for fibroid uterus. She also complaints of cyclical lower abdominal pain. Her serum FSH value is 10 mIU/ml. what is her provisional clinical diagnosis?", ans_key: "A", options: ["Ovarian remnant syndrome", "Menopausal vaginitis", "Fitz-Hugh Curtis syndrome", "None of the above"], chapter: ["GYN Chapter 34: Special Topics", "GYN Chapter 22: Endometriosis and Adenomyosis"], examBatch: "2020 Batch Prof Exam Paper-II" },
+
+            // --- 2021 BATCH PROF EXAM PAPER-I: MCQ QUESTIONS ---
+            { q: "DGM61", type: "MCQ", stem: "In which of the following Deep transverse arrest is common?", ans_key: "B", options: ["Gynecoid pelvis", "Android pelvis", "Anthropoid pelvis", "Platypelloid pelvis"], chapter: ["OBS Chapter 24: Contracted Pelvis", "OBS Chapter 9: Fetal Skull and Maternal Pelvis"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM62", type: "MCQ", stem: "Which ligament in female derived from gubernaculum?", ans_key: "B", options: ["Broad ligament", "Round ligament", "Uterosacral ligaments", "Mackenrodt's ligaments"], chapter: ["GYN Chapter 3: Development of Genital Organs and Gonads", "GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM63", type: "MCQ", stem: "When is the highest number of oocytes present in the ovary?", ans_key: "C", options: ["At puberty", "At birth", "At 20weeks of gestation", "At 30 years"], chapter: ["GYN Chapter 3: Development of Genital Organs and Gonads", "GYN Chapter 2: Fundamentals of Reproduction"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM64", type: "MCQ", stem: "Where is SRY gene located?", ans_key: "B", options: ["Long arm of Y chromosome", "Short arm of Y chromosome", "Long arm of X chromosome", "Short arm of X chromosome"], chapter: ["GYN Chapter 28: Disorders of Sexual Development"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM65", type: "MCQ", stem: "Which grip determines whether head has entered the pelvis?", ans_key: "D", options: ["Fundal grip", "Umbilical grip", "First pelvic grip", "Second pelvic grip"], chapter: ["OBS Chapter 7: Diagnosis of Pregnancy", "OBS Chapter 8: The Fetus-in-Utero"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM66", type: "MCQ", stem: "The sequence of cardinal movements during normal labour?", ans_key: "A", options: ["Engagement, Descent, Flexion, Internal rotation, Extension, External rotation, Expulsion", "Engagement, Descent, Flexion, Internal rotation, External rotation, Extension, Expulsion", "Engagement, Descent, Internal rotation, Flexion, External rotation, Extension, Expulsion", "Engagement, Descent, Internal rotation, Flexion, Extension, External rotation, Expulsion"], chapter: ["OBS Chapter 13: Normal Labor"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM67", type: "MCQ", stem: "Which manoeuvre is used for delivering head in normal labour?", ans_key: "C", options: ["Pinard manoeuvre", "McRobert manoeuvre", "Ritgen manoeuvre", "Burns Marshall technique"], chapter: ["OBS Chapter 13: Normal Labor", "OBS Chapter 37: Operative Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM68", type: "MCQ", stem: "When the uterus will become a pelvic organ after delivery?", ans_key: "B", options: ["After 1 week", "After 2 weeks", "After 4 weeks", "After 6 weeks"], chapter: ["OBS Chapter 14: Normal Puerperium"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM69", type: "MCQ", stem: "When blood pressure should return to normal in gestational hypertension?", ans_key: "D", options: ["4 weeks", "6 weeks", "10 weeks", "12 weeks"], chapter: ["OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 30: Abnormalities of the Puerperium"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM70", type: "MCQ", stem: "Which drug is not a tocolytic agent?", ans_key: "C", options: ["Nifedipine", "Terbutaline", "Labetalol", "Atosiban"], chapter: ["OBS Chapter 34: Pharmacotherapeutics in Obstetrics", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM71", type: "MCQ", stem: "Which drug is contraindicated in cardiac disease complicating pregnancy?", ans_key: "B", options: ["Oxytocin", "Ergometrine", "Diuretics", "Morphine"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM72", type: "MCQ", stem: "When chorionic villus sampling performed?", ans_key: "B", options: ["8 -10 weeks", "10-13 weeks", "16-19 weeks", ">20 weeks"], chapter: ["OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM73", type: "MCQ", stem: "Where B-lynch suture applied?", ans_key: "C", options: ["Cervix", "Vagina", "Uterus", "External genitalia"], chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 28: Complications of the Third Stage of Labor"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM74", type: "MCQ", stem: "Which of the following is not a branch of internal iliac artery?", ans_key: "C", options: ["Uterine artery", "Vaginal artery", "External pudendal artery", "Obturator artery"], chapter: ["GYN Chapter 2: Blood Vessels, Lymphatic Drainage and Innervation of Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM75", type: "MCQ", stem: "In which of the following Studiford criteria is used?", ans_key: "B", options: ["Cornual pregnancy", "Abdominal pregnancy", "Cervical pregnancy", "Ovarian pregnancy"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM76", type: "MCQ", stem: "Which one is not a cause of recurrent pregnancy loss?", ans_key: "B", options: ["Maternal diabetes", "TORCH infection", "APLA", "Cervical insufficiency"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM77", type: "MCQ", stem: "Which one is the engaging diameter in a well-flexed head?", ans_key: "A", options: ["Suboccipito-bregmatic", "Submento-bregmatic", "Occipitofrontal", "Mentovertical"], chapter: ["OBS Chapter 9: Fetal Skull and Maternal Pelvis"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM78", type: "MCQ", stem: "In which of the following fundal height is more than period of gestation?", ans_key: "B", options: ["Fetal growth restriction", "Polyhydramnios", "Transverse lie", "Intrauterine fetal demise"], chapter: ["OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 7: Diagnosis of Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM79", type: "MCQ", stem: "Which of the following is not a complication of diabetes complicating pregnancy?", ans_key: "C", options: ["Macrosomia", "Infections", "Oligamnios", "Intrauterine fetal demise"], chapter: ["OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM80", type: "MCQ", stem: "Twin to twin transfusion syndrome seen in:", ans_key: "B", options: ["Dichorionic diamniotic", "Monochorionic diamniotic", "Dichorionic monoamniotic", "Monochorionic monoamniotic"], chapter: ["OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM81", type: "MCQ", stem: "Which type of degeneration of fibroid seen during pregnancy?", ans_key: "B", options: ["Hyaline degeneration", "Red degeneration", "Cystic degeneration", "Fatty degeneration"], chapter: ["OBS Chapter 21: Gynecological Disorders in Pregnancy", "GYN Chapter 20: Benign Lesions of the Uterus"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM82", type: "MCQ", stem: "Which one of the following is not an indication for caesarean section?", ans_key: "C", options: ["Contracted pelvis", "Failed induction", "Leaking PV", "Twin pregnancy with first twin breech"], chapter: ["OBS Chapter 37: Operative Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM83", type: "MCQ", stem: "Half-life of oxytocin:", ans_key: "B", options: ["5 seconds", "5 minutes", "30 minutes", "2 hours"], chapter: ["OBS Chapter 34: Pharmacotherapeutics in Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM84", type: "MCQ", stem: "Which drug is contraindicated in bronchial asthma patient?", ans_key: "D", options: ["Misoprostol", "Oxytocin", "Tranexamic acid", "Carboprost"], chapter: ["OBS Chapter 34: Pharmacotherapeutics in Obstetrics", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM85", type: "MCQ", stem: "25-year-old woman brought to casualty with history of amenorrhea for one-month abdominal pain for 2 days. On examination, there is pallor, tachycardia and abdominal tenderness. What is the probable diagnosis?", ans_key: "B", options: ["Pelvic inflammatory disease", "Ectopic pregnancy", "Urinary tract infection", "Missed abortion"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM86", type: "MCQ", stem: "In which abortion the fetus without cardiac activity remains in the uterine cavity with closed cervix?", ans_key: "C", options: ["Threatened abortion", "Incomplete abortion", "Missed abortion", "Inevitable abortion"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM87", type: "MCQ", stem: "Which of the following ultrasound finding seen in monochorionic diamniotic twins?", ans_key: "C", options: ["Lambda sign", "Single sac", "T sign", "Twin peak sign"], chapter: ["OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM88", type: "MCQ", stem: "Internal podalic version done in which condition?", ans_key: "C", options: ["Obstructed labour", "Arrest of descend", "Second twin delivery", "Instrumental delivery"], chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM89", type: "MCQ", stem: "Which is the most common cause of maternal death?", ans_key: "C", options: ["Sepsis", "Hypertension", "Hemorrhage", "Cardiac disease"], chapter: ["OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+            { q: "DGM90", type: "MCQ", stem: "At what head station is the outlet forceps applied?", ans_key: "D", options: ["At 0 station", "At -2 station", "At -1 station", "At +2 station"], chapter: ["OBS Chapter 37: Operative Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
+
+            // --- 2021 BATCH PROF EXAM PAPER-II: MCQ QUESTIONS ---
+            { q: "DGM91", type: "MCQ", stem: "Peg cells are found in:", ans_key: "D", options: ["Ovary", "Cervix", "Vagina", "Fallopian tube"], chapter: ["GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM92", type: "MCQ", stem: "The supports of uterus are all except:", ans_key: "B", options: ["Transverse cervical ligament", "Broad ligament", "Levator ani", "Uterosacral ligament"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM93", type: "MCQ", stem: "A 28-year-old woman complains of vaginal discharge. Swabs are taken and she is found to be infected with Chlamydia. Which antibiotic is an effective treatment for Chlamydia in a single dose?", ans_key: "A", options: ["Azithromycin", "Erythromycin", "Doxycycline", "Tetracycline"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 11: Pelvic Infection"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM94", type: "MCQ", stem: "Common sites of ureteric injury are all except:", ans_key: "B", options: ["At level of infundibulopelvic ligament", "At level of first uterine clamp during hysterectomy", "At the level of internal cervical os", "Over the anterior lateral vaginal fornix"], chapter: ["GYN Chapter 35: Operative Gynecology", "GYN Chapter 1: Anatomy of the Female Pelvic Organs", "GYN Chapter 27: Genital Tract Injuries and Anorectal Dysfunctions"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM95", type: "MCQ", stem: "A 35-year-old female presents with heavy menstrual bleeding. Pelvic examination is normal. USG shows focal endometrial thickening. The best investigation in this case for the purpose of confirmation of diagnosis is:", ans_key: "B", options: ["MRI", "Hysteroscopy & biopsy", "Endometrial aspiration", "Doppler USG"], chapter: ["GYN Chapter 15: Abnormal Uterine Bleeding (AUB)", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures", "GYN Chapter 36: Endoscopic Surgery in Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM96", type: "MCQ", stem: "All are sexually transmitted diseases EXCEPT:", ans_key: "D", options: ["Trichomoniasis", "Chlamydia", "Treponema", "Candidiasis"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 13: Infections of the Individual Pelvic Organ"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM97", type: "MCQ", stem: "Secondary amenorrhea is defined after ...... months of amenorrhea.", ans_key: "C", options: ["1", "4", "6", "12"], chapter: ["GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM98", type: "MCQ", stem: "The most common benign cyst of ovary is:", ans_key: "A", options: ["Follicular cyst", "Theca lutein cyst", "Corpus luteal cyst", "None of the above"], chapter: ["GYN Chapter 21: Benign Lesions of the Ovary"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM99", type: "MCQ", stem: "In PALM COEIN classification of AUB, E stands for:", ans_key: "B", options: ["Endocrine cause", "Endometrial cause", "None of the above", "Both A & B"], chapter: ["GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM100", type: "MCQ", stem: "After suction and evacuation of H mole, serum B hCG is followed weekly till it is normal/undetectable for ....... consecutive weeks.", ans_key: "C", options: ["4", "6", "3", "7"], chapter: ["OBS Chapter 16: Hemorrhage in Early Pregnancy", "GYN Chapter 24: Genital Malignancy"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM101", type: "MCQ", stem: "In PCOS following is seen:", ans_key: "C", options: ["Raised LH", "Raised AMH", "Both A & B", "None of the above"], chapter: ["GYN Chapter 29: Amenorrhea", "GYN Chapter 7: Neuroendocrinology in Relation to Reproduction"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM102", type: "MCQ", stem: "The order of pubertal development in girls is:", ans_key: "B", options: ["Adrenarche-pubarche-menarche", "Thelarche-menarche-pubarche", "Pubarche-thelarche-menarche", "Thelarche-pubarche-menarche"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM103", type: "MCQ", stem: "Precocious puberty is defined as the onset of secondary sexual characteristics before ___ years of age in females:", ans_key: "A", options: ["8", "9", "9.5", "8.5"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM104", type: "MCQ", stem: "A 7 year girl presented to the clinic with sign and symptoms of precocious puberty, Café-au-lait spots, hyperthyroidism, history of easily fractured bones and sign of cushing disease. Which one of the following is the diagnosis?", ans_key: "D", options: ["Peutz-Jegher's syndrome", "Kallmann Syndrome", "Swyer Syndrome", "McCune-Albright Syndrome"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 33: Gynecological Problems from Birth to Adolescence"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM105", type: "MCQ", stem: "Metabolic syndrome predisposes women to which carcinoma?", ans_key: "A", options: ["Endometrial", "Ovarian", "Cervical", "Breast"], chapter: ["GYN Chapter 24: Genital Malignancy"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM106", type: "MCQ", stem: "Clomiphene citrate is:", ans_key: "C", options: ["Androgenic", "Estrogenic", "Anti-estrogenic", "None of the above"], chapter: ["GYN Chapter 17: Infertility", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM107", type: "MCQ", stem: "HRT is indicated in all except:", ans_key: "D", options: ["Hot flushes", "Osteoporosis", "Atrophic vaginitis", "Cardiovascular disorder"], chapter: ["GYN Chapter 6: Menopause", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM108", type: "MCQ", stem: "Identify the following HSG:<br>[Image missing]", ans_key: "B", options: ["Normal uterus", "Septate uterus", "Arcuate uterus", "Bicornuate uterus"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 10: Imaging Techniques, other Diagnostic Procedures and Laser in Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM109", type: "MCQ", stem: "Which is false regarding Mayer Rokitansky Kuster Hauser Syndrome?", ans_key: "D", options: ["Karyotype is 46 XX", "Associated with renal abnormalities", "Associated with skeletal abnormalities", "Secondary sexual characteristics are not developed"], chapter: ["GYN Chapter 4: Congenital Malformation of Female Genital Organs", "GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM110", type: "MCQ", stem: "False about Androgen insensitivity syndrome:", ans_key: "D", options: ["Short vagina", "Karyotype 46XY", "Ovaries are absent", "Pubic hair is present"], chapter: ["GYN Chapter 28: Disorders of Sexual Development", "GYN Chapter 29: Amenorrhea"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM111", type: "MCQ", stem: "Clue cells are seen in:", ans_key: "B", options: ["Trichomoniasis", "Bacterial vaginosis", "Candidiasis", "Gonorrhoea"], chapter: ["GYN Chapter 12: Sexually Transmitted Infections", "GYN Chapter 9: Examination of a Gynecological Patient and the Diagnostic Procedures"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM112", type: "MCQ", stem: "Which is false regarding WHO criteria for Normal Semen analysis?", ans_key: "A", options: ["Normal Morphology > 8%", "Total counts >15 million/ml", "Progressive motility >32%", "pH 7.2-7.8"], chapter: ["GYN Chapter 17: Infertility"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM113", type: "MCQ", stem: "Which of the following is not LARC?", ans_key: "D", options: ["Cu T 375", "Mirena", "Vaginal ring", "Today"], chapter: ["GYN Chapter 30: Contraception"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM114", type: "MCQ", stem: "A 35 year old patient presents with secondary amenorrhea, has high FSH / LH with low estradiol levels which suggests:", ans_key: "C", options: ["Panhypopituitarism", "Polycystic ovarian syndrome", "Premature menopause", "Pituitary tumour"], chapter: ["GYN Chapter 29: Amenorrhea", "GYN Chapter 6: Menopause"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM115", type: "MCQ", stem: "Risk factor for endometrial carcinoma are all except:", ans_key: "A", options: ["Multiparty", "Obesity", "Unopposed Estrogen therapy", "Late menopause"], chapter: ["GYN Chapter 24: Genital Malignancy"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM116", type: "MCQ", stem: "80-year-old postmenopausal, debilitated patient with prolapse. What is the procedure of choice?", ans_key: "C", options: ["Ward Mayo procedure", "Total abdominal hysterectomy", "Colpoclesis", "Sacrospinous colpopexy"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 35: Operative Gynecology"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM117", type: "MCQ", stem: "Pharmacologic category of ormeloxifene?", ans_key: "C", options: ["GnRH agonist", "Synthetic 17-ethinyl testosterone derivative", "Selective Estrogen Receptor Modulator", "GnRH antagonist"], chapter: ["GYN Chapter 30: Contraception", "GYN Chapter 32: Hormones in Gynecological Practice"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM118", type: "MCQ", stem: "FALSE about syndromic management/approach of PID:", ans_key: "A", options: ["Management of individual patient depends upon laboratory investigations", "The syndromes are reviewed periodically", "If not reviewed periodically, this approach loses its scientific basis", "None of the above"], chapter: ["GYN Chapter 11: Pelvic Infection", "GYN Chapter 12: Sexually Transmitted Infections"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM119", type: "MCQ", stem: "A 42 years old female with 10 weeks size uterus having adenomyosis presents to you with severe dysmenorrhea. The preferred line of treatment for her is:", ans_key: "A", options: ["LNG-IUS (eg Mirena)", "Hysterectomy", "Misoprostol tablets", "Mifepristone tablets"], chapter: ["GYN Chapter 22: Endometriosis and Adenomyosis", "GYN Chapter 14: Dysmenorrhea and other Disorders of Menstrual Cycles"], examBatch: "2021 Batch Prof Exam Paper-II" },
+            { q: "DGM120", type: "MCQ", stem: "Most common cause of puberty menorrhagia is:", ans_key: "B", options: ["pregnancy complication", "anovulatory cycles", "Von- Willebrand disease", "Endocrine dysfunction"], chapter: ["GYN Chapter 5: Puberty—Normal and Abnormal", "GYN Chapter 15: Abnormal Uterine Bleeding (AUB)"], examBatch: "2021 Batch Prof Exam Paper-II" },
         ];
 
         // --- FILTERING STATE ---
-        const filterState = {
-            types: new Set(),
-            chapters: new Set(),
-            exams: new Set()
-        };
+        const filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
+        const motivationalMessages = ["Hi [Name]! You are bringing life to your studies, just like in OBG!", "Hey [Name], remember: Every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!", "You're mastering the art of life and care, [Name]!"];
 
-        const motivationalMessages = [
-            "Hi [Name]! You are bringing life to your studies, just like in OBG!",
-            "Hey [Name], remember: Every expert was once a beginner. Keep pushing.",
-            "Take a deep breath, [Name]. You are doing amazing work!",
-            "You're mastering the art of life and care, [Name]!"
-        ];
-
-        // --- UTILITY FUNCTIONS ---
         function getUniqueValues(key) {
             const values = new Set();
             if (key === 'chapter') return curriculumData; 
-            qnaData.forEach(item => {
-                if (key === 'type') values.add(item.type);
-                else if (key === 'exam') values.add(item.examBatch);
-                else values.add(item[key]);
-            });
+            qnaData.forEach(item => { if (key === 'type') values.add(item.type); else if (key === 'exam') values.add(item.examBatch); else values.add(item[key]); });
             return Array.from(values).sort();
         }
 
         function toggleDropdown(id) {
-            const allMenus = document.querySelectorAll('.multiselect-menu');
-            allMenus.forEach(menu => {
-                if (menu.id !== id + 'Menu') menu.classList.remove('show');
-            });
+            document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); });
             document.getElementById(id + 'Menu').classList.toggle('show');
         }
 
         function closeAllDropdowns(event) {
-            if (!event.target.closest('.multiselect-container')) {
-                document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show'));
-            }
+            if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
         }
 
         function handleCheckboxChange(id, value, filterSetKey, label) {
             const set = filterState[filterSetKey];
-            if (set.has(value)) set.delete(value);
-            else set.add(value);
-            
+            if (set.has(value)) set.delete(value); else set.add(value);
             updateButtonText(id, set, label);
             filterTable();
         }
 
         function toggleGroup(unitName, isChecked) {
-            const groupCheckboxes = document.querySelectorAll(`input[data-group="${unitName}"]`);
-            groupCheckboxes.forEach(cb => {
-                if (cb.checked !== isChecked) {
-                    cb.checked = isChecked;
-                    handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter');
-                }
+            document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
+                if (cb.checked !== isChecked) { cb.checked = isChecked; handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
             });
         }
 
         function updateButtonText(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
-            if (set.size === 0) {
-                btnText.textContent = `All ${label}s`;
-                btnText.className = "text-gray-500 dark:text-gray-400";
-            } else {
-                btnText.textContent = `${set.size} ${label}(s) Selected`;
-                btnText.className = "text-blue-700 dark:text-blue-400 font-semibold";
-            }
+            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-gray-500 dark:text-gray-400"; } 
+            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-blue-700 dark:text-blue-400 font-semibold"; }
         }
 
         function createMultiSelect(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
             const container = document.getElementById(containerId);
             let listHtml = '';
-            
             if (isGrouped) {
                 items.forEach(group => {
-                    listHtml += `
-                        <label class="multiselect-group-header">
-                            <input type="checkbox" onclick="toggleGroup('${group.unit}', this.checked)">
-                            <span>${group.unit}</span>
-                        </label>`;
-                    
+                    listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
                     group.chapters.forEach(chapter => {
-                         listHtml += `
-                            <label class="multiselect-option">
-                                <input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')">
-                                <span>${chapter}</span>
-                            </label>`;
+                         listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
                     });
                 });
             } else {
-                items.forEach(item => {
-                    listHtml += `
-                        <label class="multiselect-option">
-                            <input type="checkbox" value="${item}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')">
-                            <span>${item}</span>
-                        </label>`;
-                });
+                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
             }
-
-            container.innerHTML = `
-                <div class="multiselect-container">
-                    <button type="button" class="multiselect-btn" onclick="toggleDropdown('${dropdownId}')">
-                        <span id="${dropdownId}Text" class="text-gray-500 dark:text-gray-400">All ${label}s</span>
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div id="${dropdownId}Menu" class="multiselect-menu">
-                        ${listHtml}
-                    </div>
-                </div>`;
+            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-gray-500 dark:text-gray-400">All ${label}s</span><svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
         function populateFilters() {
@@ -501,76 +430,44 @@
         function populateTable() {
             const tbody = document.getElementById('qnaTable').getElementsByTagName('tbody')[0];
             tbody.innerHTML = ''; 
-
             qnaData.forEach((item, index) => {
                 const row = tbody.insertRow();
                 row.className = 'hover:bg-gray-50 dark:hover:bg-gray-800 group transition duration-150 ease-in-out border-b dark:border-gray-700'; 
                 row.setAttribute('data-index', index);
                 
-                let cell1 = row.insertCell();
-                cell1.className = 'px-4 py-4 text-center font-bold text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 align-middle';
-                cell1.innerHTML = item.q;
-
-                let cell2 = row.insertCell();
-                cell2.className = 'px-6 py-4 align-top';
+                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 align-middle'; cell1.innerHTML = item.q;
+                let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
-                let qHtml = '';
-                const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
-
+                let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
                 if (item.type === 'MCQ') {
-                    qHtml += `<span class="block font-semibold mb-2 text-gray-900 dark:text-gray-100">${cleanStem}</span>`;
-                    qHtml += '<div class="space-y-1">';
-
+                    qHtml += `<span class="block font-semibold mb-2 text-gray-900 dark:text-gray-100">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
-                            const optionLetter = optionLetters[idx];
-                            const isCorrect = optionLetter === item.ans_key;
-                            const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-                            if (isCorrect) {
-                                qHtml += `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                                            <span class="correct-option">${optionLetter}) ${cleanOption}</span>
-                                          </div>`;
-                            } else {
-                                qHtml += `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
-                            }
+                            const optionLetter = optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            qHtml += isCorrect ? `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-gray-600 dark:text-gray-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
                     qHtml += '</div>';
-                } else {
-                    qHtml += `<div class="theory-question shadow-sm dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-500"><span>${cleanStem}</span></div>`;
-                }
+                } else { qHtml += `<div class="theory-question shadow-sm dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-500"><span>${cleanStem}</span></div>`; }
                 cell2.innerHTML = qHtml;
                 
-                let cell_type = row.insertCell();
-                cell_type.className = 'px-4 py-4 text-center align-middle';
+                let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
                 const badgeColor = item.type === 'Theory' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700';
-                
                 cell_type.innerHTML = `<span class="${badgeColor} border px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap inline-block">${item.type}</span>`;
                 
-                let cell_chapter = row.insertCell();
-                cell_chapter.className = 'px-4 py-4 text-left align-middle';
-                const unitName = getUnitForChapter(item.chapter);
-                
-                cell_chapter.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-[10px] uppercase tracking-wide text-gray-400 font-bold mb-1">${unitName}</span>
-                        <span class="text-xs font-medium leading-relaxed text-gray-700 dark:text-gray-300">${item.chapter}</span>
-                    </div>
-                `;
+                let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle';
+                let chapterHtml = '';
+                item.chapter.forEach(ch => {
+                    const unitName = getUnitForChapter(ch);
+                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-gray-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-gray-700 dark:text-gray-300">${ch}</span></div>`;
+                });
+                cell_chapter.innerHTML = chapterHtml;
 
-                let cell_exam = row.insertCell();
-                cell_exam.className = 'px-4 py-4 text-xs text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-gray-700 align-middle';
+                let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-gray-700 align-middle';
                 cell_exam.innerHTML = `<div>${COLLEGE_NAME}</div><div class="font-semibold text-blue-600 dark:text-blue-400 mt-1">${item.examBatch}</div>`;
 
-                let cell_ai = row.insertCell();
-                cell_ai.className = 'px-4 py-4 text-center align-middle';
-                cell_ai.innerHTML = `
-                    <button onclick="askAI(this, qnaData[${index}])"
-                        class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24">
-                        <span>Ask AI</span>
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    </button>`;
+                let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle';
+                cell_ai.innerHTML = `<button onclick="askAI(this, qnaData[${index}])" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all duration-200 ease-in-out text-xs flex items-center justify-center mx-auto gap-1 w-24"><span>Ask AI</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button>`;
             });
         }
 
@@ -580,112 +477,226 @@
             const tr = table.getElementsByTagName("tr");
 
             for (let i = 1; i < tr.length; i++) {
-                const row = tr[i];
-                const dataIndex = row.getAttribute('data-index');
-                const item = qnaData[dataIndex];
+                const row = tr[i]; const dataIndex = row.getAttribute('data-index'); const item = qnaData[dataIndex];
                 let showRow = true;
-
                 if (searchText) {
                     let rowText = (row.cells[1].textContent || "") + (row.cells[3].textContent || "") + (row.cells[4].textContent || "");
                     if (rowText.toLowerCase().indexOf(searchText) === -1) showRow = false;
                 }
                 if (showRow && filterState.types.size > 0 && !filterState.types.has(item.type)) showRow = false;
-                if (showRow && filterState.chapters.size > 0 && !filterState.chapters.has(item.chapter)) showRow = false;
+                if (showRow && filterState.chapters.size > 0 && !item.chapter.some(ch => filterState.chapters.has(ch))) showRow = false;
                 if (showRow && filterState.exams.size > 0 && !filterState.exams.has(item.examBatch)) showRow = false;
-
                 row.style.display = showRow ? "" : "none";
             }
         }
 
         function askAI(button, item) {
             let textToCopy;
-            const cleanStem = item.stem.replace(/<[^>]*>/g, ""); 
+            const cleanStem = item.stem.replace(/<[^>]*>/g, ""); const chapterString = item.chapter.join(", "); 
             if (item.type === 'MCQ') {
-                const optionLetters = ['A', 'B', 'C', 'D'];
                 const optionsList = item.options ? item.options.map((opt, i) => `${optionLetters[i]}) ${opt}`).join('\n') : "Options not available";
-                textToCopy = `I am studying for an OBG (Obstetrics and Gynaecology) exam. Please explain this MCQ in detail:\n\nQuestion: ${cleanStem}\n\nOptions:\n${optionsList}\n\nCorrect Answer Key: ${item.ans_key}\n\nPlease explain why this option is correct and why the others are incorrect. Refer to Chapter: ${item.chapter}`;
-            } else {
-                textToCopy = `I am studying for an OBG (Obstetrics and Gynaecology) exam. Please provide a structured model answer for the following theory question:\n\n"${cleanStem}"\n\nInclude relevant headings, clinical features, and management steps. Context: ${item.chapter}`;
-            }
+                textToCopy = `I am studying for an OBG exam. Please explain this MCQ in detail:\n\nQuestion: ${cleanStem}\n\nOptions:\n${optionsList}\n\nCorrect Answer Key: ${item.ans_key}\n\nPlease explain why this option is correct and why the others are incorrect. Refer to Chapter(s): ${chapterString}`;
+            } else { textToCopy = `I am studying for an OBG exam. Please provide a structured model answer for the following theory question:\n\n"${cleanStem}"\n\nInclude relevant headings, clinical features, and management steps. Context: ${chapterString}`; }
             
-            const tempTextarea = document.createElement('textarea');
-            tempTextarea.value = textToCopy;
-            document.body.appendChild(tempTextarea);
-            tempTextarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempTextarea);
-
-            showModal("Copied to Clipboard!", `<p class="text-sm text-gray-500 dark:text-gray-400">The question is ready. Open ChatGPT?</p>`, 
-                `<button onclick="openChatGPT()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Go to ChatGPT</button>
-                 <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Stay Here</button>`, 
-                `<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
+            const tempTextarea = document.createElement('textarea'); tempTextarea.value = textToCopy; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
+            showModal("Copied to Clipboard!", `<p class="text-sm text-gray-500 dark:text-gray-400">The question is ready. Open ChatGPT?</p>`, `<button onclick="openChatGPT()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Go to ChatGPT</button> <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Stay Here</button>`, `<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
         }
 
-        function handleSecretClick() {
-            const title = "Welcome!";
-            const body = `<p class="text-gray-700 dark:text-gray-300 mb-4">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white">`;
-            const footer = `<button type="button" onclick="handleNameSubmission()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Continue</button><button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Cancel</button>`;
-            const icon = `<span class="text-2xl">☕️</span>`;
-            showModal(title, body, footer, icon);
-        }
+        function handleSecretClick() { showModal("Welcome!", `<p class="text-gray-700 dark:text-gray-300 mb-4">Hello! Tell me your name.</p><input type="text" id="nameInput" placeholder="Enter name" class="mt-3 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white">`, `<button type="button" onclick="handleNameSubmission()" class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:w-auto">Continue</button><button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">Cancel</button>`, `<span class="text-2xl">☕️</span>`); }
 
         function handleNameSubmission() {
             const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
             if (name.toLowerCase() === SECRET_CODE) { closeModal(); copyForChatGPT(); } 
             else if (name) {
-                const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
-                let message = motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
+                const randomIndex = Math.floor(Math.random() * motivationalMessages.length); let message = motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
                 showModal("Study Motivation!", `<p class="text-gray-700 dark:text-gray-300 text-base font-semibold">${message}</p>`, `<button type="button" onclick="closeModal()" class="inline-flex w-full justify-center rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:w-auto">Back to Study</button>`, `<span class="text-2xl">💪</span>`);
             }
         }
         
         function copyForChatGPT() {
-            const visibleQuestions = [];
-            const tr = document.getElementById("qnaTable").getElementsByTagName("tr");
-            for (let i = 1; i < tr.length; i++) {
-                if (tr[i].style.display !== "none") visibleQuestions.push(qnaData[tr[i].getAttribute('data-index')]);
-            }
+            const visibleQuestions = []; const tr = document.getElementById("qnaTable").getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) { if (tr[i].style.display !== "none") visibleQuestions.push(qnaData[tr[i].getAttribute('data-index')]); }
             if(visibleQuestions.length === 0) return alert("No questions to copy");
-            
             let clipboardText = `Create a checklist for these OBG questions:\n`;
-            visibleQuestions.forEach(q => {
-                const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, "$1").replace(/<[^>]*>/g, "");
-                clipboardText += `Q ${q.q}: ${cleanStem}\n`
-            });
-            
-            const temp = document.createElement('textarea');
-            temp.value = clipboardText;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            
+            visibleQuestions.forEach(q => { clipboardText += `Q ${q.q}: ${q.stem.replace(/\*\*(.*?)\*\*/g, "$1").replace(/<[^>]*>/g, "")}\n` });
+            const temp = document.createElement('textarea'); temp.value = clipboardText; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp);
             showModal("Copied!", `<p class="text-gray-600 dark:text-gray-400">Copied ${visibleQuestions.length} questions.</p>`, `<button onclick="openChatGPT()" class="bg-blue-600 text-white px-4 py-2 rounded">Go to ChatGPT</button>`, `<span>📋</span>`);
         }
 
         const modal = document.getElementById('actionModal');
-        function showModal(title, bodyHtml, footerHtml, iconHtml) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-body-content').innerHTML = bodyHtml;
-            document.getElementById('modal-footer-buttons').innerHTML = footerHtml;
-            document.getElementById('modalIcon').innerHTML = iconHtml;
-            modal.classList.remove('hidden');
-        }
+        function showModal(title, bodyHtml, footerHtml, iconHtml) { document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); }
         function closeModal() { modal.classList.add('hidden'); }
         function openChatGPT() { window.open('https://chat.openai.com/', '_blank'); closeModal(); }
 
-        function fixPositioning() {
-            if (modal && modal.parentElement !== document.body) {
-                document.body.appendChild(modal);
+        // ==========================================
+        // DECK VIEW INTEGRATION (NATIVE)
+        // ==========================================
+        let isDeckMode = false;
+        let activeDeckQuestions = [...qnaData];
+        let deckIndex = 0;
+        let deckStatus = {};
+
+        function initDeckView() {
+            const deckLayer = document.createElement('div');
+            deckLayer.id = 'universal-deck-layer';
+            deckLayer.innerHTML = `
+                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <h1 class="font-bold text-lg text-blue-600 dark:text-blue-400 truncate">Review Mode</h1>
+                            <div class="text-xs text-gray-500" id="deck-subtitle">Loading...</div>
+                        </div>
+                    </div>
+                    <button onclick="toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                        <span id="deck-counter">1/1</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+                <div class="flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-gray-900" id="deck-card-container"></div>
+                <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-3 z-10 shrink-0 pb-20">
+                    <button onclick="deckPrev()" class="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 font-bold text-gray-600 dark:text-gray-300">Previous</button>
+                    <button onclick="deckNext()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30">Next</button>
+                </div>
+                <div id="deck-nav-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold flex justify-between text-gray-800 dark:text-white"><span>Navigator</span><button onclick="toggleDeckDrawer(null)">✕</button></div>
+                        <div class="nav-grid" id="deck-nav-grid"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(deckLayer);
+
+            const fab = document.createElement('button');
+            fab.id = 'view-toggle-btn';
+            fab.innerHTML = '🎴';
+            fab.title = "Switch to Deck View";
+            fab.onclick = toggleDeckMode;
+            document.body.appendChild(fab);
+        }
+
+        function syncDeckWithFilters() {
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            activeDeckQuestions = qnaData.filter(q => {
+                let show = true;
+                let rowText = (q.stem || "") + (q.chapter.join(" ") || "") + (q.examBatch || "");
+                if (search && rowText.toLowerCase().indexOf(search) === -1) show = false;
+                if (show && filterState.types.size > 0 && !filterState.types.has(q.type)) show = false;
+                if (show && filterState.chapters.size > 0 && !q.chapter.some(ch => filterState.chapters.has(ch))) show = false;
+                if (show && filterState.exams.size > 0 && !filterState.exams.has(q.examBatch)) show = false;
+                return show;
+            });
+            deckIndex = 0;
+            const sub = document.getElementById('deck-subtitle');
+            if (sub) sub.innerText = activeDeckQuestions.length === qnaData.length ? `${activeDeckQuestions.length} Questions` : `${activeDeckQuestions.length} of ${qnaData.length} Filtered`;
+            renderDeckCard();
+        }
+
+        function renderDeckCard() {
+            const container = document.getElementById('deck-card-container');
+            if (activeDeckQuestions.length === 0) {
+                container.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-gray-500">No questions match filter</div>`;
+                document.getElementById('deck-counter').innerText = '0/0';
+                return;
+            }
+            const q = activeDeckQuestions[deckIndex];
+            const realIndex = qnaData.indexOf(q); 
+            document.getElementById('deck-counter').innerText = `${deckIndex + 1}/${activeDeckQuestions.length}`;
+
+            const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            let optsHtml = '';
+            if (q.type === 'MCQ' && q.options) {
+                optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => {
+                    const letter = optionLetters[i];
+                    const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 text-sm font-bold flex items-center justify-center border border-gray-200 dark:border-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">${letter}</span><span class="text-gray-700 dark:text-gray-200 font-medium pt-0.5 text-left">${cleanOpt}</span></div></button>`;
+                }).join('')}</div>`;
+            } else {
+                optsHtml = `<div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-medium">This is a Subjective theory question. Tap Ask AI above for a structured model answer.</div>`;
+            }
+
+            container.innerHTML = `
+                <div class="deck-card">
+                    <div class="mb-3 flex justify-between items-center">
+                        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">${q.q}</span>
+                        <button onclick="askAI(this, qnaData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold hover:bg-green-100 border border-green-200 dark:border-green-800 shadow-sm flex items-center gap-1.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                    </div>
+                    <div class="mb-6"><h2 class="text-xl font-bold text-gray-900 dark:text-white leading-snug">${cleanStem}</h2></div>
+                    ${optsHtml}
+                    <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
+                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 uppercase">${ch}</span>`).join('')}
+                    </div>
+                </div>`;
+            container.scrollTop = 0;
+        }
+
+        function checkDeckAnswer(btn, picked, correct) {
+            const q = activeDeckQuestions[deckIndex];
+            const p = picked.toUpperCase();
+            const c = correct.toUpperCase();
+            btn.parentElement.querySelectorAll('button').forEach(b => b.disabled = true);
+            if (p === c) {
+                btn.classList.add('deck-opt-correct'); deckStatus[q.q] = 'correct';
+            } else {
+                btn.classList.add('deck-opt-wrong'); deckStatus[q.q] = 'wrong';
+                btn.parentElement.querySelectorAll('button').forEach((b, i) => {
+                    if (optionLetters[i] === c) b.classList.add('deck-opt-correct');
+                });
             }
         }
 
+        function toggleDeckDrawer(type) {
+            const nav = document.getElementById('deck-nav-drawer');
+            nav.classList.remove('open');
+            if (type === 'nav') {
+                const grid = document.getElementById('deck-nav-grid');
+                grid.innerHTML = activeDeckQuestions.map((q, i) => {
+                    const st = deckStatus[q.q];
+                    let cls = "deck-nav-btn";
+                    if (st === 'correct') cls += " correct";
+                    if (st === 'wrong') cls += " wrong";
+                    if (i === deckIndex) cls += " active";
+                    return `<button onclick="deckIndex=${i}; toggleDeckDrawer(null); renderDeckCard();" class="${cls}">${q.q}</button>`;
+                }).join('');
+                nav.classList.add('open');
+            }
+        }
+
+        function deckNext() { if (deckIndex < activeDeckQuestions.length - 1) { deckIndex++; renderDeckCard(); } }
+        function deckPrev() { if (deckIndex > 0) { deckIndex--; renderDeckCard(); } }
+
+        function toggleDeckMode() {
+            isDeckMode = !isDeckMode;
+            const mainContent = document.getElementById('main-wrapper');
+            const deck = document.getElementById('universal-deck-layer');
+            const fab = document.getElementById('view-toggle-btn');
+            
+            if (isDeckMode) {
+                if (mainContent) mainContent.style.display = 'none';
+                deck.style.display = 'flex';
+                fab.innerHTML = '📋'; fab.title = "Switch to Table View";
+                syncDeckWithFilters(); // Auto-read filters from Table
+            } else {
+                if (mainContent) mainContent.style.display = 'block';
+                deck.style.display = 'none';
+                fab.innerHTML = '🎴'; fab.title = "Switch to Deck View";
+            }
+        }
+
+        // Intercept Table Filter to update Deck
+        const originalFilterTable = filterTable;
+        filterTable = function() {
+            originalFilterTable();
+            if (isDeckMode) syncDeckWithFilters();
+        };
+
         window.onload = () => { 
-            fixPositioning(); 
+            if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             populateTable(); 
             populateFilters(); 
+            initDeckView(); // Fire Deck Setup perfectly in sync
         };
     </script>
-    <script src="deck-plugin.js"></script>
 </body>
 </html>

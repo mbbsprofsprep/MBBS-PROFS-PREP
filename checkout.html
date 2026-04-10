@@ -138,7 +138,7 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // --- 1. CONFIGURATION ---
+        // --- 1. FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
             authDomain: "mbbs-profs-prep48c.firebaseapp.com",
@@ -154,6 +154,20 @@
 
         const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
 
+        // --- 2. GOOGLE FORM CONFIGURATION ---
+        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScmD2mnN4Iosoz_AFrgJwg9c3SCXek2tg11njRarHjrh6uuow/formResponse";
+        
+        const FORM_IDS = {
+            name: "entry.80537101", 
+            email: "entry.2147321729", 
+            city: "entry.2037486442",
+            phone: "entry.774909092", 
+            country: "entry.1551773751", 
+            plan: "entry.1274324494", 
+            payId: "entry.2079800398"
+        };
+
+        // --- 3. PRICING DATA ---
         const plansIndia = [
             { id: 'in_1m', name: '1 Month Access', desc: 'Quick Revision', price: 49, display: '₹49', currency: 'INR', badge: '', months: 1 },
             { id: 'in_3m', name: '3 Months Access', desc: 'Exam Prep', price: 129, display: '₹129', currency: 'INR', badge: 'POPULAR', months: 3 },
@@ -169,6 +183,7 @@
         let selectedPlan = null;
         let isIndia = true;
 
+        // --- 4. AUTHENTICATION & PROFILE FETCHING ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
@@ -177,25 +192,23 @@
                     if (snapshot.exists()) {
                         userProfile = snapshot.val();
                     } else {
-                        // SELF-HEALING LOGIC: If profile didn't save due to locked rules previously, 
-                        // generate a fallback profile so the user can still checkout!
+                        // Fallback logic
                         userProfile = {
                             fullName: user.displayName || user.email.split('@')[0],
                             email: user.email,
-                            phone: "Please update in profile",
-                            college: "AIIMS / Global",
+                            phone: "Not provided",
+                            college: "Global",
                             city: "Not specified",
-                            country: "India" // Default to India for INR pricing
+                            country: "India" 
                         };
                     }
                     
                     userProfile.uid = user.uid;
-                    
                     isIndia = (userProfile.country && userProfile.country.toLowerCase() === "india");
                     document.getElementById('display-country').innerText = userProfile.country || "Global";
                     
-                    document.getElementById('summary-name').innerText = userProfile.fullName || user.email;
-                    document.getElementById('summary-email').innerText = userProfile.email || user.email;
+                    document.getElementById('summary-name').innerText = userProfile.fullName;
+                    document.getElementById('summary-email').innerText = userProfile.email;
                     document.getElementById('summary-phone').innerText = userProfile.phone || "--";
                     document.getElementById('summary-college').innerText = userProfile.college || "--";
                     document.getElementById('summary-location').innerText = `${userProfile.city || ''}, ${userProfile.country || ''}`;
@@ -206,7 +219,7 @@
                     
                 } catch (error) {
                     console.error("Database Read Error:", error);
-                    document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Access Denied.</span><br>Please refresh the page.";
+                    document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error.</span> Please refresh.";
                 }
             } else {
                 alert("You must be logged in to purchase a subscription.");
@@ -214,6 +227,7 @@
             }
         });
 
+        // --- 5. UI PLAN RENDERING ---
         function renderPlans() {
             const container = document.getElementById('plans-container');
             container.innerHTML = "";
@@ -272,6 +286,7 @@
             });
         }
 
+        // --- 6. RAZORPAY INTEGRATION ---
         window.initiateRazorpay = function() {
             if (!selectedPlan || !userProfile.uid) return;
 
@@ -312,15 +327,17 @@
             rzp.open();
         };
 
+        // --- 7. AUTOMATED DATABASE & GOOGLE FORM SUBMIT ---
         window.handlePaymentSuccess = async function(paymentId) {
             document.getElementById('checkout-interface').classList.add('hidden');
             
+            // Calculate exact expiry date
             const futureDate = new Date();
             futureDate.setMonth(futureDate.getMonth() + selectedPlan.months);
             const expiryString = futureDate.toISOString().split('T')[0];
 
             try {
-                // Instantly upgrade their database record
+                // A. UPGRADE FIREBASE ACCOUNT INSTANTLY
                 await update(ref(db, `users/${userProfile.uid}/subscription`), {
                     status: "active",
                     planName: selectedPlan.name,
@@ -329,17 +346,65 @@
                     purchaseDate: new Date().toISOString()
                 });
 
+                // B. SILENTLY SUBMIT TO GOOGLE FORMS (For your records)
+                silentGoogleFormSubmit(
+                    userProfile.fullName, 
+                    userProfile.email, 
+                    userProfile.city || "Not Provided", 
+                    userProfile.phone || "Not Provided", 
+                    userProfile.country || "India", 
+                    selectedPlan.name + " (" + selectedPlan.display + ")", 
+                    paymentId
+                );
+
+                // C. SHOW SUCCESS UI
                 document.getElementById('success-pay-id').innerText = paymentId;
                 document.getElementById('success-state').classList.remove('hidden');
 
             } catch (error) {
                 console.error("Database Update Error:", error);
-                // Alert if security rules block the write (should not happen if auth != null)
                 alert("Payment successful, but database update failed. Please contact support with Payment ID: " + paymentId);
                 document.getElementById('success-pay-id').innerText = paymentId;
                 document.getElementById('success-state').classList.remove('hidden');
             }
         };
+
+        // THE INVISIBLE FORM SUBMITTER
+        function silentGoogleFormSubmit(name, email, city, phone, country, plan, payId) {
+            const iframeName = 'hidden_iframe_' + Date.now();
+            const iframe = document.createElement('iframe'); 
+            iframe.name = iframeName; 
+            iframe.style.display = 'none'; 
+            document.body.appendChild(iframe);
+            
+            const form = document.createElement('form'); 
+            form.method = 'POST'; 
+            form.action = GOOGLE_FORM_URL; 
+            form.target = iframeName; 
+            form.style.display = 'none';
+
+            const formData = {};
+            formData[FORM_IDS.name] = name;
+            formData[FORM_IDS.email] = email;
+            formData[FORM_IDS.city] = city;
+            formData[FORM_IDS.phone] = phone;
+            formData[FORM_IDS.country] = country;
+            formData[FORM_IDS.plan] = plan;
+            formData[FORM_IDS.payId] = payId;
+
+            for (let key in formData) {
+                let input = document.createElement('input'); 
+                input.name = key; 
+                input.value = formData[key]; 
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form); 
+            form.submit();
+            
+            // Clean up the DOM after a few seconds
+            setTimeout(() => { iframe.remove(); form.remove(); }, 4000);
+        }
 
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>

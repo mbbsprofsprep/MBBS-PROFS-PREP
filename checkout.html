@@ -7,6 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <script>
@@ -27,18 +28,21 @@
     <style>
         body { background-color: #f0f9ff; color: #0f172a; transition: all 0.3s ease; }
         html.dark body { background-color: #020617; color: #f8fafc; }
+        
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 25px -5px rgba(14, 165, 233, 0.1); border-radius: 24px; }
         html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; box-shadow: 0 4px 30px -5px rgba(0, 0, 0, 0.5); }
+        
         .plan-card { border: 2px solid #e2e8f0; transition: all 0.2s; cursor: pointer; }
         html.dark .plan-card { border-color: #1e293b; background: #0f172a; }
         .plan-card:hover { border-color: #94a3b8; transform: translateY(-2px); }
         .plan-card.active { border-color: #0ea5e9; background: #f0f9ff; }
         html.dark .plan-card.active { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.1); }
+        
         .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
         html.dark .info-row { border-bottom-color: #1e293b; }
         .info-row:last-child { border-bottom: none; }
         .info-label { color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .info-value { color: #0f172a; font-size: 0.85rem; font-weight: 600; text-align: right; max-width: 60%; word-break: break-word;}
+        .info-value { color: #0f172a; font-size: 0.85rem; font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
         html.dark .info-value { color: #f8fafc; }
     </style>
 </head>
@@ -53,11 +57,14 @@
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Secure Checkout</p>
                 </div>
             </a>
-            <button onclick="document.documentElement.classList.toggle('dark')" class="text-xl">🌙</button>
+            <button onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');" class="text-xl w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 transition-all">
+                <span>🌙</span>
+            </button>
         </div>
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:py-12">
+        
         <div id="loading-state" class="text-center py-20">
             <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-4"></div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Connecting to Secure Server...</h2>
@@ -65,6 +72,7 @@
         </div>
 
         <div id="checkout-interface" class="hidden grid grid-cols-1 md:grid-cols-12 gap-8">
+            
             <div class="md:col-span-7 space-y-6">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Select a Plan</h2>
@@ -75,11 +83,13 @@
 
             <div class="md:col-span-5">
                 <div class="glass-card p-6 md:p-8 sticky top-24">
+                    
                     <div class="mb-6">
                         <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Billing Profile</h3>
                         <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700/50 shadow-inner">
                             <div class="info-row"><span class="info-label">Name</span><span class="info-value" id="summary-name">Loading...</span></div>
                             <div class="info-row"><span class="info-label">Email</span><span class="info-value text-brand-500" id="summary-email">loading...</span></div>
+                            <div class="info-row"><span class="info-label">Join Year</span><span class="info-value" id="summary-join-year">--</span></div>
                             <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="summary-phone">--</span></div>
                             <div class="info-row"><span class="info-label">College</span><span class="info-value" id="summary-college">--</span></div>
                             <div class="info-row"><span class="info-label">Location</span><span class="info-value" id="summary-location">--</span></div>
@@ -106,6 +116,12 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         Pay Securely
                     </button>
+
+                    <div class="mt-5 flex justify-center gap-4 text-slate-400 opacity-60">
+                        <i class="fa-brands fa-cc-visa fa-lg"></i>
+                        <i class="fa-brands fa-cc-mastercard fa-lg"></i>
+                        <i class="fa-brands fa-google-pay fa-lg"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -119,26 +135,58 @@
         </div>
     </main>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
+            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
+                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
+            </div>
+        </div>
+    </footer>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
+        // --- 1. FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
             authDomain: "mbbs-profs-prep48c.firebaseapp.com",
             databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
-            projectId: "mbbs-profs-prep48c"
+            projectId: "mbbs-profs-prep48c",
+            storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
+            messagingSenderId: "378639777472",
+            appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
         };
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
+        // Your specific Razorpay Live Key
         const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
-        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScmD2mnN4Iosoz_AFrgJwg9c3SCXek2tg11njRarHjrh6uuow/formResponse";
-        
-        const FORM_IDS = { name: "entry.80537101", email: "entry.2147321729", city: "entry.2037486442", phone: "entry.774909092", country: "entry.1551773751", plan: "entry.1274324494", payId: "entry.2079800398" };
 
+        // --- 2. GOOGLE FORM CONFIGURATION ---
+        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyrbdPKqYpuDybUciriOrsztmkgG2LsjY5EArVj0Gn4B6w1w/formResponse";
+        
+        const FORM_IDS = {
+            name: "entry.245228386", 
+            email: "entry.2074813470", 
+            joinYear: "entry.536863979", 
+            city: "entry.586499757",
+            phone: "entry.495991500", 
+            country: "entry.1894129589", 
+            plan: "entry.1647796356", 
+            payId: "entry.209290944"
+        };
+
+        // --- 3. PRICING DATA ---
         const plansIndia = [
             { id: 'in_1m', name: '1 Month Access', desc: 'Quick Revision', price: 49, display: '₹49', currency: 'INR', badge: '', months: 1 },
             { id: 'in_3m', name: '3 Months Access', desc: 'Exam Prep', price: 129, display: '₹129', currency: 'INR', badge: 'POPULAR', months: 3 },
@@ -154,21 +202,35 @@
         let selectedPlan = null;
         let isIndia = true;
 
+        // --- 4. AUTHENTICATION & PROFILE FETCHING ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
                     const snapshot = await get(ref(db, 'users/' + user.uid + '/profile'));
+                    
                     if (snapshot.exists()) {
                         userProfile = snapshot.val();
                     } else {
-                        userProfile = { fullName: user.displayName || user.email.split('@')[0], email: user.email, phone: "Not provided", college: "Global", city: "Not specified", country: "India" };
+                        // Fallback logic if the profile doesn't completely load
+                        userProfile = {
+                            fullName: user.displayName || user.email.split('@')[0],
+                            email: user.email,
+                            joinYear: "Not specified",
+                            phone: "Not provided",
+                            college: "Global",
+                            city: "Not specified",
+                            country: "India" 
+                        };
                     }
+                    
                     userProfile.uid = user.uid;
                     isIndia = (userProfile.country && userProfile.country.toLowerCase() === "india");
-                    
                     document.getElementById('display-country').innerText = userProfile.country || "Global";
+                    
+                    // Populate the UI summary
                     document.getElementById('summary-name').innerText = userProfile.fullName;
                     document.getElementById('summary-email').innerText = userProfile.email;
+                    document.getElementById('summary-join-year').innerText = userProfile.joinYear || "--";
                     document.getElementById('summary-phone').innerText = userProfile.phone || "--";
                     document.getElementById('summary-college').innerText = userProfile.college || "--";
                     document.getElementById('summary-location').innerText = `${userProfile.city || ''}, ${userProfile.country || ''}`;
@@ -176,8 +238,9 @@
                     renderPlans();
                     document.getElementById('loading-state').classList.add('hidden');
                     document.getElementById('checkout-interface').classList.remove('hidden');
+                    
                 } catch (error) {
-                    console.error("Database Error:", error);
+                    console.error("Database Read Error:", error);
                     document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error.</span> Please refresh.";
                 }
             } else {
@@ -186,13 +249,14 @@
             }
         });
 
+        // --- 5. UI PLAN RENDERING ---
         function renderPlans() {
             const container = document.getElementById('plans-container');
             container.innerHTML = "";
             const plans = isIndia ? plansIndia : plansGlobal;
 
             plans.forEach((plan, index) => {
-                const isSelected = index === (plans.length - 1); 
+                const isSelected = index === (plans.length - 1); // Default to the last plan (Best Value)
                 if(isSelected) updateSummaryUI(plan);
 
                 const card = document.createElement('div');
@@ -244,21 +308,13 @@
             });
         }
 
+        // --- 6. RAZORPAY INTEGRATION ---
         window.initiateRazorpay = function() {
-            if (!selectedPlan || !userProfile.uid) {
-                alert("Missing profile data. Please refresh.");
-                return;
-            }
+            if (!selectedPlan || !userProfile.uid) return;
 
             const btn = document.getElementById('pay-btn');
             btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`;
             btn.disabled = true;
-
-            // BUG FIX: Filter out invalid phone numbers to prevent Razorpay crash
-            let safePhone = userProfile.phone || "";
-            if (safePhone === "Not provided" || safePhone.length < 7) {
-                safePhone = ""; 
-            }
 
             var options = {
                 "key": RZP_KEY_ID,
@@ -268,12 +324,13 @@
                 "description": selectedPlan.name,
                 "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg",
                 "prefill": {
-                    "name": userProfile.fullName || "",
-                    "email": userProfile.email || "",
-                    "contact": safePhone
+                    "name": userProfile.fullName,
+                    "email": userProfile.email,
+                    "contact": userProfile.phone
                 },
                 "theme": { "color": "#0ea5e9" },
                 "handler": function (response) {
+                    // Payment approved!
                     window.handlePaymentSuccess(response.razorpay_payment_id);
                 },
                 "modal": {
@@ -293,9 +350,11 @@
             rzp.open();
         };
 
+        // --- 7. AUTOMATED DATABASE & GOOGLE FORM SUBMIT ---
         window.handlePaymentSuccess = async function(paymentId) {
             document.getElementById('checkout-interface').classList.add('hidden');
             
+            // Calculate Future Expiry Date
             const futureDate = new Date();
             futureDate.setMonth(futureDate.getMonth() + selectedPlan.months);
             const expiryString = futureDate.toISOString().split('T')[0];
@@ -310,10 +369,11 @@
                     purchaseDate: new Date().toISOString()
                 });
 
-                // B. SILENTLY SUBMIT TO GOOGLE FORMS (For your records)
+                // B. SILENTLY SUBMIT TO GOOGLE FORMS
                 silentGoogleFormSubmit(
-                    userProfile.fullName || "User", 
-                    userProfile.email || "No Email", 
+                    userProfile.fullName, 
+                    userProfile.email, 
+                    userProfile.joinYear || "Not Provided",
                     userProfile.city || "Not Provided", 
                     userProfile.phone || "Not Provided", 
                     userProfile.country || "India", 
@@ -333,19 +393,24 @@
             }
         };
 
-        function silentGoogleFormSubmit(name, email, city, phone, country, plan, payId) {
+        // THE INVISIBLE FORM SUBMITTER
+        function silentGoogleFormSubmit(name, email, joinYear, city, phone, country, plan, payId) {
             const iframeName = 'hidden_iframe_' + Date.now();
             const iframe = document.createElement('iframe'); 
-            iframe.name = iframeName; iframe.style.display = 'none'; 
+            iframe.name = iframeName; 
+            iframe.style.display = 'none'; 
             document.body.appendChild(iframe);
             
             const form = document.createElement('form'); 
-            form.method = 'POST'; form.action = GOOGLE_FORM_URL; 
-            form.target = iframeName; form.style.display = 'none';
+            form.method = 'POST'; 
+            form.action = GOOGLE_FORM_URL; 
+            form.target = iframeName; 
+            form.style.display = 'none';
 
             const formData = {};
             formData[FORM_IDS.name] = name;
             formData[FORM_IDS.email] = email;
+            formData[FORM_IDS.joinYear] = joinYear;
             formData[FORM_IDS.city] = city;
             formData[FORM_IDS.phone] = phone;
             formData[FORM_IDS.country] = country;
@@ -354,15 +419,19 @@
 
             for (let key in formData) {
                 let input = document.createElement('input'); 
-                input.name = key; input.value = formData[key]; 
+                input.name = key; 
+                input.value = formData[key]; 
                 form.appendChild(input);
             }
 
             document.body.appendChild(form); 
             form.submit();
+            
+            // Clean up invisible iframe after 4 seconds
             setTimeout(() => { iframe.remove(); form.remove(); }, 4000);
         }
 
+        // Apply dark mode if user selected it
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>
 </body>

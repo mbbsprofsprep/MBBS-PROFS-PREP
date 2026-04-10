@@ -388,7 +388,6 @@
 
                     } else if (this.viewMode === 'bookmarks') {
                         // 2. FULLY FUNCTIONAL BOOKMARKS VIEW
-                        // Try to pull bookmarks from localStorage. Expecting format: { subject: 'OBG', text: 'Question preview', url: '...' }
                         const bookmarks = JSON.parse(localStorage.getItem('medqs_bookmarks')) || [];
                         let bookmarksHtml = '';
                         
@@ -831,6 +830,14 @@
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
+        // --- IMPORTANT VIP ARRAY ---
+        const allowedVIPs = [
+            "pankajmahto109@gmail.com", 
+            "educateindiainstitute@gmail.com", 
+            "indrajeet91434@gmail.com", 
+            "pankajkumarmahto1009@gmail.com"
+        ];
+
         window.saveEditedProfile = async function(btn) {
             const name = document.getElementById('edit-name').value.trim();
             const joinYear = document.getElementById('edit-join-year').value;
@@ -939,29 +946,39 @@
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
             if (user) {
+                const email = user.email.toLowerCase().trim();
+                
+                // Keep profile data synced
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
                     window.userPanelApp.renderState(); 
                 });
                 
-                onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
-                    let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-                    if (s.exists()) {
-                        const d = s.val(); 
-                        const today = new Date(); today.setHours(0,0,0,0);
-                        const exp = new Date(d.validUntil); exp.setHours(0,0,0,0);
-                        const diff = Math.ceil((exp - today) / 86400000);
-                        
-                        if (diff >= 0 && d.status === "active") {
-                            sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
-                        } else {
-                            sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
-                        }
-                    }
-                    window.globalUserStatus = sub; 
+                // VIP BYPASS LOGIC RESTORED
+                if (allowedVIPs.includes(email)) {
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.userPanelApp.renderState();
                     window.pdfSmartApp.checkVisibility();
-                });
+                } else {
+                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
+                        let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                        if (s.exists()) {
+                            const d = s.val(); 
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const exp = new Date(d.validUntil); exp.setHours(0,0,0,0);
+                            const diff = Math.ceil((exp - today) / 86400000);
+                            
+                            if (diff >= 0 && d.status === "active") {
+                                sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
+                            } else {
+                                sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
+                            }
+                        }
+                        window.globalUserStatus = sub; 
+                        window.userPanelApp.renderState();
+                        window.pdfSmartApp.checkVisibility();
+                    });
+                }
             } else { 
                 window.currentUserProfileData = {}; 
                 window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 

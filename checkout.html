@@ -143,9 +143,8 @@
             <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
                 <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
                 <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Terms</a>
                 <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
             </div>
         </div>
     </footer>
@@ -169,14 +168,11 @@
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
-        // Your specific Razorpay Live Key
+        // Razorpay Key
         const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
 
-        // --- 2. GOOGLE FORM CONFIGURATION ---
-        // Your exact Google Form URL
+        // --- 2. GOOGLE FORM SECURE IDs ---
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdyrbdPKqYpuDybUciriOrsztmkgG2LsjY5EArVj0Gn4B6w1w/formResponse";
-        
-        // Your exact Entry IDs mapping to the data
         const FORM_IDS = {
             name: "entry.245228386", 
             email: "entry.2074813470", 
@@ -188,13 +184,12 @@
             payId: "entry.209290944"
         };
 
-        // --- 3. PRICING DATA ---
+        // --- 3. PRICING ---
         const plansIndia = [
             { id: 'in_1m', name: '1 Month Access', desc: 'Quick Revision', price: 49, display: '₹49', currency: 'INR', badge: '', months: 1 },
             { id: 'in_3m', name: '3 Months Access', desc: 'Exam Prep', price: 129, display: '₹129', currency: 'INR', badge: 'POPULAR', months: 3 },
             { id: 'in_1y', name: '1 Year Access', desc: 'Full Access', price: 399, display: '₹399', currency: 'INR', badge: 'BEST VALUE', months: 12 }
         ];
-        
         const plansGlobal = [
             { id: 'gl_3m', name: '3 Months Access', desc: 'Quarterly Pass', price: 2, display: '$2.00', currency: 'USD', badge: '', months: 3 },
             { id: 'gl_1y', name: '1 Year Access', desc: 'Annual Pass', price: 5, display: '$5.00', currency: 'USD', badge: 'SAVE 50%', months: 12 }
@@ -203,25 +198,20 @@
         let userProfile = {};
         let selectedPlan = null;
         let isIndia = true;
+        window.currentUserObj = null;
 
-        // --- 4. AUTHENTICATION & PROFILE FETCHING ---
+        // --- 4. AUTH STATE ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                window.currentUserObj = user; // Global save
                 try {
                     const snapshot = await get(ref(db, 'users/' + user.uid + '/profile'));
-                    
                     if (snapshot.exists()) {
                         userProfile = snapshot.val();
                     } else {
-                        // Fallback logic if the profile doesn't completely load
                         userProfile = {
-                            fullName: user.displayName || user.email.split('@')[0],
-                            email: user.email,
-                            joinYear: "Not specified",
-                            phone: "Not provided",
-                            college: "Global",
-                            city: "Not specified",
-                            country: "India" 
+                            fullName: user.displayName || user.email.split('@')[0], email: user.email,
+                            joinYear: "Not specified", phone: "Not provided", college: "Global", city: "Not specified", country: "India" 
                         };
                     }
                     
@@ -229,7 +219,7 @@
                     isIndia = (userProfile.country && userProfile.country.toLowerCase() === "india");
                     document.getElementById('display-country').innerText = userProfile.country || "Global";
                     
-                    // Populate the UI summary
+                    // UI Summary
                     document.getElementById('summary-name').innerText = userProfile.fullName;
                     document.getElementById('summary-email').innerText = userProfile.email;
                     document.getElementById('summary-join-year').innerText = userProfile.joinYear || "--";
@@ -242,8 +232,8 @@
                     document.getElementById('checkout-interface').classList.remove('hidden');
                     
                 } catch (error) {
-                    console.error("Database Read Error:", error);
-                    document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error.</span> Please refresh.";
+                    console.error("Database Error:", error);
+                    document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error. Please refresh.</span>";
                 }
             } else {
                 alert("You must be logged in to purchase a subscription.");
@@ -251,14 +241,13 @@
             }
         });
 
-        // --- 5. UI PLAN RENDERING ---
         function renderPlans() {
             const container = document.getElementById('plans-container');
             container.innerHTML = "";
             const plans = isIndia ? plansIndia : plansGlobal;
 
             plans.forEach((plan, index) => {
-                const isSelected = index === (plans.length - 1); // Default to the last plan (Best Value)
+                const isSelected = index === (plans.length - 1);
                 if(isSelected) updateSummaryUI(plan);
 
                 const card = document.createElement('div');
@@ -282,9 +271,7 @@
                             <p class="text-xs font-medium text-slate-500 dark:text-slate-400">${plan.desc}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="text-2xl font-black text-slate-900 dark:text-white">${plan.display}</span>
-                    </div>
+                    <div class="text-right"><span class="text-2xl font-black text-slate-900 dark:text-white">${plan.display}</span></div>
                 `;
                 container.appendChild(card);
             });
@@ -310,9 +297,8 @@
             });
         }
 
-        // --- 6. RAZORPAY INTEGRATION ---
         window.initiateRazorpay = function() {
-            if (!selectedPlan || !userProfile.uid) return;
+            if (!selectedPlan || !window.currentUserObj) return;
 
             const btn = document.getElementById('pay-btn');
             btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`;
@@ -325,16 +311,9 @@
                 "name": "MBBS Profs Prep",
                 "description": selectedPlan.name,
                 "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg",
-                "prefill": {
-                    "name": userProfile.fullName,
-                    "email": userProfile.email,
-                    "contact": userProfile.phone
-                },
+                "prefill": { "name": userProfile.fullName, "email": userProfile.email, "contact": userProfile.phone },
                 "theme": { "color": "#0ea5e9" },
-                "handler": function (response) {
-                    // Payment approved!
-                    window.handlePaymentSuccess(response.razorpay_payment_id);
-                },
+                "handler": function (response) { window.handlePaymentSuccess(response.razorpay_payment_id); },
                 "modal": {
                     "ondismiss": function() {
                         btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
@@ -352,38 +331,40 @@
             rzp.open();
         };
 
-        // --- 7. AUTOMATED DATABASE & GOOGLE FORM SUBMIT ---
+        // --- 7. THE DEEP FETCH FIX FOR LATE BUYERS ---
         window.handlePaymentSuccess = async function(paymentId) {
             document.getElementById('checkout-interface').classList.add('hidden');
             
-            // Calculate Future Expiry Date
             const futureDate = new Date();
             futureDate.setMonth(futureDate.getMonth() + selectedPlan.months);
             const expiryString = futureDate.toISOString().split('T')[0];
 
             try {
-                // A. UPGRADE FIREBASE ACCOUNT INSTANTLY
-                await update(ref(db, `users/${userProfile.uid}/subscription`), {
-                    status: "active",
-                    planName: selectedPlan.name,
-                    validUntil: expiryString,
-                    paymentId: paymentId,
-                    purchaseDate: new Date().toISOString()
+                // 1. Upgrade Firebase Plan
+                await update(ref(db, `users/${window.currentUserObj.uid}/subscription`), {
+                    status: "active", planName: selectedPlan.name, validUntil: expiryString, paymentId: paymentId, purchaseDate: new Date().toISOString()
                 });
 
-                // B. SILENTLY SUBMIT TO GOOGLE FORMS (Fetch method)
+                // 2. Deep Database Fetch (Guarantees data isn't lost if they buy days later)
+                const snapshot = await get(ref(db, `users/${window.currentUserObj.uid}/profile`));
+                let finalProfile = { fullName: "Not Found", email: window.currentUserObj.email, joinYear: "Not Found", city: "Not Found", phone: "Not Found", country: "India" };
+                
+                if (snapshot.exists()) {
+                    const dbData = snapshot.val();
+                    finalProfile.fullName = dbData.fullName || finalProfile.fullName;
+                    finalProfile.joinYear = dbData.joinYear || finalProfile.joinYear;
+                    finalProfile.city = dbData.city || finalProfile.city;
+                    finalProfile.phone = dbData.phone || finalProfile.phone;
+                    finalProfile.country = dbData.country || finalProfile.country;
+                }
+
+                // 3. Submit to Google Form using the fresh data
                 silentGoogleFormSubmit(
-                    userProfile.fullName, 
-                    userProfile.email, 
-                    userProfile.joinYear || "Not Provided",
-                    userProfile.city || "Not Provided", 
-                    userProfile.phone || "Not Provided", 
-                    userProfile.country || "India", 
-                    selectedPlan.name + " (" + selectedPlan.display + ")", 
-                    paymentId
+                    finalProfile.fullName, finalProfile.email, finalProfile.joinYear, 
+                    finalProfile.city, finalProfile.phone, finalProfile.country, 
+                    selectedPlan.name, paymentId
                 );
 
-                // C. SHOW SUCCESS UI
                 document.getElementById('success-pay-id').innerText = paymentId;
                 document.getElementById('success-state').classList.remove('hidden');
 
@@ -395,35 +376,41 @@
             }
         };
 
-        // THE INVISIBLE FORM SUBMITTER (MODERN FETCH METHOD)
+        // THE BULLETPROOF IFRAME SUBMITTER
         function silentGoogleFormSubmit(name, email, joinYear, city, phone, country, plan, payId) {
-            const params = new URLSearchParams();
+            const iframeName = 'hidden_iframe_' + Date.now();
+            const iframe = document.createElement('iframe'); 
+            iframe.name = iframeName; iframe.style.display = 'none'; 
+            document.body.appendChild(iframe);
             
-            params.append(FORM_IDS.name, name || "Not Provided");
-            params.append(FORM_IDS.email, email || "Not Provided");
-            params.append(FORM_IDS.joinYear, joinYear || "Not Provided");
-            params.append(FORM_IDS.city, city || "Not Provided");
-            params.append(FORM_IDS.phone, phone || "Not Provided");
-            params.append(FORM_IDS.country, country || "Not Provided");
-            params.append(FORM_IDS.plan, plan || "Not Provided");
-            params.append(FORM_IDS.payId, payId || "Not Provided");
+            const form = document.createElement('form'); 
+            form.method = 'POST'; 
+            form.action = GOOGLE_FORM_URL; 
+            form.target = iframeName; form.style.display = 'none';
 
-            // Send silently in the background bypassing strict browser blockers
-            fetch(GOOGLE_FORM_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: params.toString()
-            }).then(() => {
-                console.log("Google Form Successfully Updated!");
-            }).catch((err) => {
-                console.error("Google Form Error:", err);
-            });
+            const formData = {};
+            formData[FORM_IDS.name] = name || "N/A";
+            formData[FORM_IDS.email] = email || "N/A";
+            formData[FORM_IDS.joinYear] = joinYear || "N/A";
+            formData[FORM_IDS.city] = city || "N/A";
+            formData[FORM_IDS.phone] = phone || "N/A";
+            formData[FORM_IDS.country] = country || "N/A";
+            formData[FORM_IDS.plan] = plan || "N/A";
+            formData[FORM_IDS.payId] = payId || "N/A";
+
+            for (let key in formData) {
+                let input = document.createElement('input'); 
+                input.name = key; input.value = formData[key]; 
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form); 
+            form.submit();
+            
+            // Extra long timeout to guarantee the mobile browser sends it
+            setTimeout(() => { iframe.remove(); form.remove(); }, 10000);
         }
 
-        // Apply dark mode if user selected it
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>
 </body>

@@ -47,7 +47,7 @@
     </style>
 </head>
 
-<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300 relative">
+<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen">
 
     <div id="canvas-container"></div>
 
@@ -55,11 +55,11 @@
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
             
             <div class="flex items-center gap-3 md:gap-4">
-                <button onclick="userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <a class="flex items-center gap-3 group cursor-pointer" onclick="app.goHome(true)">
+                <a class="flex items-center gap-3 group cursor-pointer" onclick="window.app.goHome(true)">
                     <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
                     <div class="leading-tight hidden sm:block">
                         <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
@@ -73,7 +73,7 @@
             </div>
             
             <div class="flex items-center gap-3">
-                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="window.toggleTheme()">
                     <span id="theme-icon">🌙</span>
                 </button>
             </div>
@@ -83,7 +83,7 @@
     <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px]" id="user-panel-drawer">
         <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg">
             <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
-            <button onclick="userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
+            <button onclick="window.userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -94,11 +94,11 @@
         <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg" id="user-panel-footer">
             </div>
     </aside>
-    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="userPanelApp.close()"></div>
+    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
 
-    <main class="relative z-10 pt-24 pb-20 w-full px-4 md:px-6 min-h-screen max-w-7xl mx-auto">
+    <main class="relative z-10 pt-24 pb-20 w-full px-4 md:px-6 flex-1 max-w-7xl mx-auto">
         <div class="hidden mb-6 px-2 flex items-center text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 animate-fade-in flex-wrap" id="breadcrumbs">
-            <span class="hover:text-brand-400 cursor-pointer transition-colors" onclick="app.goHome()">Home</span>
+            <span class="hover:text-brand-400 cursor-pointer transition-colors" onclick="window.app.goHome()">Home</span>
             <span class="mx-2">/</span>
             <span class="hover:text-brand-400 cursor-pointer text-brand-600 dark:text-brand-400 font-bold transition-colors" id="bc-institute">Institute</span>
             <span class="mx-2 hidden" id="bc-slash-1">/</span>
@@ -140,28 +140,41 @@
         </div>
     </main>
 
-    <button class="fixed bottom-6 left-6 z-[9990] w-14 h-14 bg-indigo-600 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center transition-all border-2 border-white dark:border-slate-800 hover:scale-110" id="pdf-trigger-btn" onclick="pdfSmartApp.toggle()" style="display:none">
+    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
+            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
+                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
+            </div>
+        </div>
+    </footer>
+
+    <button class="fixed bottom-6 left-6 z-[9990] w-14 h-14 bg-indigo-600 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center transition-all border-2 border-white dark:border-slate-800 hover:scale-110" id="pdf-trigger-btn" onclick="window.pdfSmartApp.toggle()" style="display:none">
         <span class="text-2xl">📚</span>
     </button>
 
     <aside class="fixed top-0 left-0 h-full z-[10000] bg-white dark:bg-slate-950 shadow-2xl transform -translate-x-full transition-all duration-300 flex flex-col border-r border-slate-200 dark:border-slate-800 w-full md:w-[400px] lg:w-[450px]" id="pdf-smart-drawer">
         <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900 shrink-0">
             <div class="flex items-center gap-3">
-                <button class="p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-600 dark:text-slate-300" onclick="pdfSmartApp.goBack()">
+                <button class="p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-600 dark:text-slate-300" onclick="window.pdfSmartApp.goBack()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
                 </button>
                 <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white" id="pdf-smart-title">Library</h2>
             </div>
-            <button class="p-2 rounded-lg text-slate-400 hover:text-red-500 transition-colors" onclick="pdfSmartApp.close()">
+            <button class="p-2 rounded-lg text-slate-400 hover:text-red-500 transition-colors" onclick="window.pdfSmartApp.close()">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
             </button>
         </div>
         <div class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-3" id="pdf-smart-body"></div>
     </aside>
-    <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="pdfSmartApp.close()"></div>
+    <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
 
     <script>
-        // Secure Global State updated silently by Firebase
+        // Secure Global State explicitly attached to window
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
 
@@ -194,7 +207,7 @@
             }
         };
 
-        const DATA = {
+        window.DATA = {
             locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
             institutes: [
                 { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false },
@@ -222,7 +235,6 @@
             }
         };
 
-        // --- USER ACCOUNT PANEL LOGIC ---
         window.userPanelApp = {
             isOpen: false,
             authMode: 'login', 
@@ -232,7 +244,6 @@
                 body: document.getElementById('user-panel-body'),
                 footer: document.getElementById('user-panel-footer')
             },
-            
             toggle: function() { this.isOpen ? this.close() : this.open(); },
             open: function() {
                 this.isOpen = true;
@@ -245,23 +256,19 @@
                 this.els.drawer.classList.add('-translate-x-full');
                 this.els.backdrop.classList.add('opacity-0', 'pointer-events-none');
             },
-
             renderState: function() {
                 const user = window.currentUserObj;
-                
                 if (user) {
-                    // USER IS LOGGED IN
                     let badgeHtml = '';
                     let daysHtml = '';
-                    
                     if (window.globalUserStatus.isVIP) {
                         badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
-                        const formattedDate = new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         daysHtml = `
                             <div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center">
-                                <span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft}</span>
+                                <span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span>
                                 <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span>
-                                <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${formattedDate}</span>
+                                <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span>
                             </div>`;
                     } else if (window.globalUserStatus.expired) {
                         const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
@@ -289,7 +296,7 @@
                             <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
                                 ${initial}
                             </div>
-                            <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm" id="user-display-name">${nameToDisplay}</h3>
+                            <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
                             <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${email}</p>
                             ${badgeHtml}
                             ${daysHtml}
@@ -305,22 +312,18 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
                         </button>`;
                 } else {
-                    // NOT LOGGED IN - SHOW LOGIN OR REGISTER FORM
                     if (this.authMode === 'login') {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-center h-full">
                                 <div class="w-16 h-16 bg-brand-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner border border-brand-200 dark:border-slate-700">🔒</div>
                                 <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Member Login</h3>
                                 <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 text-center">Sign in to access your premium modules.</p>
-                                
                                 <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
-
                                 <div class="w-full space-y-3 mb-6">
                                     <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-                                    
                                     <div class="relative w-full">
                                         <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-                                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-3 text-slate-400 hover:text-brand-500">
+                                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400 hover:text-brand-500">
                                             <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                         </button>
                                     </div>
@@ -328,7 +331,6 @@
                                         <button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 hover:text-brand-600 transition-colors uppercase tracking-wider">Forgot Password?</button>
                                     </div>
                                 </div>
-
                                 <div class="w-full flex flex-col gap-3">
                                     <button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 active:scale-95 transition-all">Sign In</button>
                                     <div class="text-center mt-2">
@@ -338,38 +340,29 @@
                                 </div>
                             </div>`;
                     } else {
-                        // REGISTRATION FORM
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-start h-full pb-4">
                                 <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner border border-green-200 dark:border-green-800">🌍</div>
                                 <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
                                 <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 text-center">Join the community to track your progress.</p>
-                                
                                 <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
-
                                 <div class="w-full space-y-3 mb-6">
                                     <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                     <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                     <input type="password" id="reg-pass" placeholder="Create Password (Min. 6 char)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-
                                     <div class="grid grid-cols-2 gap-3">
                                         <input type="number" id="reg-age" placeholder="Age" min="16" max="99" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                         <select id="reg-gender" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-slate-500 dark:text-slate-300 text-sm font-medium">
-                                            <option value="">Gender</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
+                                            <option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option>
                                         </select>
                                     </div>
-
-                                    <input type="tel" id="reg-phone" placeholder="Phone Number (e.g. +91...)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-                                    <input type="text" id="reg-college" placeholder="College / University Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
-
+                                    <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
+                                    <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                     <div class="grid grid-cols-2 gap-3">
                                         <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                         <input type="text" id="reg-country" placeholder="Country" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white text-sm font-medium" />
                                     </div>
                                 </div>
-
                                 <div class="w-full flex flex-col gap-3">
                                     <button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-500/30 hover:bg-green-700 active:scale-95 transition-all">Create Account</button>
                                     <div class="text-center mt-2">
@@ -384,55 +377,33 @@
             }
         };
 
-        const app = {
+        window.app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },
-            
-            checkDeogharVIP: function(instName) {
-                const DESTINATION = "schedules.html"; 
-                const triggerTitle = document.getElementById('selected-institute-name');
-                if (!triggerTitle) return;
-
-                triggerTitle.style.cursor = "default";
-                triggerTitle.classList.remove('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
-                const newTitle = triggerTitle.cloneNode(true);
-                triggerTitle.parentNode.replaceChild(newTitle, triggerTitle);
-
-                if (instName.includes("Deoghar")) {
-                    if (window.globalUserStatus && window.globalUserStatus.isVIP) {
-                        newTitle.classList.add('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
-                        newTitle.setAttribute('title', 'Open Schedules');
-                        newTitle.addEventListener('click', () => window.location.href = DESTINATION);
-                    }
-                }
-            },
-
             goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
             goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
             goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
             handleSubjectClick: function(sub) {
                 const key = `${this.state.inst.id}_${sub.id}`;
-                const links = DATA.overrides[key] || [{ label: `${sub.name} Database`, url: `#` }];
+                const links = window.DATA.overrides[key] || [{ label: `${sub.name} Database`, url: `#` }];
                 this.state.sub = sub; this.state.view = 'resources';
                 this.renderResources(this.state.inst, this.state.year, sub, links);
             },
             showLockedModal: function(name) { alert(`Content for ${name} is coming soon!`); },
             renderInstitutes: function() {
                 this.toggleView('institutes');
-                document.getElementById('institutes-grid').innerHTML = DATA.institutes.map(inst => {
-                    if (inst.locked) return `<div onclick="app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase dark:bg-slate-700">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300 dark:border-slate-600">${inst.badge}</div><h3 class="font-bold text-lg mb-1 text-slate-500 dark:text-slate-400">${inst.name}</h3><p class="text-sm text-slate-400 dark:text-slate-500">${inst.city}</p></div>`;
-                    return `<div onclick="app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer group hover:scale-[1.02] transition-transform"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg dark:bg-brand-900/30 dark:border dark:border-brand-800">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow dark:text-slate-600">↗</span></div><h3 class="font-bold text-lg mb-1 group-hover:text-brand-400 text-slate-900 dark:text-white">${inst.name}</h3><p class="text-sm text-slate-500 dark:text-slate-400">${inst.city}</p></div>`;
+                document.getElementById('institutes-grid').innerHTML = window.DATA.institutes.map(inst => {
+                    if (inst.locked) return `<div onclick="window.app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase dark:bg-slate-700">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300 dark:border-slate-600">${inst.badge}</div><h3 class="font-bold text-lg mb-1 text-slate-500 dark:text-slate-400">${inst.name}</h3><p class="text-sm text-slate-400 dark:text-slate-500">${inst.city}</p></div>`;
+                    return `<div onclick="window.app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer group hover:scale-[1.02] transition-transform"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg dark:bg-brand-900/30 dark:border dark:border-brand-800">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow dark:text-slate-600">↗</span></div><h3 class="font-bold text-lg mb-1 group-hover:text-brand-400 text-slate-900 dark:text-white">${inst.name}</h3><p class="text-sm text-slate-500 dark:text-slate-400">${inst.city}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
             renderYears: function(inst) {
                 this.toggleView('years');
                 document.getElementById('selected-institute-name').innerText = inst.name;
-                this.checkDeogharVIP(inst.name);
-                
-                document.getElementById('years-grid').innerHTML = DATA.years.map(year => {
-                    if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">${year.sub}</p></div>`;
-                    return `<div onclick="app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-400/20 transition-colors">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400 text-slate-900 dark:text-white">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p></div>`;
+                document.getElementById('years-grid').innerHTML = window.DATA.years.map(year => {
+                    if (year.locked || (window.DATA.locks && window.DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="window.app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">${year.sub}</p></div>`;
+                    return `<div onclick="window.app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer group hover:border-t-brand-400 border-t-4 border-transparent"><div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-400/20 transition-colors">0${year.id}</div><h3 class="text-2xl font-bold mb-2 group-hover:text-brand-400 text-slate-900 dark:text-white">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -440,9 +411,9 @@
                 this.toggleView('subjects');
                 document.getElementById('selected-year-name').innerText = year.name;
                 document.getElementById('selected-inst-sub-name').innerText = inst.name;
-                document.getElementById('subjects-grid').innerHTML = DATA.subjects[year.id].map(sub => {
-                    if (sub.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${sub.id}`))) return `<div onclick="app.showLockedModal('${sub.name}')" class="glass-card p-6 rounded-xl relative opacity-70 grayscale flex items-center gap-4 bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-2 right-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-4xl opacity-50">${sub.icon}</div><div><h3 class="text-xl font-bold text-slate-500 dark:text-slate-400">${sub.name}</h3></div></div>`;
-                    return `<div onclick="app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold group-hover:text-accent-yellow text-slate-900 dark:text-white transition-colors">${sub.name}</h3><p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">Open ➝</p></div></div>`;
+                document.getElementById('subjects-grid').innerHTML = window.DATA.subjects[year.id].map(sub => {
+                    if (sub.locked || (window.DATA.locks && window.DATA.locks.includes(`${inst.id}_${sub.id}`))) return `<div onclick="window.app.showLockedModal('${sub.name}')" class="glass-card p-6 rounded-xl relative opacity-70 grayscale flex items-center gap-4 bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-2 right-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-4xl opacity-50">${sub.icon}</div><div><h3 class="text-xl font-bold text-slate-500 dark:text-slate-400">${sub.name}</h3></div></div>`;
+                    return `<div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold group-hover:text-accent-yellow text-slate-900 dark:text-white transition-colors">${sub.name}</h3><p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">Open ➝</p></div></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -471,8 +442,8 @@
                     document.getElementById('bc-institute').innerText = this.state.inst.name;
                     if (this.state.view === 'subjects' || this.state.view === 'resources') { 
                         document.getElementById('bc-slash-1').classList.remove('hidden'); 
-                        const yr = document.getElementById('bc-year');
-                        yr.classList.remove('hidden'); yr.innerText = this.state.year.name; 
+                        document.getElementById('bc-year').classList.remove('hidden'); 
+                        document.getElementById('bc-year').innerText = this.state.year.name; 
                     } else { 
                         document.getElementById('bc-slash-1').classList.add('hidden'); 
                         document.getElementById('bc-year').classList.add('hidden'); 
@@ -481,17 +452,16 @@
             }
         };
 
-        const PDF_SMART_DB = {
+        window.PDF_SMART_DB = {
             "AIIMS Deoghar": {
                 "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
                 "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk"
             }
         };
 
-        const pdfSmartApp = {
+        window.pdfSmartApp = {
             isOpen: false, stack: [],
             els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
-            
             checkVisibility: function() {
                 const isVIP = window.globalUserStatus.isVIP;
                 this.els.trigger.style.display = isVIP ? 'flex' : 'none';
@@ -503,11 +473,11 @@
             goBack: function() { if(this.stack.length > 1) { this.stack.pop(); this.renderList(this.stack[this.stack.length-1].val, false); } else this.close(); },
             renderHome: function(push=true) {
                 if(push) this.stack.push({type:'home'}); this.els.title.innerText="Library";
-                this.els.body.innerHTML = Object.keys(PDF_SMART_DB).map(name => `<div onclick="window.pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white">${name} ➝</div>`).join('');
+                this.els.body.innerHTML = Object.keys(window.PDF_SMART_DB).map(name => `<div onclick="window.pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white">${name} ➝</div>`).join('');
             },
             renderList: function(col, push=true) {
                 if(push) this.stack.push({type:'list', val:col}); this.els.title.innerText=col;
-                this.els.body.innerHTML = Object.entries(PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="window.pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800">📄 ${sub}</div>`).join('');
+                this.els.body.innerHTML = Object.entries(window.PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="window.pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800">📄 ${sub}</div>`).join('');
             },
             renderViewer: function(url) {
                 let fUrl = url.includes('drive.google') ? url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview') : url;
@@ -516,8 +486,9 @@
             }
         };
 
-        function init3D() {
+        window.init3D = function() {
             const container = document.getElementById('canvas-container');
+            if(!container) return;
             const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000); camera.position.z = 40;
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
             const group = new THREE.Group(); scene.add(group); const geo = new THREE.SphereGeometry(0.3, 8, 8);
@@ -528,17 +499,15 @@
             window.update3D();
         }
 
-        function toggleTheme() {
+        window.toggleTheme = function() {
             const d = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', d?'dark':'light');
-            document.getElementById('theme-icon').innerText = d?'☀️':'🌙'; if(window.update3D) window.update3D();
+            const icon = document.getElementById('theme-icon'); if(icon) icon.innerText = d?'☀️':'🌙'; 
+            if(window.update3D) window.update3D();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
-            init3D(); 
-            app.init(); 
-            // The Firebase Auth listener will call renderState and checkVisibility
-            window.userPanelApp.renderState(); 
+            if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); const icon = document.getElementById('theme-icon'); if(icon) icon.innerText = '☀️'; }
+            window.init3D(); window.app.init(); window.userPanelApp.renderState();
         });
     </script>
 
@@ -556,12 +525,12 @@
             messagingSenderId: "378639777472",
             appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
         };
-
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
-        // 1. LOGIN
+        const allowedVIPs = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+
         window.handleEmailLogin = function(btn) {
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-pass').value;
@@ -577,21 +546,15 @@
                 let msg = "Login failed. Please try again.";
                 if(e.code === 'auth/invalid-credential') msg = "Incorrect email or password.";
                 if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
-                if(e.code === 'auth/wrong-password') msg = "Incorrect password.";
                 window.showAuthError(msg);
             });
         };
 
-        // 2. REGISTRATION
         window.handleEmailSignUp = async function(btn) {
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value;
-            const age = document.getElementById('reg-age').value.trim();
-            const gender = document.getElementById('reg-gender').value;
-            const phone = document.getElementById('reg-phone').value.trim();
             const college = document.getElementById('reg-college').value.trim();
-            const city = document.getElementById('reg-city').value.trim();
             const country = document.getElementById('reg-country').value.trim();
             
             if(!name || !email || !pass || !college || !country) {
@@ -605,98 +568,62 @@
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                const user = userCredential.user;
-
-                await updateProfile(user, { displayName: name });
-
-                // Save detailed profile to Realtime Database
-                await set(ref(db, 'users/' + user.uid + '/profile'), {
-                    fullName: name,
-                    email: email,
-                    age: age || "Not provided",
-                    gender: gender || "Not provided",
-                    phone: phone || "Not provided",
-                    college: college,
-                    city: city || "Not provided",
-                    country: country,
-                    createdAt: new Date().toISOString()
+                await updateProfile(userCredential.user, { displayName: name });
+                await set(ref(db, 'users/' + userCredential.user.uid + '/profile'), {
+                    fullName: name, email: email, age: document.getElementById('reg-age').value.trim() || "Not provided", gender: document.getElementById('reg-gender').value || "Not provided", phone: document.getElementById('reg-phone').value.trim() || "Not provided", college: college, city: document.getElementById('reg-city').value.trim() || "Not provided", country: country, createdAt: new Date().toISOString()
                 });
             } catch(e) {
                 btn.innerText = originalText;
                 btn.disabled = false;
                 let msg = "Signup failed.";
-                if(e.code === 'auth/email-already-in-use') msg = "An account with this email already exists. Please Sign In.";
-                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
+                if(e.code === 'auth/email-already-in-use') msg = "An account with this email already exists.";
                 window.showAuthError(msg);
             }
         };
 
-        // 3. FORGOT PASSWORD
         window.handleForgotPass = function() {
             const email = document.getElementById('login-email').value.trim();
             if(!email) return window.showAuthError("Enter your email in the box above, then click Forgot Password.");
-            
             sendPasswordResetEmail(auth, email).then(() => {
                 const errDiv = document.getElementById('auth-error-msg');
                 errDiv.innerText = "Password reset link sent! Check your inbox.";
-                errDiv.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
+                errDiv.classList.remove('bg-red-50', 'text-red-600', 'border-red-200', 'hidden');
                 errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
-                errDiv.classList.remove('hidden');
             }).catch(e => {
-                let msg = "Error sending reset email.";
-                if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
-                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
-                window.showAuthError(msg);
+                window.showAuthError("Error sending reset email.");
             });
         };
 
-        // 4. LOGOUT
         window.firebaseSignOut = function() {
-            localStorage.removeItem('medqs_user_email');
             signOut(auth).then(() => window.location.reload());
         };
 
-        // 5. MASTER STATE LISTENER (Automated Database Check)
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
 
             if (user) {
-                localStorage.setItem('medqs_user_email', user.email.toLowerCase());
-                
-                // Real-time listener for the user's subscription
-                const subRef = ref(db, 'users/' + user.uid + '/subscription');
-                onValue(subRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const subData = snapshot.val();
-                        const today = new Date(); 
-                        today.setHours(0,0,0,0);
-                        
-                        const expiry = new Date(subData.validUntil); 
-                        expiry.setHours(0,0,0,0);
-                        
-                        const diffTime = expiry - today;
-                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
-                        if (daysLeft >= 0 && subData.status === "active") {
-                            // Active VIP
-                            window.globalUserStatus = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
-                        } else {
-                            // Expired VIP
-                            window.globalUserStatus = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
-                        }
-                    } else {
-                        // No subscription found
-                        window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-                    }
-                    
-                    // Update UI across the app instantly
+                const email = user.email.toLowerCase().trim();
+                if (allowedVIPs.includes(email)) {
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.userPanelApp.renderState();
                     window.pdfSmartApp.checkVisibility();
-                });
-                
+                } else {
+                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (snapshot) => {
+                        let subDataObj = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                        if (snapshot.exists()) {
+                            const subData = snapshot.val();
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
+                            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                            if (daysLeft >= 0 && subData.status === "active") subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
+                            else subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
+                        }
+                        window.globalUserStatus = subDataObj;
+                        window.userPanelApp.renderState();
+                        window.pdfSmartApp.checkVisibility();
+                    });
+                }
             } else {
-                // Completely logged out
-                localStorage.removeItem('medqs_user_email');
                 window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
                 window.userPanelApp.renderState();
                 window.pdfSmartApp.checkVisibility();

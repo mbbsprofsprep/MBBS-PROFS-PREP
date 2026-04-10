@@ -87,36 +87,12 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6">
-                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
-                    <span id="user-avatar-initial">?</span>
-                </div>
-                <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2" id="user-display-email">Guest User</h3>
-                <span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700" id="user-status-badge">Free Plan</span>
+        
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body">
             </div>
-
-            <nav class="space-y-2">
-                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
-                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">👤</span> 
-                    My Profile
-                </a>
-                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
-                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> 
-                    Subscription Plan
-                </a>
-                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
-                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">⚙️</span> 
-                    Settings
-                </a>
-            </nav>
-        </div>
-        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg">
-            <button onclick="userPanelApp.logout()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                Logout
-            </button>
-        </div>
+        
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg" id="user-panel-footer">
+            </div>
     </aside>
     <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="userPanelApp.close()"></div>
 
@@ -185,6 +161,56 @@
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="pdfSmartApp.close()"></div>
 
     <script>
+        window.subApp = {
+            database: {
+                'pankajmahto109@gmail.com': '2025-12-31','pankajkumarmahto1009@gmail.com': '2026-12-31',
+                'educateindiainstitute@gmail.com': '2029-01-31',
+                '3081krishnamahto7brssis@gmail.com': '2026-10-31',
+                'abhaykr2376@gmail.com': '2026-01-18', 'aryanavinash69@gmail.com': '2026-05-31', 'ayushkumar120603jha@gmail.com': '2026-03-14',
+                'akhilesh4754667@gmail.com': '2026-04-09',
+                'amitdas03112003@gmail.com': '2026-01-18','ashwanikumarr.098@gmail.com':'2026-12-31',
+                'bgminewidtwitter@gmail.com': '2026-12-31',
+                'harshpratapsingh04@gmail.com': '2026-06-31',
+                'indrajeet91434@gmail.com': '2026-04-19',
+                'jangidhimanshu2607@gmail.com': '2026-02-21',
+                'khushikumari22404@gmail.com': '2026-03-17',
+                'laxmimundhra2@gmail.com': '2026-02-12',
+                'mbbsk57@gmail.com': '2026-02-12',
+                'naveenagrawal826@gmail.com': '2026-02-12',
+                'pkt16june@gmail.com': '2026-02-12',
+                'rajputyashsingh67@gmail.com': '2026-02-22','roberto374890@gmail.com': '2026-03-13',
+                'shibanarayanjena001@gmail.com': '2026-03-10',
+                'tammaytubakale@gmail.com': '2026-04-14',
+                'yaesh544@gmail.com': '2026-01-18',
+                'yashwardhan334@gmail.com': '2026-05-16',
+                'expired@user.com': '2023-01-01'
+            },
+            purchaseUrl: "https://medqs-official.blogspot.com/p/payment-page.html",
+            checkStatus: function(email, callback) {
+                const expiryStr = this.database[email];
+                if (!expiryStr) { callback(false, "You are not a member."); return; }
+                
+                const daysLeft = this.getDaysLeft(expiryStr);
+                
+                if (daysLeft >= 0) {
+                    callback(true, { days: daysLeft, date: this.formatDate(expiryStr) });
+                } else {
+                    const daysAgo = Math.abs(daysLeft);
+                    callback(false, `Oops! Your subscription ended ${daysAgo} days ago.`);
+                }
+            },
+            getDaysLeft: function(dateStr) {
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const expiry = new Date(dateStr); expiry.setHours(0, 0, 0, 0);
+                const diffTime = expiry - today;
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            },
+            formatDate: function(dateStr) {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        };
+
         const DATA = {
             locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
             institutes: [
@@ -234,31 +260,14 @@
             els: {
                 drawer: document.getElementById('user-panel-drawer'),
                 backdrop: document.getElementById('user-panel-backdrop'),
-                email: document.getElementById('user-display-email'),
-                initial: document.getElementById('user-avatar-initial'),
-                badge: document.getElementById('user-status-badge')
+                body: document.getElementById('user-panel-body'),
+                footer: document.getElementById('user-panel-footer')
             },
-            init: function() {
-                this.updateDetails();
-            },
-            updateDetails: function() {
-                const email = localStorage.getItem('medqs_user_email');
-                if (email) {
-                    this.els.email.innerText = email;
-                    this.els.initial.innerText = email.charAt(0).toUpperCase();
-                    
-                    // Check against VIP array (from the PDF app logic)
-                    const vips = pdfSmartApp.allowedUsers;
-                    if (vips.includes(email.toLowerCase().trim())) {
-                        this.els.badge.innerText = "PRO / VIP Access";
-                        this.els.badge.className = "px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800";
-                    }
-                }
-            },
+            
             toggle: function() { this.isOpen ? this.close() : this.open(); },
             open: function() {
                 this.isOpen = true;
-                this.updateDetails();
+                this.renderState();
                 this.els.drawer.classList.remove('-translate-x-full');
                 this.els.backdrop.classList.remove('opacity-0', 'pointer-events-none');
             },
@@ -267,10 +276,78 @@
                 this.els.drawer.classList.add('-translate-x-full');
                 this.els.backdrop.classList.add('opacity-0', 'pointer-events-none');
             },
-            logout: function() {
-                if(confirm("Are you sure you want to log out?")) {
-                    localStorage.removeItem('medqs_user_email');
-                    window.location.reload();
+
+            renderState: function() {
+                const email = localStorage.getItem('medqs_user_email');
+                
+                if (email) {
+                    // Check against subApp database
+                    window.subApp.checkStatus(email, (isValid, data) => {
+                        let badgeHtml = '';
+                        let daysHtml = '';
+                        
+                        if (isValid) {
+                            badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
+                            daysHtml = `
+                                <div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center">
+                                    <span class="text-2xl font-black text-green-600 dark:text-green-400">${data.days}</span>
+                                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span>
+                                    <span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${data.date}</span>
+                                </div>`;
+                        } else {
+                            const isExpired = data.toLowerCase().includes("ended");
+                            if (isExpired) {
+                                badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">Expired</span>`;
+                                daysHtml = `
+                                <div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center">
+                                    <span class="text-xs font-bold text-red-600 dark:text-red-400">${data}</span>
+                                    <a href="${window.subApp.purchaseUrl}" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a>
+                                </div>`;
+                            } else {
+                                badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">Free Plan</span>`;
+                                daysHtml = `
+                                <div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center">
+                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span>
+                                    <a href="${window.subApp.purchaseUrl}" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a>
+                                </div>`;
+                            }
+                        }
+
+                        const initial = email.charAt(0).toUpperCase();
+
+                        this.els.body.innerHTML = `
+                            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
+                                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
+                                    ${initial}
+                                </div>
+                                <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${email}</h3>
+                                ${badgeHtml}
+                                ${daysHtml}
+                            </div>
+                            <nav class="space-y-2">
+                                <a href="${window.subApp.purchaseUrl}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> Subscription Plan
+                                </a>
+                            </nav>`;
+
+                        this.els.footer.innerHTML = `
+                            <button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
+                            </button>`;
+                    });
+                } else {
+                    // Not Logged In
+                    this.els.body.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-8 text-center h-full">
+                            <div class="w-24 h-24 bg-brand-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 text-4xl shadow-inner border border-brand-100 dark:border-slate-700">👋</div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Welcome to MBBS PROFS PREP</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-8">Sign in to sync your progress and access premium modules.</p>
+                            <button onclick="window.firebaseSignIn()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                                Continue with Google
+                            </button>
+                        </div>`;
+                    this.els.footer.innerHTML = ``;
                 }
             }
         };
@@ -279,28 +356,6 @@
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },
             
-            checkDeogharVIP: function(instName) {
-                const DESTINATION = "schedules.html"; 
-                const VIP_ACCESS_LIST = [ "pankajmahto109@gmail.com", "pankajkumarmahto1009@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com" ];
-
-                const triggerTitle = document.getElementById('selected-institute-name');
-                if (!triggerTitle) return;
-
-                triggerTitle.style.cursor = "default";
-                triggerTitle.classList.remove('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
-                const newTitle = triggerTitle.cloneNode(true);
-                triggerTitle.parentNode.replaceChild(newTitle, triggerTitle);
-
-                if (instName.includes("Deoghar")) {
-                    const currentUser = localStorage.getItem('medqs_user_email');
-                    if (currentUser && VIP_ACCESS_LIST.includes(currentUser.toLowerCase().trim())) {
-                        newTitle.classList.add('cursor-pointer', 'hover:text-accent-yellow', 'transition-colors');
-                        newTitle.setAttribute('title', 'Open Schedules');
-                        newTitle.addEventListener('click', () => window.location.href = DESTINATION);
-                    }
-                }
-            },
-
             goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
             goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
             goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
@@ -325,7 +380,6 @@
             renderYears: function(inst) {
                 this.toggleView('years');
                 document.getElementById('selected-institute-name').innerText = inst.name;
-                this.checkDeogharVIP(inst.name);
                 
                 document.getElementById('years-grid').innerHTML = DATA.years.map(year => {
                     if (year.locked || (DATA.locks && DATA.locks.includes(`${inst.id}_${year.id}`))) return `<div onclick="app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">${year.sub}</p></div>`;
@@ -391,13 +445,13 @@
 
         const pdfSmartApp = {
             isOpen: false, stack: [],
-            allowedUsers: ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"],
             els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
             
             init: function() { setInterval(() => this.checkVisibility(), 1500); },
             checkVisibility: function() {
                 const email = localStorage.getItem('medqs_user_email');
-                const isVIP = email && this.allowedUsers.includes(email.toLowerCase());
+                // Automatically uses subApp keys as the allowed list!
+                const isVIP = email && Object.keys(window.subApp.database).includes(email.toLowerCase().trim());
                 this.els.trigger.style.display = isVIP ? 'flex' : 'none';
                 if(!isVIP && this.isOpen) this.close();
             },
@@ -442,7 +496,49 @@
             init3D(); 
             app.init(); 
             pdfSmartApp.init();
-            userPanelApp.init();
+            userPanelApp.renderState(); // Render Guest/User State
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+
+        // EXACT FIREBASE CONFIG FROM YOUR THEME
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
+            authDomain: "mbbs-profs-prep48c.firebaseapp.com",
+            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
+            projectId: "mbbs-profs-prep48c",
+            storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
+            messagingSenderId: "378639777472",
+            appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
+        };
+
+        const fbApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fbApp);
+        const provider = new GoogleAuthProvider();
+
+        window.firebaseSignIn = function() {
+            signInWithPopup(auth, provider).catch(e => alert("Login Failed: " + e.message));
+        };
+
+        window.firebaseSignOut = function() {
+            localStorage.removeItem('medqs_user_email');
+            signOut(auth).then(() => window.location.reload());
+        };
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in. Save their email.
+                localStorage.setItem('medqs_user_email', user.email.toLowerCase());
+                userPanelApp.renderState();
+            } else {
+                // User is signed out.
+                localStorage.removeItem('medqs_user_email');
+                userPanelApp.renderState();
+            }
         });
     </script>
 </body>

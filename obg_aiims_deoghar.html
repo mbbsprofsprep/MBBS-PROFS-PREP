@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBBS PROFS PREP - OBG Exam Review</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -15,15 +18,14 @@
                         accent: { yellow: '#ffc107', yellowHover: '#e0a800' },
                         dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
                     },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
-        body { font-family: 'Inter', sans-serif; background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden;}
+        body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
         html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
         
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -63,7 +65,7 @@
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
 
-        #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
+        #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Plus Jakarta Sans', sans-serif; }
         html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
         html.dark .deck-card { background: #0f172a; border: 1px solid #1e293b; }
@@ -74,7 +76,7 @@
         .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; }
         html.dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
         
-        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
+        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 9000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
         
         .deck-drawer { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
@@ -101,13 +103,21 @@
 
     <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
-            <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
-                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
-                <div class="leading-tight">
-                    <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Return to Portal</p>
-                </div>
-            </a>
+            
+            <div class="flex items-center gap-3 md:gap-4">
+                <button onclick="userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+
+                <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
+                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
+                    <div class="leading-tight hidden sm:block">
+                        <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Return to Portal</p>
+                    </div>
+                </a>
+            </div>
+
             <div class="flex items-center gap-3">
                 <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
                     <span id="theme-icon">🌙</span>
@@ -115,6 +125,22 @@
             </div>
         </div>
     </nav>
+
+    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px]" id="user-panel-drawer">
+        <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
+            <button onclick="userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body">
+            </div>
+        
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg" id="user-panel-footer">
+            </div>
+    </aside>
+    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="userPanelApp.close()"></div>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto" id="main-wrapper">
         <header class="text-center mb-10">
@@ -182,6 +208,32 @@
         const COLLEGE_NAME = "AIIMS DEOGHAR";
         const SECRET_CODE = "777pankaj";
         const optionLetters = ['A', 'B', 'C', 'D'];
+
+        // Secure Global State updated silently by Firebase
+        window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+        window.currentUserObj = null;
+        window.accessLevel = 'guest'; // 'guest', 'free', 'premium'
+        window.displayData = [];
+
+        // Auth UI Helpers
+        window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };
+        window.togglePassword = function() {
+            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
+            const icon = document.getElementById('eye-icon');
+            if (!input) return;
+            if (input.type === "password") {
+                input.type = "text";
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
+            } else {
+                input.type = "password";
+                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+            }
+        };
+        window.showAuthError = function(msg) {
+            const errDiv = document.getElementById('auth-error-msg');
+            if(errDiv) { errDiv.innerText = msg; errDiv.classList.remove('hidden'); setTimeout(() => errDiv.classList.add('hidden'), 5000); } 
+            else { alert(msg); }
+        };
 
         const curriculumData = [
             { unit: "Obstetrics", chapters: [ "OBS Chapter 1: Anatomy of Female Reproductive Organs", "OBS Chapter 2: Fundamentals of Reproduction", "OBS Chapter 3: The Placenta and Fetal Membranes", "OBS Chapter 4: The Fetus", "OBS Chapter 5: Physiological Changes During Pregnancy", "OBS Chapter 6: Endocrinology in Relation to Reproduction", "OBS Chapter 7: Diagnosis of Pregnancy", "OBS Chapter 8: The Fetus-in-Utero", "OBS Chapter 9: Fetal Skull and Maternal Pelvis", "OBS Chapter 10: Antenatal Care, Preconceptional Counseling and Care", "OBS Chapter 11: Antenatal Assessment of Fetal Well-Being", "OBS Chapter 12: Prenatal Genetic Counseling, Screening and Diagnosis", "OBS Chapter 13: Normal Labor", "OBS Chapter 14: Normal Puerperium", "OBS Chapter 15: Vomiting in Pregnancy", "OBS Chapter 16: Hemorrhage in Early Pregnancy", "OBS Chapter 17: Multiple Pregnancy, Amniotic Fluid Disorders, Abnormalities of Placenta and Cord", "OBS Chapter 18: Hypertensive Disorders in Pregnancy", "OBS Chapter 19: Antepartum Hemorrhage", "OBS Chapter 20: Medical and Surgical Illness Complicating Pregnancy", "OBS Chapter 21: Gynecological Disorders in Pregnancy", "OBS Chapter 22: Preterm Labor, Preterm Rupture of the Membranes, Postmaturity, Intrauterine Fetal Death", "OBS Chapter 23: Complicated Pregnancy", "OBS Chapter 24: Contracted Pelvis", "OBS Chapter 25: Abnormal Uterine Action", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse", "OBS Chapter 27: Prolonged Labor, Obstructed Labor, Dystocia Caused by Fetal Anomalies", "OBS Chapter 28: Complications of the Third Stage of Labor", "OBS Chapter 29: Injuries to the Birth Canal", "OBS Chapter 30: Abnormalities of the Puerperium", "OBS Chapter 31: The Term Newborn Infant", "OBS Chapter 32: Low Birth Weight Baby", "OBS Chapter 33: Disease of the Fetus and the Newborn", "OBS Chapter 34: Pharmacotherapeutics in Obstetrics", "OBS Chapter 35: Induction of Labor", "OBS Chapter 36: Population Dynamics and Control of Conception", "OBS Chapter 37: Operative Obstetrics", "OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics", "OBS Chapter 39: Special Topics in Obstetrics", "OBS Chapter 40: Current Topics in Obstetrics", "OBS Chapter 41: Imaging in Obstetrics, Amniocentesis and Guides to Clinical Tests", "OBS Chapter 42: Practical Obstetrics" ] },
@@ -524,7 +576,7 @@
                     <div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                     <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Login Required</h3>
                     <p class="text-slate-500 dark:text-slate-400 mb-6 font-medium max-w-md mx-auto">You must be signed in to view the free preview modules.</p>
-                    <a href="index.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 hover:scale-105 transition-all">Sign In to Continue</a>
+                    <button onclick="userPanelApp.open(); toggleAuthMode('login')" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 hover:scale-105 transition-all">Sign In to Continue</button>
                 `;
             } else if (window.accessLevel === 'free') {
                 const row = tbody.insertRow();
@@ -735,7 +787,7 @@
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
                         <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
-                        <a href="index.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Sign In / Register</a>
+                        <button onclick="userPanelApp.open(); toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Sign In / Register</button>
                     </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`;
                 return;
@@ -870,8 +922,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
@@ -889,36 +941,135 @@
         // Your verified VIP List (Always open)
         const allowedVIPs = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
+        // --- AUTH EXPORTS FOR UI ---
+        window.handleEmailLogin = function(btn) {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) return window.showAuthError("Please enter both email and password.");
+            
+            const originalText = btn.innerText;
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+
+            signInWithEmailAndPassword(auth, email, pass).catch(e => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                let msg = "Login failed. Please try again.";
+                if(e.code === 'auth/invalid-credential') msg = "Incorrect email or password.";
+                if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
+                if(e.code === 'auth/wrong-password') msg = "Incorrect password.";
+                window.showAuthError(msg);
+            });
+        };
+
+        window.handleEmailSignUp = async function(btn) {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value;
+            const age = document.getElementById('reg-age').value.trim();
+            const gender = document.getElementById('reg-gender').value;
+            const phone = document.getElementById('reg-phone').value.trim();
+            const college = document.getElementById('reg-college').value.trim();
+            const city = document.getElementById('reg-city').value.trim();
+            const country = document.getElementById('reg-country').value.trim();
+            
+            if(!name || !email || !pass || !college || !country) {
+                return window.showAuthError("Please fill out all mandatory fields (Name, Email, Password, College, Country).");
+            }
+            if(pass.length < 6) return window.showAuthError("Password must be at least 6 characters long.");
+            
+            const originalText = btn.innerText;
+            btn.innerText = "Creating Profile...";
+            btn.disabled = true;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+                await updateProfile(user, { displayName: name });
+                await set(ref(db, 'users/' + user.uid + '/profile'), {
+                    fullName: name, email: email, age: age || "Not provided", gender: gender || "Not provided", phone: phone || "Not provided", college: college, city: city || "Not provided", country: country, createdAt: new Date().toISOString()
+                });
+            } catch(e) {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                let msg = "Signup failed.";
+                if(e.code === 'auth/email-already-in-use') msg = "An account with this email already exists. Please Sign In.";
+                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
+                window.showAuthError(msg);
+            }
+        };
+
+        window.handleForgotPass = function() {
+            const email = document.getElementById('login-email').value.trim();
+            if(!email) return window.showAuthError("Enter your email in the box above, then click Forgot Password.");
+            sendPasswordResetEmail(auth, email).then(() => {
+                const errDiv = document.getElementById('auth-error-msg');
+                errDiv.innerText = "Password reset link sent! Check your inbox.";
+                errDiv.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
+                errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+                errDiv.classList.remove('hidden');
+            }).catch(e => {
+                let msg = "Error sending reset email.";
+                if(e.code === 'auth/user-not-found') msg = "No account found with this email.";
+                if(e.code === 'auth/invalid-email') msg = "Please enter a valid email address.";
+                window.showAuthError(msg);
+            });
+        };
+
+        window.firebaseSignOut = function() {
+            localStorage.removeItem('medqs_user_email');
+            signOut(auth).then(() => window.location.reload());
+        };
+
+        // --- AUTH & PAYWALL LISTENER ---
         onAuthStateChanged(auth, (user) => {
+            window.currentUserObj = user;
+
             if (user) {
                 const email = user.email.toLowerCase().trim();
+                localStorage.setItem('medqs_user_email', email);
+
                 if (allowedVIPs.includes(email)) {
                     // VIP bypass
                     window.accessLevel = 'premium';
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.processDataForAccess();
+                    window.userPanelApp.renderState();
                 } else {
                     // Standard User: Check Database Expiry
                     const subRef = ref(db, 'users/' + user.uid + '/subscription');
                     onValue(subRef, (snapshot) => {
                         let hasAccess = false;
+                        let subDataObj = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+
                         if (snapshot.exists()) {
                             const subData = snapshot.val();
                             const today = new Date(); today.setHours(0,0,0,0);
                             const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
+                            const diffTime = expiry - today;
+                            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                             
-                            if ((expiry - today) >= 0 && subData.status === "active") {
+                            if (daysLeft >= 0 && subData.status === "active") {
                                 hasAccess = true;
+                                subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
+                            } else {
+                                subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
                             }
                         }
                         
+                        window.globalUserStatus = subDataObj;
                         window.accessLevel = hasAccess ? 'premium' : 'free';
                         window.processDataForAccess();
+                        window.userPanelApp.renderState();
                     });
                 }
             } else {
                 // Not logged in -> Guest Mode (Completely Locked)
+                localStorage.removeItem('medqs_user_email');
+                window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
                 window.accessLevel = 'guest';
                 window.processDataForAccess();
+                window.userPanelApp.renderState();
             }
         });
     </script>

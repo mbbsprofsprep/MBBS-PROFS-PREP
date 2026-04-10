@@ -47,22 +47,31 @@
     </style>
 </head>
 
-<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300">
+<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300 relative">
 
     <div id="canvas-container"></div>
 
     <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
-            <a class="flex items-center gap-3 group cursor-pointer" onclick="app.goHome(true)">
-                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
-                <div class="leading-tight">
-                    <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Central Portal</p>
-                </div>
-            </a>
+            
+            <div class="flex items-center gap-3 md:gap-4">
+                <button onclick="userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+
+                <a class="flex items-center gap-3 group cursor-pointer" onclick="app.goHome(true)">
+                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
+                    <div class="leading-tight hidden sm:block">
+                        <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Central Portal</p>
+                    </div>
+                </a>
+            </div>
+
             <div class="hidden md:block flex-1 max-w-md mx-8">
                 <input class="w-full px-4 py-2 bg-brand-50 dark:bg-dark-surface border border-brand-100 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-brand-400 outline-none transition-all text-sm text-slate-900 dark:text-white placeholder-slate-400" id="globalSearch" placeholder="Search..." type="text"/>
             </div>
+            
             <div class="flex items-center gap-3">
                 <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="toggleTheme()">
                     <span id="theme-icon">🌙</span>
@@ -70,6 +79,46 @@
             </div>
         </div>
     </nav>
+
+    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[320px]" id="user-panel-drawer">
+        <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
+            <button onclick="userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6">
+                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
+                    <span id="user-avatar-initial">?</span>
+                </div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2" id="user-display-email">Guest User</h3>
+                <span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700" id="user-status-badge">Free Plan</span>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">👤</span> 
+                    My Profile
+                </a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> 
+                    Subscription Plan
+                </a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-colors group">
+                    <span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">⚙️</span> 
+                    Settings
+                </a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg">
+            <button onclick="userPanelApp.logout()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Logout
+            </button>
+        </div>
+    </aside>
+    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="userPanelApp.close()"></div>
 
     <main class="relative z-10 pt-24 pb-20 w-full px-4 md:px-6 min-h-screen max-w-7xl mx-auto">
         <div class="hidden mb-6 px-2 flex items-center text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 animate-fade-in flex-wrap" id="breadcrumbs">
@@ -176,6 +225,53 @@
             overrides: {
                 'deoghar_obg': [{ label: 'OBG Exam Review', url: 'obg_aiims_deoghar.html' }],
                 'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+            }
+        };
+
+        // --- USER ACCOUNT PANEL LOGIC ---
+        const userPanelApp = {
+            isOpen: false,
+            els: {
+                drawer: document.getElementById('user-panel-drawer'),
+                backdrop: document.getElementById('user-panel-backdrop'),
+                email: document.getElementById('user-display-email'),
+                initial: document.getElementById('user-avatar-initial'),
+                badge: document.getElementById('user-status-badge')
+            },
+            init: function() {
+                this.updateDetails();
+            },
+            updateDetails: function() {
+                const email = localStorage.getItem('medqs_user_email');
+                if (email) {
+                    this.els.email.innerText = email;
+                    this.els.initial.innerText = email.charAt(0).toUpperCase();
+                    
+                    // Check against VIP array (from the PDF app logic)
+                    const vips = pdfSmartApp.allowedUsers;
+                    if (vips.includes(email.toLowerCase().trim())) {
+                        this.els.badge.innerText = "PRO / VIP Access";
+                        this.els.badge.className = "px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800";
+                    }
+                }
+            },
+            toggle: function() { this.isOpen ? this.close() : this.open(); },
+            open: function() {
+                this.isOpen = true;
+                this.updateDetails();
+                this.els.drawer.classList.remove('-translate-x-full');
+                this.els.backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            },
+            close: function() {
+                this.isOpen = false;
+                this.els.drawer.classList.add('-translate-x-full');
+                this.els.backdrop.classList.add('opacity-0', 'pointer-events-none');
+            },
+            logout: function() {
+                if(confirm("Are you sure you want to log out?")) {
+                    localStorage.removeItem('medqs_user_email');
+                    window.location.reload();
+                }
             }
         };
 
@@ -295,7 +391,7 @@
 
         const pdfSmartApp = {
             isOpen: false, stack: [],
-            allowedUsers: ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com"],
+            allowedUsers: ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"],
             els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
             
             init: function() { setInterval(() => this.checkVisibility(), 1500); },
@@ -343,7 +439,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').innerText = '☀️'; }
-            init3D(); app.init(); pdfSmartApp.init();
+            init3D(); 
+            app.init(); 
+            pdfSmartApp.init();
+            userPanelApp.init();
         });
     </script>
 </body>

@@ -8,58 +8,85 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' }, accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } }, fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } } } }
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' }, 
+                        accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, 
+                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
+                    }, 
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } 
+                } 
+            } 
+        }
     </script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden;}
         body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
         html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
+        
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
+
         .table-container::-webkit-scrollbar, .multiselect-menu::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-container::-webkit-scrollbar-thumb, .multiselect-menu::-webkit-scrollbar-thumb { background-color: #bae6fd; border-radius: 10px; }
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
         html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
+
         .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
         html.dark body.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
+
         .theory-question { font-style: italic; color: #0284c7; font-weight: 500; background-color: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3395ff; line-height: 1.6; }
         html.dark .theory-question { background-color: rgba(15, 23, 42, 0.8); color: #bae6fd; border-left-color: #0ea5e9; }
+        
         .multiselect-container { position: relative; }
         .multiselect-btn { text-align: left; width: 100%; background-color: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         html.dark .multiselect-btn { background-color: #0f172a; border-color: #1e293b; color: #e5e7eb; }
         .multiselect-btn:hover { border-color: #3395ff; }
+        
         .multiselect-menu { display: none; position: absolute; z-index: 50; top: 100%; left: 0; right: 0; margin-top: 0.25rem; background-color: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-height: 300px; overflow-y: auto; }
         .multiselect-menu.show { display: block; }
         html.dark .multiselect-menu { background-color: #0f172a; border-color: #1e293b; }
+
         .multiselect-option { padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; font-size: 0.875rem; color: #334155; }
         html.dark .multiselect-option { color: #cbd5e1; }
         .multiselect-option:hover { background-color: #f0f9ff; }
         html.dark .multiselect-option:hover { background-color: #1e293b; }
         .multiselect-option input[type="checkbox"] { margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #3395ff; }
+
         .multiselect-group-header { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #0284c7; background-color: #e0f2fe; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; cursor: pointer; }
         html.dark .multiselect-group-header { background-color: #020617; color: #38bdf8; }
         .multiselect-group-header input[type="checkbox"] { margin-right: 0.75rem; accent-color: #0284c7; }
+        
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
+
+        /* FULLY RESTORED DECK VIEW STYLING */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Plus Jakarta Sans', sans-serif; }
         html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
         html.dark .deck-card { background: #0f172a; border: 1px solid #1e293b; }
+        
         .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #334155; cursor: pointer; position: relative; }
         html.dark .deck-option-btn { border-color: #1e293b; background: rgba(30, 41, 59, 0.5); color: #cbd5e1; }
         .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; }
         html.dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
         .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; }
         html.dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
-        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 9000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
+        
+        #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
+        
         .deck-drawer { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
         .deck-drawer.open { pointer-events: auto; opacity: 1; }
         .deck-drawer-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .deck-drawer-content { position: absolute; top: 0; right: 0; bottom: 0; width: 85%; max-width: 320px; background: white; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
         html.dark .deck-drawer-content { background: #0f172a; border-left: 1px solid #1e293b; }
         .deck-drawer.open .deck-drawer-content { transform: translateX(0); }
+        
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; overflow-y: auto; }
         .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         html.dark .deck-nav-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
@@ -167,8 +194,20 @@
         </div>
     </div>
 
+    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
+            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
+                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
+            </div>
+        </div>
+    </footer>
+
     <script>
-        // Use global window attachment for everything
         window.SECRET_CODE = "777pankaj";
         window.optionLetters = ['A', 'B', 'C', 'D'];
         window.motivationalMessages = ["Hi [Name]! You are bringing life to your studies!", "Hey [Name], every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!"];
@@ -180,7 +219,7 @@
         window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         window.isDataLoaded = false;
 
-        // Data Arrays (Starts empty, populated by fetch)
+        // Data Arrays
         window.COLLEGE_NAME = "AIIMS";
         window.curriculumData = [];
         window.qnaData = [];
@@ -213,7 +252,7 @@
             
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading Question Bank...</p></td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading Question Bank...</p></td></tr>`;
             }
 
             try {
@@ -221,7 +260,6 @@
                 if (!response.ok) throw new Error("Failed to load JSON file");
                 
                 const data = await response.json();
-                
                 window.COLLEGE_NAME = data.collegeName || "AIIMS";
                 window.curriculumData = data.curriculumData || [];
                 window.qnaData = data.qnaData || [];
@@ -259,33 +297,33 @@
                 if (user) {
                     let badgeHtml = ''; let daysHtml = '';
                     if (window.globalUserStatus.isVIP) {
-                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 text-brand-600 text-[10px] font-extrabold rounded-full uppercase border border-brand-200">PRO / VIP Access</span>`;
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase border border-brand-200 dark:border-brand-800">PRO / VIP Access</span>`;
                         const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US');
-                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-green-50 border border-green-200 flex flex-col items-center"><span class="text-2xl font-black text-green-600">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span><span class="text-xs font-bold text-slate-500 uppercase">Days Left</span><span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span></div>`;
+                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center"><span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Days Left</span><span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span></div>`;
                     } else if (window.globalUserStatus.expired) {
-                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 text-red-600 text-[10px] font-extrabold rounded-full uppercase border border-red-200">Expired</span>`;
-                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-red-50 border border-red-200 flex flex-col items-center text-center"><span class="text-xs font-bold text-red-600">Oops! Your subscription ended.</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a></div>`;
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase border border-red-200 dark:border-red-800">Expired</span>`;
+                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended.</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg">Renew Now</a></div>`;
                     } else {
-                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 text-slate-600 text-[10px] font-extrabold rounded-full uppercase border border-slate-300">Free Plan</span>`;
-                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-blue-50 border border-blue-200 flex flex-col items-center text-center"><span class="text-xs font-bold text-blue-600">Membership Required</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a></div>`;
+                        badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase border border-slate-300 dark:border-slate-700">Free Plan</span>`;
+                        daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg">Become a Member</a></div>`;
                     }
 
                     const nameToDisplay = user.displayName || "Welcome"; const email = user.email || ""; const initial = email ? email.charAt(0).toUpperCase() : "U";
 
                     bodyEl.innerHTML = `
-                        <div class="flex flex-col items-center justify-center p-6 bg-brand-50 rounded-2xl border border-brand-100 mb-6 shadow-sm">
-                            <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl font-bold text-brand-600 mb-3 shadow-md border border-brand-100">${initial}</div>
-                            <h3 class="font-bold text-slate-900 text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
+                        <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
+                            <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">${initial}</div>
+                            <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
                             <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${email}</p>
                             ${badgeHtml}${daysHtml}
                         </div>
-                        <nav class="space-y-2"><a href="checkout.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 text-slate-700 font-semibold group"><span class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 group-hover:scale-110 transition-transform">💳</span> Subscription Plan</a></nav>`;
-                    footerEl.innerHTML = `<button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 border border-red-200 flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout</button>`;
+                        <nav class="space-y-2"><a href="checkout.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold group"><span class="w-8 h-8 rounded-lg bg-brand-100 dark:bg-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">💳</span> Subscription Plan</a></nav>`;
+                    footerEl.innerHTML = `<button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800/50 flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout</button>`;
                 } else {
                     if (this.authMode === 'login') {
-                        bodyEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full"><div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner border border-brand-200">🔒</div><h3 class="text-lg font-bold text-slate-900 mb-1">Member Login</h3><p class="text-xs text-slate-500 mb-6 text-center">Sign in to access premium modules.</p><div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div><div class="w-full space-y-3 mb-6"><input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium" /><div class="relative w-full"><input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium" /><button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400 hover:text-brand-500"><svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button></div><div class="text-right w-full"><button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 hover:text-brand-600 uppercase">Forgot Password?</button></div></div><div class="w-full flex flex-col gap-3"><button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all">Sign In</button><div class="text-center mt-2"><span class="text-xs text-slate-500">Don't have an account?</span><button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Create One</button></div></div></div>`;
+                        bodyEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full"><div class="w-16 h-16 bg-brand-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner border border-brand-200 dark:border-slate-700">🔒</div><h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Member Login</h3><p class="text-xs text-slate-500 dark:text-slate-400 mb-6 text-center">Sign in to access premium modules.</p><div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div><div class="w-full space-y-3 mb-6"><input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white text-sm font-medium" /><div class="relative w-full"><input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white text-sm font-medium" /><button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400 hover:text-brand-500"><svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button></div><div class="text-right w-full"><button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 hover:text-brand-600 uppercase">Forgot Password?</button></div></div><div class="w-full flex flex-col gap-3"><button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all">Sign In</button><div class="text-center mt-2"><span class="text-xs text-slate-500 dark:text-slate-400">Don't have an account?</span><button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Create One</button></div></div></div>`;
                     } else {
-                        bodyEl.innerHTML = `<div class="flex flex-col items-center justify-start h-full pb-4"><div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner border border-green-200">🌍</div><h3 class="text-lg font-bold text-slate-900 mb-1">Create Global Profile</h3><p class="text-xs text-slate-500 mb-4 text-center">Join the community.</p><div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div><div class="w-full space-y-3 mb-6"><input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium" /><input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium" /><input type="password" id="reg-pass" placeholder="Create Password" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium" /><div class="grid grid-cols-2 gap-3"><input type="number" id="reg-age" placeholder="Age" min="16" max="99" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium" /><select id="reg-gender" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-sm font-medium"><option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div><input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium" /><input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium" /><div class="grid grid-cols-2 gap-3"><input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium" /><input type="text" id="reg-country" placeholder="Country" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium" /></div></div><div class="w-full flex flex-col gap-3"><button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg active:scale-95 transition-all">Create Account</button><div class="text-center mt-2"><span class="text-xs text-slate-500">Already have an account?</span><button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Sign In</button></div></div></div>`;
+                        bodyEl.innerHTML = `<div class="flex flex-col items-center justify-start h-full pb-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner border border-green-200 dark:border-green-800">🌍</div><h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Create Global Profile</h3><p class="text-xs text-slate-500 dark:text-slate-400 mb-4 text-center">Join the community.</p><div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div><div class="w-full space-y-3 mb-6"><input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white text-sm font-medium" /><input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white text-sm font-medium" /><input type="password" id="reg-pass" placeholder="Create Password" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white text-sm font-medium" /><div class="grid grid-cols-2 gap-3"><input type="number" id="reg-age" placeholder="Age" min="16" max="99" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium" /><select id="reg-gender" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 text-sm font-medium"><option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div><input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium" /><input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium" /><div class="grid grid-cols-2 gap-3"><input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium" /><input type="text" id="reg-country" placeholder="Country" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium" /></div></div><div class="w-full flex flex-col gap-3"><button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg active:scale-95 transition-all">Create Account</button><div class="text-center mt-2"><span class="text-xs text-slate-500 dark:text-slate-400">Already have an account?</span><button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 ml-1 hover:underline">Sign In</button></div></div></div>`;
                     }
                     footerEl.innerHTML = ``;
                 }
@@ -293,7 +331,7 @@
         };
 
         window.processDataForAccess = function() {
-            if (!window.isDataLoaded) return; // Prevent running before JSON arrives
+            if (!window.isDataLoaded) return; 
 
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
@@ -339,8 +377,8 @@
 
         window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
-            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400"; } 
-            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 font-semibold"; }
+            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
+            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
 
         window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
@@ -356,7 +394,7 @@
             } else {
                 items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
             }
-            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
+            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
         window.populateFilters = function() {
@@ -372,53 +410,53 @@
             
             window.displayData.forEach((item, index) => {
                 const row = tbody.insertRow();
-                row.className = 'hover:bg-brand-50 group border-b border-slate-200'; 
+                row.className = 'hover:bg-brand-50 dark:hover:bg-slate-800 group border-b border-slate-200 dark:border-slate-800'; 
                 row.setAttribute('data-index', index);
                 
-                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 border-r border-slate-200 align-middle'; cell1.innerHTML = item.q;
+                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
                 if (item.type === 'MCQ') {
-                    qHtml += `<span class="block font-semibold mb-2 text-slate-900">${cleanStem}</span><div class="space-y-1">`;
+                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
                             const optionLetter = window.optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                            qHtml += isCorrect ? `<div class="text-sm text-slate-600 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 ml-2">${optionLetter}) ${cleanOption}</div>`;
+                            qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
                     qHtml += '</div>';
-                } else { qHtml += `<div class="theory-question shadow-sm text-left"><span>${cleanStem}</span></div>`; }
+                } else { qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div>`; }
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
-                const badgeColor = item.type === 'Theory' ? 'bg-accent-yellow/20 text-accent-yellowHover border-accent-yellow/40' : 'bg-brand-100 text-brand-800 border-brand-200';
+                const badgeColor = item.type === 'Theory' ? 'bg-accent-yellow/20 text-accent-yellowHover border-accent-yellow/40' : 'bg-brand-100 text-brand-800 border-brand-200 dark:bg-brand-900/30 dark:text-brand-200 dark:border-brand-700';
                 cell_type.innerHTML = `<span class="${badgeColor} border px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap inline-block">${item.type}</span>`;
                 
-                let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100';
+                let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800';
                 let chapterHtml = '';
                 item.chapter.forEach(ch => {
                     const unitName = window.getUnitForChapter(ch);
-                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700">${ch}</span></div>`;
+                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-300">${ch}</span></div>`;
                 });
                 cell_chapter.innerHTML = chapterHtml;
 
-                let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 border-l border-slate-100 align-middle';
-                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600">${item.examBatch}</div>`;
+                let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
+                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${item.examBatch}</div>`;
 
-                let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100';
-                cell_ai.innerHTML = `<button onclick="window.askAI(this, window.displayData[${index}])" class="bg-green-500/10 text-green-600 font-semibold py-2 px-4 rounded-lg text-xs flex items-center justify-center mx-auto gap-1 border border-green-500/20">Ask AI</button>`;
+                let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
+                cell_ai.innerHTML = `<button onclick="window.askAI(this, window.displayData[${index}])" class="bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-2 px-4 rounded-lg text-xs flex items-center justify-center mx-auto gap-1 border border-green-500/20">Ask AI</button>`;
             });
 
             // ADD LOCK BANNERS
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
-                const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 border-t border-slate-200';
-                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto border border-brand-200">🔒</div><h3 class="text-2xl font-black text-slate-900 mb-2">Login Required</h3><p class="text-slate-500 mb-6 font-medium">You must be signed in to view the free preview modules.</p><button onclick="window.userPanelApp.open(); window.toggleAuthMode('login')" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg">Sign In to Continue</button>`;
+                const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
+                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Login Required</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You must be signed in to view the free preview modules.</p><button onclick="window.userPanelApp.open(); window.toggleAuthMode('login')" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg">Sign In to Continue</button>`;
             } else if (window.accessLevel === 'free') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
-                const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 border-t border-slate-200';
-                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto border border-brand-200">🔒</div><h3 class="text-2xl font-black text-slate-900 mb-2">Unlock Pro Access</h3><p class="text-slate-500 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all ${window.qnaData.length} premium questions.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg">Upgrade to Pro</a>`;
+                const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
+                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all ${window.qnaData.length} premium questions.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg">Upgrade to Pro</a>`;
             }
         }
 
@@ -453,15 +491,15 @@
                 textToCopy = `I am studying for an OBG exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
             } else { textToCopy = `I am studying for an OBG exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; }
             const tempTextarea = document.createElement('textarea'); tempTextarea.value = textToCopy; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
-            window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl">Go to ChatGPT</button>`, `✅`);
+            window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl">Go to ChatGPT</button>`, `✅`);
         }
 
-        window.handleSecretClick = function() { window.showModal("Welcome!", `<p class="text-slate-700 font-medium">Hello! Tell me your name.</p><input type="text" id="nameInput" class="w-full border p-3 rounded-xl">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl">Continue</button>`, `☕️`); }
+        window.handleSecretClick = function() { window.showModal("Welcome!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Hello! Tell me your name.</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl">Continue</button>`, `☕️`); }
 
         window.handleNameSubmission = function() {
             const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
             if (name.toLowerCase() === window.SECRET_CODE) { window.closeModal(); window.copyForChatGPT(); } 
-            else if (name) { window.showModal("Motivation!", `<p class="font-semibold">${window.motivationalMessages[0].replace(/\[Name\]/g, name)}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl">Back to Study</button>`, `💪`); }
+            else if (name) { window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${window.motivationalMessages[0].replace(/\[Name\]/g, name)}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl">Back to Study</button>`, `💪`); }
         }
         
         window.copyForChatGPT = function() {
@@ -470,7 +508,7 @@
             if(visibleQuestions.length === 0) return;
             let cb = `Checklist:\n`; visibleQuestions.forEach(q => cb += `Q: ${q.stem.replace(/<[^>]*>/g, "")}\n`);
             const t = document.createElement('textarea'); t.value = cb; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
-            window.showModal("Copied!", `<p>Copied ${visibleQuestions.length} questions.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl">ChatGPT</button>`, `📋`);
+            window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Copied ${visibleQuestions.length} questions.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl">ChatGPT</button>`, `📋`);
         }
 
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 
@@ -486,7 +524,7 @@
         }
 
         // ==========================================
-        // DECK VIEW INTEGRATION 
+        // ORIGINAL DECK VIEW RESTORED 
         // ==========================================
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
@@ -519,10 +557,58 @@
         window.initDeckView = function() {
             const deckLayer = document.createElement('div');
             deckLayer.id = 'universal-deck-layer';
-            deckLayer.innerHTML = `<div class="px-4 py-3 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10"><div class="flex items-center gap-2"><button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 text-slate-600">👤</button><button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 text-slate-600">🔍</button><div class="ml-1"><h1 class="font-bold text-lg text-brand-600">Review Mode</h1><div class="text-[10px] text-slate-500" id="deck-subtitle">Loading...</div></div></div><button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-sm font-bold text-slate-700 border border-slate-200"><span id="deck-counter">1/1</span>⬇️</button></div><div class="flex-1 p-4 overflow-hidden relative bg-slate-50" id="deck-card-container"></div><div class="p-4 bg-white border-t border-slate-200 flex gap-3 z-10 pb-20"><button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 font-bold text-slate-600">Previous</button><button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg">Next</button></div><div id="deck-nav-drawer" class="deck-drawer"><div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div><div class="deck-drawer-content"><div class="p-4 border-b font-bold flex justify-between"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)">✕</button></div><div class="nav-grid" id="deck-nav-grid"></div></div></div><div id="deck-filter-drawer" class="deck-drawer"><div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div><div class="deck-drawer-content"><div class="p-4 border-b flex justify-between"><span>Filters</span><button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold">RESET</button></div><div class="p-5 overflow-y-auto flex-1" id="deck-filter-content"></div><div class="p-4 border-t"><button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold">Apply Filters</button></div></div></div>`;
+            
+            // EXACT HTML from the requested "previous style"
+            deckLayer.innerHTML = `
+                <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                        </button>
+                        <div>
+                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate">Review Mode</h1>
+                            <div class="text-xs text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
+                        </div>
+                    </div>
+                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span id="deck-counter">1/1</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+                <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
+                <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
+                    <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Previous</button>
+                    <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Next</button>
+                </div>
+                <div id="deck-nav-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)">✕</button></div>
+                        <div class="nav-grid" id="deck-nav-grid"></div>
+                    </div>
+                </div>
+                <div id="deck-filter-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
+                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                        </div>
+                        <div class="p-5 overflow-y-auto flex-1" id="deck-filter-content"></div>
+                        <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                            <button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            `;
             document.body.appendChild(deckLayer);
 
-            const fab = document.createElement('button'); fab.id = 'view-toggle-btn'; fab.innerHTML = '🎴'; fab.onclick = window.toggleDeckMode; document.body.appendChild(fab);
+            const fab = document.createElement('button'); 
+            fab.id = 'view-toggle-btn'; 
+            fab.innerHTML = '🎴'; 
+            fab.title = "Switch to Deck View";
+            fab.onclick = window.toggleDeckMode; 
+            document.body.appendChild(fab);
         }
 
         window.populateDeckFilters = function() {
@@ -533,7 +619,12 @@
             const container = document.getElementById('deck-filter-content');
             const buildGroup = (label, category, opts) => {
                 if (!opts || opts.length <= 1) return '';
-                return `<div class="mb-6"><div class="font-bold text-xs text-slate-400 uppercase mb-3">${label}</div><div class="space-y-2">${opts.map(opt => `<label class="flex items-start gap-3 p-2 hover:bg-slate-50 cursor-pointer"><input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 text-brand-500" data-category="${category}"><span class="text-sm font-medium">${opt}</span></label>`).join('')}</div></div>`;
+                return `<div class="mb-6 filter-group">
+                            <div class="font-bold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">${label}</div>
+                            <div class="space-y-2">
+                                ${opts.map(opt => `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"><input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900" data-category="${category}"><span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span></label>`).join('')}
+                            </div>
+                        </div>`;
             };
             if(container) container.innerHTML = buildGroup('Chapters', 'chapter', chapters) + buildGroup('Type', 'type', types) + buildGroup('Exam Batch', 'batch', batches);
         }
@@ -544,16 +635,32 @@
             const container = document.getElementById('deck-card-container');
             
             if (window.accessLevel === 'guest') {
-                container.innerHTML = `<div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8"><div class="w-24 h-24 bg-brand-100 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6">🔒</div><h2 class="text-3xl font-black mb-3">Login Required</h2><p class="text-slate-500 mb-8 font-medium">You must be signed in to view the free questions.</p><button onclick="window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl w-full">Sign In</button></div>`;
+                container.innerHTML = `
+                    <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
+                        <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
+                        <button onclick="window.toggleDeckMode(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Sign In / Register</button>
+                    </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
 
             if (window.accessLevel === 'free' && window.deckIndex === window.activeDeckQuestions.length) {
-                container.innerHTML = `<div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8"><div class="w-24 h-24 bg-brand-100 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6">🔒</div><h2 class="text-3xl font-black mb-3">End of Preview</h2><p class="text-slate-500 mb-8 font-medium">Upgrade to Pro to unlock remaining questions.</p><a href="checkout.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl w-full">Upgrade to Pro</a></div>`;
+                container.innerHTML = `
+                    <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
+                        <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">End of Free Preview</h2>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You've completed the free questions. Upgrade to Pro to unlock the remaining ${window.qnaData.length - 20} premium questions in this deck.</p>
+                        <a href="checkout.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs">Upgrade to Pro</a>
+                    </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
 
-            if (window.activeDeckQuestions.length === 0) { container.innerHTML = `<div class="h-full flex flex-col items-center justify-center"><p class="font-bold">No matches.</p></div>`; document.getElementById('deck-counter').innerText = '0/0'; return; }
+            if (window.activeDeckQuestions.length === 0) { 
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No questions match these filters.</p></div>`; 
+                document.getElementById('deck-counter').innerText = '0/0'; 
+                return; 
+            }
             
             const q = window.activeDeckQuestions[window.deckIndex];
             const realIndex = window.displayData.indexOf(q); 
@@ -563,11 +670,29 @@
             let questionHtml = ''; let optsHtml = '';
 
             if (q.type === 'MCQ') {
-                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold leading-snug">${cleanStem}</h2></div>`;
-                if (q.options) { optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { const letter = window.optionLetters[i]; return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex justify-center items-center group-hover:bg-brand-500 group-hover:text-white">${letter}</span><span class="text-slate-700 pt-0.5 text-left w-full">${opt}</span></div></button>`; }).join('')}</div>`; }
-            } else { questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm text-left"><span>${cleanStem}</span></div></div>`; }
+                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                if (q.options) { 
+                    optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { 
+                        const letter = window.optionLetters[i]; const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
+                    }).join('')}</div>`; 
+                }
+            } else { 
+                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
+            }
 
-            container.innerHTML = `<div class="deck-card glass-card"><div class="mb-4 flex justify-between items-center"><span class="px-3 py-1 bg-brand-100 text-brand-600 rounded-full text-xs font-bold border">${q.q}</span><button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-50 text-green-600 text-xs font-bold border">Ask AI</button></div>${questionHtml}${optsHtml}</div>`;
+            container.innerHTML = `
+                <div class="deck-card glass-card">
+                    <div class="mb-4 flex justify-between items-center">
+                        <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
+                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                    </div>
+                    ${questionHtml}
+                    ${optsHtml}
+                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
+                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
+                    </div>
+                </div>`;
             container.scrollTop = 0;
         }
 
@@ -613,11 +738,13 @@
                 if (mainContent) mainContent.style.display = 'none';
                 deck.style.display = 'flex';
                 fab.innerHTML = '📋';
+                fab.title = "Switch to Table View";
                 window.syncDeckWithFilters(); 
             } else {
                 if (mainContent) mainContent.style.display = 'block';
                 deck.style.display = 'none';
                 fab.innerHTML = '🎴'; 
+                fab.title = "Switch to Deck View";
             }
         }
 
@@ -625,18 +752,20 @@
         // 🚀 BOOT SEQUENCE
         // ==========================================
         window.onload = async () => { 
-            if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+            if (localStorage.getItem('theme') === 'dark') {
+                const icon = document.getElementById('theme-icon');
+                if(icon) icon.innerText = '☀️';
+            }
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
-            // Wait for JSON Data
+            // Fetch JSON Data First
             await window.fetchQuestions();
 
             window.populateFilters(); 
             window.initDeckView(); 
             window.populateDeckFilters();
             
-            // Check Access
             window.processDataForAccess();
         };
     </script>

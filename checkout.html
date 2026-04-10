@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBBS Profs Prep - Premium Checkout</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' },
+                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
+                    },
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f0f9ff; color: #0f172a; transition: all 0.3s ease; }
+        html.dark body { background-color: #020617; color: #f8fafc; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 25px -5px rgba(14, 165, 233, 0.1); border-radius: 24px; }
+        html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; box-shadow: 0 4px 30px -5px rgba(0, 0, 0, 0.5); }
+        
+        .plan-card { border: 2px solid #e2e8f0; transition: all 0.2s; cursor: pointer; }
+        html.dark .plan-card { border-color: #1e293b; background: #0f172a; }
+        .plan-card:hover { border-color: #94a3b8; transform: translateY(-2px); }
+        .plan-card.active { border-color: #0ea5e9; background: #f0f9ff; }
+        html.dark .plan-card.active { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.1); }
+        
+        /* Auto-filled details box styling */
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
+        html.dark .info-row { border-bottom-color: #1e293b; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .info-value { color: #0f172a; font-size: 0.85rem; font-weight: 600; text-align: right; max-width: 60%; word-break: break-word;}
+        html.dark .info-value { color: #f8fafc; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col relative">
+
+    <nav class="w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md">
+        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
+            <a href="index.html" class="flex items-center gap-3">
+                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-yellow-500/20 object-cover ring-2 ring-offset-2 ring-yellow-400" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
+                <div class="leading-tight">
+                    <h1 class="font-bold text-lg text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Secure Checkout</p>
+                </div>
+            </a>
+            <button onclick="document.documentElement.classList.toggle('dark')" class="text-xl">🌙</button>
+        </div>
+    </nav>
+
+    <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:py-12">
+        
+        <div id="loading-state" class="text-center py-20">
+            <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Connecting to Secure Server...</h2>
+            <p class="text-slate-500 dark:text-slate-400 font-medium">Fetching your global profile.</p>
+        </div>
+
+        <div id="checkout-interface" class="hidden grid grid-cols-1 md:grid-cols-12 gap-8">
+            
+            <div class="md:col-span-7 space-y-6">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Select a Plan</h2>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Pricing automatically adjusted for <span id="display-country" class="font-bold text-brand-500">Your Country</span>.</p>
+                </div>
+
+                <div class="space-y-4" id="plans-container">
+                    </div>
+            </div>
+
+            <div class="md:col-span-5">
+                <div class="glass-card p-6 md:p-8 sticky top-24">
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Billing Profile</h3>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700/50 shadow-inner">
+                            <div class="info-row">
+                                <span class="info-label">Name</span>
+                                <span class="info-value" id="summary-name">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email</span>
+                                <span class="info-value text-brand-500" id="summary-email">loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Phone</span>
+                                <span class="info-value" id="summary-phone">--</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">College</span>
+                                <span class="info-value" id="summary-college">--</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Location</span>
+                                <span class="info-value" id="summary-location">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Order Summary</h3>
+
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-slate-600 dark:text-slate-300 font-bold" id="summary-plan-name">Select a plan...</span>
+                        <span class="font-black text-lg text-slate-900 dark:text-white" id="summary-plan-price">--</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                        <span class="text-slate-500 text-sm font-medium">Platform Fee</span>
+                        <span class="text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded uppercase">Free</span>
+                    </div>
+
+                    <div class="flex justify-between items-end mb-8">
+                        <span class="text-lg font-bold text-slate-900 dark:text-white">Total Amount</span>
+                        <span class="text-4xl font-black text-brand-500 tracking-tight" id="summary-total">--</span>
+                    </div>
+
+                    <button onclick="window.initiateRazorpay()" id="pay-btn" class="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-extrabold text-lg shadow-xl shadow-slate-900/20 dark:shadow-white/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        Pay Securely
+                    </button>
+
+                    <div class="mt-5 flex justify-center gap-4 text-slate-400 opacity-60">
+                        <i class="fa-brands fa-cc-visa fa-lg"></i>
+                        <i class="fa-brands fa-cc-mastercard fa-lg"></i>
+                        <i class="fa-brands fa-google-pay fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="success-state" class="hidden text-center py-16 max-w-lg mx-auto">
+            <div class="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-6 shadow-inner border border-green-200">✅</div>
+            <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Payment Successful!</h2>
+            <p class="text-slate-500 dark:text-slate-400 mb-2 font-medium">Your Razorpay Payment ID is: <span id="success-pay-id" class="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300"></span></p>
+            <p class="text-brand-600 dark:text-brand-400 font-bold mb-8 text-sm">Your account has been instantly upgraded.</p>
+            <a href="index.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg hover:bg-brand-600 transition-colors">Enter Library</a>
+        </div>
+    </main>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+        // --- 1. CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
+            authDomain: "mbbs-profs-prep48c.firebaseapp.com",
+            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
+            projectId: "mbbs-profs-prep48c",
+            storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
+            messagingSenderId: "378639777472",
+            appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
+        };
+        const fbApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fbApp);
+        const db = getDatabase(fbApp);
+
+        // YOUR LIVE RAZORPAY KEY
+        const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
+
+        // --- 2. PRICING DATA ---
+        const plansIndia = [
+            { id: 'in_1m', name: '1 Month Access', desc: 'Quick Revision', price: 49, display: '₹49', currency: 'INR', badge: '', months: 1 },
+            { id: 'in_3m', name: '3 Months Access', desc: 'Exam Prep', price: 129, display: '₹129', currency: 'INR', badge: 'POPULAR', months: 3 },
+            { id: 'in_1y', name: '1 Year Access', desc: 'Full Access', price: 399, display: '₹399', currency: 'INR', badge: 'BEST VALUE', months: 12 }
+        ];
+        
+        const plansGlobal = [
+            { id: 'gl_3m', name: '3 Months Access', desc: 'Quarterly Pass', price: 2, display: '$2.00', currency: 'USD', badge: '', months: 3 },
+            { id: 'gl_1y', name: '1 Year Access', desc: 'Annual Pass', price: 5, display: '$5.00', currency: 'USD', badge: 'SAVE 50%', months: 12 }
+        ];
+
+        let userProfile = {};
+        let selectedPlan = null;
+        let isIndia = true;
+
+        // --- 3. AUTHENTICATION & DATA FETCHING ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const snapshot = await get(ref(db, 'users/' + user.uid + '/profile'));
+                    if (snapshot.exists()) {
+                        userProfile = snapshot.val();
+                        userProfile.uid = user.uid;
+                        
+                        // Check country to load correct pricing
+                        isIndia = (userProfile.country && userProfile.country.toLowerCase() === "india");
+                        document.getElementById('display-country').innerText = userProfile.country || "Global";
+                        
+                        // Fill Billing Summary UI
+                        document.getElementById('summary-name').innerText = userProfile.fullName;
+                        document.getElementById('summary-email').innerText = userProfile.email;
+                        document.getElementById('summary-phone').innerText = userProfile.phone;
+                        document.getElementById('summary-college').innerText = userProfile.college;
+                        document.getElementById('summary-location').innerText = `${userProfile.city}, ${userProfile.country}`;
+                        document.getElementById('summary-initial').innerText = userProfile.fullName.charAt(0).toUpperCase();
+
+                        // Render appropriate plans
+                        renderPlans();
+
+                        // Reveal UI
+                        document.getElementById('loading-state').classList.add('hidden');
+                        document.getElementById('checkout-interface').classList.remove('hidden');
+                    } else {
+                        alert("Profile details missing. Please complete registration first.");
+                        window.location.href = "index.html";
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Error connecting to secure database.");
+                }
+            } else {
+                alert("You must be logged in to purchase a subscription.");
+                window.location.href = "index.html";
+            }
+        });
+
+        // --- 4. RENDER & SELECT PLANS ---
+        function renderPlans() {
+            const container = document.getElementById('plans-container');
+            container.innerHTML = "";
+            const plans = isIndia ? plansIndia : plansGlobal;
+
+            plans.forEach((plan, index) => {
+                // Auto-select the longest plan by default
+                const isSelected = index === (plans.length - 1); 
+                if(isSelected) updateSummaryUI(plan);
+
+                const card = document.createElement('div');
+                card.className = `plan-card rounded-2xl p-5 flex items-center justify-between mb-4 ${isSelected ? 'active' : ''}`;
+                card.onclick = () => {
+                    document.querySelectorAll('.plan-card').forEach(el => el.classList.remove('active'));
+                    card.classList.add('active');
+                    updateSummaryUI(plan);
+                };
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-6 h-6 rounded-full border-2 ${isSelected ? 'border-brand-500' : 'border-slate-300 dark:border-slate-600'} flex items-center justify-center pointer-indicator">
+                            <div class="w-3 h-3 bg-brand-500 rounded-full select-indicator ${isSelected ? '' : 'hidden'}"></div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-lg dark:text-white">${plan.name}</h3>
+                                ${plan.badge ? `<span class="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide">${plan.badge}</span>` : ''}
+                            </div>
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">${plan.desc}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-2xl font-black text-slate-900 dark:text-white">${plan.display}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateSummaryUI(plan) {
+            selectedPlan = plan;
+            document.getElementById('summary-plan-name').innerText = plan.name;
+            document.getElementById('summary-plan-price').innerText = plan.display;
+            document.getElementById('summary-total').innerText = plan.display;
+
+            // Handle UI indicator circles dynamically
+            document.querySelectorAll('.plan-card').forEach(card => {
+                const indicator = card.querySelector('.pointer-indicator');
+                const dot = card.querySelector('.select-indicator');
+                if (card.classList.contains('active')) {
+                    indicator.classList.replace('border-slate-300', 'border-brand-500');
+                    indicator.classList.replace('dark:border-slate-600', 'border-brand-500');
+                    dot.classList.remove('hidden');
+                } else {
+                    indicator.classList.replace('border-brand-500', 'border-slate-300');
+                    dot.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- 5. RAZORPAY INTEGRATION ---
+        window.initiateRazorpay = function() {
+            if (!selectedPlan || !userProfile.uid) return alert("System error. Please reload the page.");
+
+            const btn = document.getElementById('pay-btn');
+            btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`;
+            btn.disabled = true;
+
+            var options = {
+                "key": RZP_KEY_ID,
+                "amount": Math.round(selectedPlan.price * 100), // Amount in paise/cents
+                "currency": selectedPlan.currency,
+                "name": "MBBS Profs Prep",
+                "description": selectedPlan.name,
+                "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg",
+                
+                // INJECT DATABASE PROFILE INTO RAZORPAY
+                "prefill": {
+                    "name": userProfile.fullName,
+                    "email": userProfile.email,
+                    "contact": userProfile.phone
+                },
+                "theme": {
+                    "color": "#0ea5e9"
+                },
+                "handler": function (response) {
+                    window.handlePaymentSuccess(response.razorpay_payment_id);
+                },
+                "modal": {
+                    "ondismiss": function() {
+                        btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
+                        btn.disabled = false;
+                    }
+                }
+            };
+            
+            var rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response){
+                alert("Payment Failed: " + response.error.description);
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
+                btn.disabled = false;
+            });
+            
+            rzp.open();
+        };
+
+        // --- 6. DATABASE UPDATE AFTER PAYMENT ---
+        window.handlePaymentSuccess = async function(paymentId) {
+            document.getElementById('checkout-interface').classList.add('hidden');
+            
+            // Format expiry date string "YYYY-MM-DD"
+            const futureDate = new Date();
+            futureDate.setMonth(futureDate.getMonth() + selectedPlan.months);
+            const expiryString = futureDate.toISOString().split('T')[0];
+
+            try {
+                // Securely save the active subscription to the user's Firebase node
+                await update(ref(db, `users/${userProfile.uid}/subscription`), {
+                    status: "active",
+                    planName: selectedPlan.name,
+                    validUntil: expiryString,
+                    paymentId: paymentId,
+                    purchaseDate: new Date().toISOString()
+                });
+
+                // Show Success Screen
+                document.getElementById('success-pay-id').innerText = paymentId;
+                document.getElementById('success-state').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Database Error:", error);
+                alert("Payment successful, but we could not update your database record. Please contact support and provide Payment ID: " + paymentId);
+            }
+        };
+    </script>
+</body>
+</html>

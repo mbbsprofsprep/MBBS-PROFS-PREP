@@ -281,11 +281,35 @@
         window.handlePaymentSuccess = async function(paymentId) {
             document.getElementById('checkout-interface').classList.add('hidden');
             
-            const futureDate = new Date(); 
-            futureDate.setMonth(futureDate.getMonth() + selectedPlan.months);
-            const expiryString = futureDate.toISOString().split('T')[0];
+            // --- SUBSCRIPTION STACKING LOGIC ---
+            let baseDate = new Date(); // Start with today's date
+            
+            try {
+                // Fetch the user's current subscription status from Firebase
+                const subSnap = await get(ref(db, `users/${window.currentUserObj.uid}/subscription`));
+                if (subSnap.exists()) {
+                    const subData = subSnap.val();
+                    
+                    // If they are currently active, check their existing expiry date
+                    if (subData.status === "active" && subData.validUntil) {
+                        const currentExpiry = new Date(subData.validUntil);
+                        
+                        // If the existing expiry is in the future, we stack on top of it!
+                        if (currentExpiry > baseDate) {
+                            baseDate = currentExpiry;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Could not fetch prior sub status, calculating from today.", e);
+            }
 
-            // 1. Load the most current, verified data available
+            // Add the new months to the baseDate (which is either today, or their existing future expiry date)
+            baseDate.setMonth(baseDate.getMonth() + selectedPlan.months);
+            const expiryString = baseDate.toISOString().split('T')[0];
+            // -----------------------------------
+
+            // 1. Load the most current, verified data available for Google Forms
             const finalName = userProfile.fullName || "Not Provided";
             const finalEmail = userProfile.email || window.currentUserObj.email || "Not Provided";
             const finalJoinYear = userProfile.joinYear || "Not Provided";
@@ -299,7 +323,7 @@
                 finalPhone, finalCountry, selectedPlan.name, paymentId
             );
 
-            // 3. Attempt to update Firebase
+            // 3. Attempt to update Firebase with the new STACKED expiry date
             try {
                 await update(ref(db, `users/${window.currentUserObj.uid}/subscription`), { 
                     status: "active", 
@@ -334,9 +358,6 @@
                 "entry.209290944": payId || "-"
             };
 
-            // By using position:absolute, width:1px, height:1px, and opacity:0 
-            // the iframe is rendered by the browser but totally invisible to the user.
-            // Samsung Internet and Safari cannot block this because it is structurally identical to a normal webpage element.
             const iframeName = 'google_form_iframe_' + Date.now();
             const iframe = document.createElement('iframe');
             iframe.name = iframeName;

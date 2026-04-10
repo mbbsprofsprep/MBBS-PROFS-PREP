@@ -32,8 +32,8 @@
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
         body.dark.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
 
-        /* Theory Question Styling */
-        .theory-question { font-style: italic; color: #1e40af; font-weight: 500; background-color: #eff6ff; padding: 12px; border-radius: 8px; border-left: 4px solid #2563eb; }
+        /* Theory Question Styling (Used in both Table and Deck View) */
+        .theory-question { font-style: italic; color: #1e40af; font-weight: 500; background-color: #eff6ff; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb; line-height: 1.6; }
         
         /* UI Components */
         .multiselect-container { position: relative; }
@@ -63,14 +63,14 @@
         /* ========================================== */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Inter', sans-serif; }
         .dark #universal-deck-layer { background: #111827; color: white; }
-        .deck-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+        .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
         .dark .deck-card { background: #1f2937; border: 1px solid #374151; }
-        .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 600; color: #374151; cursor: pointer; position: relative; }
+        .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #374151; cursor: pointer; position: relative; }
         .dark .deck-option-btn { border-color: #374151; background: rgba(31, 41, 55, 0.5); color: #d1d5db; }
-        .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; }
-        .dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; }
-        .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
-        .dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+        .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; }
+        .dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
+        .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; }
+        .dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
         
         #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #2563eb; color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
@@ -82,7 +82,8 @@
         .dark .deck-drawer-content { background: #111827; border-left: 1px solid #374151; }
         .deck-drawer.open .deck-drawer-content { transform: translateX(0); }
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; overflow-y: auto; }
-        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 800; font-size: 13px; background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .dark .deck-nav-btn { background: #374151; color: #f3f4f6; border-color: #4b5563; }
         .deck-nav-btn.active { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
@@ -332,7 +333,7 @@
             { q: "DGM88", type: "MCQ", stem: "Internal podalic version done in which condition?", ans_key: "C", options: ["Obstructed labour", "Arrest of descend", "Second twin delivery", "Instrumental delivery"], chapter: ["OBS Chapter 37: Operative Obstetrics", "OBS Chapter 26: Complicated Labor - Malposition, Malpresentation and Cord Prolapse"], examBatch: "2021 Batch Prof Exam Paper-I" },
             { q: "DGM89", type: "MCQ", stem: "Which is the most common cause of maternal death?", ans_key: "C", options: ["Sepsis", "Hypertension", "Hemorrhage", "Cardiac disease"], chapter: ["OBS Chapter 38: Safe Motherhood, Epidemiology of Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
             { q: "DGM90", type: "MCQ", stem: "At what head station is the outlet forceps applied?", ans_key: "D", options: ["At 0 station", "At -2 station", "At -1 station", "At +2 station"], chapter: ["OBS Chapter 37: Operative Obstetrics"], examBatch: "2021 Batch Prof Exam Paper-I" },
-
+ 
             // --- 2021 BATCH PROF EXAM PAPER-II: MCQ QUESTIONS ---
             { q: "DGM91", type: "MCQ", stem: "Peg cells are found in:", ans_key: "D", options: ["Ovary", "Cervix", "Vagina", "Fallopian tube"], chapter: ["GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-II" },
             { q: "DGM92", type: "MCQ", stem: "The supports of uterus are all except:", ans_key: "B", options: ["Transverse cervical ligament", "Broad ligament", "Levator ani", "Uterosacral ligament"], chapter: ["GYN Chapter 16: Displacement of the Uterus", "GYN Chapter 1: Anatomy of the Female Pelvic Organs"], examBatch: "2021 Batch Prof Exam Paper-II" },
@@ -599,33 +600,41 @@
                 document.getElementById('deck-counter').innerText = '0/0';
                 return;
             }
+            
             const q = activeDeckQuestions[deckIndex];
             const realIndex = qnaData.indexOf(q); 
             document.getElementById('deck-counter').innerText = `${deckIndex + 1}/${activeDeckQuestions.length}`;
 
             const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
+            
+            let questionHtml = '';
             let optsHtml = '';
-            if (q.type === 'MCQ' && q.options) {
-                optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => {
-                    const letter = optionLetters[i];
-                    const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 text-sm font-bold flex items-center justify-center border border-gray-200 dark:border-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">${letter}</span><span class="text-gray-700 dark:text-gray-200 font-medium pt-0.5 text-left">${cleanOpt}</span></div></button>`;
-                }).join('')}</div>`;
+
+            if (q.type === 'MCQ') {
+                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-gray-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                if (q.options) {
+                    optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => {
+                        const letter = optionLetters[i];
+                        const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        return `<button onclick="checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="deck-option-btn group"><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 text-sm font-bold flex items-center justify-center border border-gray-200 dark:border-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">${letter}</span><span class="text-gray-700 dark:text-gray-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`;
+                    }).join('')}</div>`;
+                }
             } else {
-                optsHtml = `<div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-medium">This is a Subjective theory question. Tap Ask AI above for a structured model answer.</div>`;
+                // Exact styling for Theory questions - NO unnecessary extra text
+                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-500 text-left"><span>${cleanStem}</span></div></div>`;
+                optsHtml = ''; 
             }
 
             container.innerHTML = `
                 <div class="deck-card">
-                    <div class="mb-3 flex justify-between items-center">
+                    <div class="mb-4 flex justify-between items-center">
                         <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">${q.q}</span>
-                        <button onclick="askAI(this, qnaData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold hover:bg-green-100 border border-green-200 dark:border-green-800 shadow-sm flex items-center gap-1.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                        <button onclick="askAI(this, qnaData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
                     </div>
-                    <div class="mb-6"><h2 class="text-xl font-bold text-gray-900 dark:text-white leading-snug">${cleanStem}</h2></div>
+                    ${questionHtml}
                     ${optsHtml}
                     <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
-                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 uppercase">${ch}</span>`).join('')}
+                        ${q.chapter.map(ch => `<span class="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">${ch}</span>`).join('')}
                     </div>
                 </div>`;
             container.scrollTop = 0;
@@ -695,7 +704,7 @@
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             populateTable(); 
             populateFilters(); 
-            initDeckView(); // Fire Deck Setup perfectly in sync
+            initDeckView(); 
         };
     </script>
 </body>

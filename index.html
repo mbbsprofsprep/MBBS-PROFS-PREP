@@ -197,7 +197,7 @@
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
-        window.userBookmarks = {}; // NEW: Global dictionary to hold synced Firebase bookmarks
+        window.userBookmarks = {}; 
 
         // Shared App Logo to keep consistency
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
@@ -389,7 +389,6 @@
 
                     } else if (this.viewMode === 'bookmarks') {
                         // 2. BOOKMARKS VIEW
-                        // Fetching live data from window.userBookmarks dictionary and sorting by newest first
                         const bookmarks = Object.values(window.userBookmarks || {}).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         let bookmarksHtml = '';
                         
@@ -403,13 +402,31 @@
                                 </div>
                             `;
                         } else {
-                            bookmarksHtml = `<div class="space-y-3 mt-4">`;
+                            bookmarksHtml = `<div class="space-y-4 mt-4">`;
                             bookmarks.forEach((bm) => {
+                                let optionsHtml = '';
+                                if (bm.type === 'MCQ' && bm.options) {
+                                    optionsHtml = `<div class="mt-3 space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-700">`;
+                                    bm.options.forEach((opt, idx) => {
+                                        const letter = String.fromCharCode(65 + idx); 
+                                        const isCorrect = bm.ans_key === letter;
+                                        const style = isCorrect ? 'text-green-700 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded' : 'text-slate-600 dark:text-slate-400 px-2 py-1';
+                                        optionsHtml += `<div class="text-xs ${style}">${letter}) ${opt.replace(/<[^>]*>/g, "")}</div>`;
+                                    });
+                                    optionsHtml += `</div>`;
+                                }
+
                                 bookmarksHtml += `
                                     <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 relative group transition-all hover:border-brand-300 dark:hover:border-brand-700">
-                                        <div class="text-xs text-brand-500 font-bold mb-2 uppercase tracking-wide">${bm.subject || 'QBank'}</div>
-                                        <div class="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-3 mb-3">${bm.text || 'Saved Question'}</div>
-                                        <a href="${bm.url || '#'}" class="inline-block text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2 rounded-lg transition-colors shadow-sm">Review Question ➝</a>
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="text-[10px] text-brand-500 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded">${bm.subject || 'QBank'}</div>
+                                            <span class="text-[10px] text-slate-400 font-medium">${new Date(bm.timestamp).toLocaleDateString()}</span>
+                                        </div>
+                                        <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">${bm.text || 'Saved Question'}</div>
+                                        ${optionsHtml}
+                                        <div class="mt-4">
+                                            <a href="${bm.url || '#'}" class="block w-full text-center text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2.5 rounded-lg transition-colors shadow-sm">Review in QBank ➝</a>
+                                        </div>
                                     </div>
                                 `;
                             });
@@ -1027,6 +1044,8 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
+
+        window.db = db;
 
         // --- IMPORTANT VIP ARRAY ---
         const allowedVIPs = [

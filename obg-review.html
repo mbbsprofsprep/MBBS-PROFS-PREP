@@ -158,7 +158,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
                         <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search (e.g., PPH, Fibroid)..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
-                    <button id="summaryButton" onclick="window.handleSecretClick()" title="Generate Checklist">☕️</button>
+                    <button id="summaryButton" onclick="window.handleSecretClick()" title="Generate Checklist" style="display: none;">☕️</button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
                 <div class="md:col-span-3" id="chapterFilterWrapper"></div>
@@ -166,7 +166,7 @@
             </div>
         </div>
         
-        <div class="overflow-hidden rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 glass-card p-0">
+        <div class="overflow-hidden rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 glass-card p-0 relative z-10">
             <div class="overflow-x-auto table-container">
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800" id="qnaTable">
                     <thead class="bg-brand-500 dark:bg-dark-surface border-b dark:border-slate-700">
@@ -424,38 +424,50 @@
 
             const item = window.displayData[index];
             const qId = item.q; 
+            const cleanStem = item.stem.replace(/<[^>]*>/g, "");
             
-            import('https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js').then(async (module) => {
-                const { ref, set } = module;
-                const dbRef = ref(window.db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
-
-                if (window.userBookmarks[qId]) {
-                    await set(dbRef, null);
-                    btn.innerHTML = '🔖 Save';
-                    btn.classList.remove('bg-yellow-100', 'text-yellow-600', 'border-yellow-300', 'dark:bg-yellow-900/30', 'dark:text-yellow-400', 'dark:border-yellow-700');
-                    btn.classList.add('bg-slate-100', 'text-slate-500', 'border-slate-200', 'dark:bg-slate-800', 'dark:text-slate-400', 'dark:border-slate-700');
-                    window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
-                } else {
-                    const cleanStem = item.stem.replace(/<[^>]*>/g, "");
-                    const bookmarkData = {
-                        q: item.q,
-                        text: cleanStem.length > 80 ? cleanStem.substring(0, 80) + '...' : cleanStem,
-                        subject: window.COLLEGE_NAME + " - " + (item.chapter ? item.chapter[0] : 'General'),
-                        url: window.location.href,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    await set(dbRef, bookmarkData);
-                    btn.innerHTML = '⭐ Saved';
-                    btn.classList.remove('bg-slate-100', 'text-slate-500', 'border-slate-200', 'dark:bg-slate-800', 'dark:text-slate-400', 'dark:border-slate-700');
-                    btn.classList.add('bg-yellow-100', 'text-yellow-600', 'border-yellow-300', 'dark:bg-yellow-900/30', 'dark:text-yellow-400', 'dark:border-yellow-700');
-                    window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
-                }
-            });
+            const bookmarkData = {
+                q: item.q,
+                text: cleanStem.length > 80 ? cleanStem.substring(0, 80) + '...' : cleanStem,
+                subject: window.COLLEGE_NAME + " - " + (item.chapter ? item.chapter[0] : 'General'),
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
+            
+            const isSaved = window.isBookmarked(qId);
+            
+            // Safe pass-off to the authenticated module
+            if (window.executeBookmarkToggle) {
+                window.executeBookmarkToggle(qId, bookmarkData, isSaved);
+            }
         };
 
         window.isBookmarked = function(qId) {
             return !!window.userBookmarks[qId];
+        };
+
+        // NEW: Seamless non-destructive UI Updater
+        window.updateBookmarkUI = function() {
+            if (!window.displayData) return;
+            
+            const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
+            const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+            const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
+            const deckBase = 'px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm transition-colors';
+
+            window.displayData.forEach((item) => {
+                const isSaved = !!window.userBookmarks[item.q];
+                const activeColors = isSaved ? savedClass : unsavedClass;
+                const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
+
+                // Target Table View Button
+                const tBtn = document.getElementById(`bmk-table-${item.q}`);
+                if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
+
+                // Target Deck View Button
+                const dBtn = document.getElementById(`bmk-deck-${item.q}`);
+                if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
+            });
         };
 
         // --- NATURAL SORTING + ARRAY FLATTENING ---
@@ -581,7 +593,7 @@
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
                 
-                // TABLE VIEW BOOKMARK BUTTON
+                // TABLE VIEW BOOKMARK BUTTON - Dynamic ID added here
                 const bookmarked = window.isBookmarked(item.q);
                 const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
                 const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
@@ -589,7 +601,7 @@
                 cell_ai.innerHTML = `
                     <div class="flex flex-col gap-2 items-center justify-center">
                         <button onclick="window.askAI(this, window.displayData[${index}])" class="w-full max-w-[80px] bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border border-green-500/20 hover:bg-green-500 hover:text-white transition-colors">Ask AI</button>
-                        <button onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
+                        <button id="bmk-table-${item.q}" onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
                     </div>`;
             });
 
@@ -906,7 +918,7 @@
                     <div class="mb-4 flex justify-between items-center">
                         <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
                         <div class="flex gap-2">
-                            <button onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
+                            <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
                             <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
                         </div>
                     </div>
@@ -1069,18 +1081,43 @@
 
         window.firebaseSignOut = function() { signOut(auth).then(() => window.location.reload()); };
 
+        // ADDED global bookmark toggle executor inside authenticated module scope
+        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
+            const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
+            if (isSaved) {
+                await set(dbRef, null);
+                window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+            } else {
+                await set(dbRef, bookmarkData);
+                window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+            }
+        };
+
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
+            
+            // Reference the coffee button and allowed users
+            const summaryBtn = document.getElementById('summaryButton');
+            const allowedCoffeeUsers = ["pankajkumarmahto1009@gmail.com", "educateindiainstitute@gmail.com"];
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 localStorage.setItem('medqs_user_email', email);
+                
+                // Toggle coffee button visibility based on email
+                if (summaryBtn) {
+                    if (allowedCoffeeUsers.includes(email)) {
+                        summaryBtn.style.display = 'inline-block';
+                    } else {
+                        summaryBtn.style.display = 'none';
+                    }
+                }
 
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
                     if (window.isDataLoaded) {
-                        window.populateTable();
-                        if (window.isDeckMode) window.renderDeckCard();
+                        // FIX: Only update the UI buttons, do not wipe the entire table/deck
+                        window.updateBookmarkUI(); 
                     }
                 });
 
@@ -1107,6 +1144,9 @@
                     });
                 }
             } else {
+                // User logged out, hide coffee button
+                if (summaryBtn) summaryBtn.style.display = 'none';
+                
                 localStorage.removeItem('medqs_user_email');
                 window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
                 window.userBookmarks = {}; 

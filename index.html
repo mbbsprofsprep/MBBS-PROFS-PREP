@@ -67,6 +67,7 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" id="institutes-grid"></div>
             </div>
+
             <div class="hidden animate-fade-in" id="view-years">
                 <div class="text-center mb-10 mt-4">
                     <h2 class="text-2xl md:text-3xl font-bold mb-2 text-slate-900 dark:text-white">Select Year</h2>
@@ -96,11 +97,34 @@
     <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
         <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
             <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
+            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
+                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
+            </div>
         </div>
     </footer>
 
+    <button class="fixed bottom-6 left-6 z-[9990] w-14 h-14 bg-indigo-600 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center transition-all border-2 border-white dark:border-slate-800 hover:scale-110" id="pdf-trigger-btn" onclick="window.pdfSmartApp.toggle()" style="display:none">
+        <span class="text-2xl">📚</span>
+    </button>
+
+    <aside class="fixed top-0 left-0 h-full z-[10000] bg-white dark:bg-slate-950 shadow-2xl transform -translate-x-full transition-all duration-300 flex flex-col border-r border-slate-200 dark:border-slate-800 w-full md:w-[400px] lg:w-[450px]" id="pdf-smart-drawer">
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900 shrink-0">
+            <div class="flex items-center gap-3">
+                <button class="p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-600 dark:text-slate-300" onclick="window.pdfSmartApp.goBack()"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white" id="pdf-smart-title">Library</h2>
+            </div>
+            <button class="p-2 rounded-lg text-slate-400 hover:text-red-500 transition-colors" onclick="window.pdfSmartApp.close()"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+        </div>
+        <div class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-3" id="pdf-smart-body"></div>
+    </aside>
+    <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
+
     <script>
-        // Data and UI Routing Logic stays here
+        // GLOBALS required by app-shell.js
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
@@ -112,7 +136,9 @@
                 { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false },
                 { id: 'deoghar', name: 'AIIMS Deoghar', city: 'Jharkhand', badge: 'D', locked: false },
                 { id: 'kalyani', name: 'AIIMS Kalyani', city: 'West Bengal', badge: 'K', locked: false },
-                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: true }
+                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: true },
+                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: true },
+                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: true }
             ],
             years: [
                 { id: '1', name: 'First Prof', sub: 'Anatomy • Physio • Biochem' },
@@ -135,31 +161,15 @@
         window.app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
             init: function() { this.renderInstitutes(); },
-            
-            goHome: function() { 
-                this.state = { view: 'institutes', inst: null, year: null, sub: null }; 
-                this.renderInstitutes(); 
-            },
-            
-            goToYears: function(id, name) { 
-                this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; 
-                this.renderYears(this.state.inst); 
-            },
-            
-            goToSubjects: function(id, name) { 
-                this.state.year = { id, name }; 
-                this.state.view = 'subjects'; 
-                this.renderSubjects(this.state.inst, this.state.year); 
-            },
-            
+            goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
+            goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
+            goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
             handleSubjectClick: function(sub) {
                 const key = `${this.state.inst.id}_${sub.id}`;
                 const links = window.DATA.overrides[key] || [{ label: `${sub.name} Bank`, url: `#` }];
-                this.state.sub = sub; 
-                this.state.view = 'resources';
+                this.state.sub = sub; this.state.view = 'resources';
                 this.renderResources(this.state.inst, this.state.year, sub, links);
             },
-            
             showLockedModal: function(name) { alert(`Bank for ${name} is coming soon!`); },
             
             renderInstitutes: function() {
@@ -192,19 +202,9 @@
                 document.getElementById('selected-institute-name').innerText = inst.name;
                 document.getElementById('years-grid').innerHTML = window.DATA.years.map(year => {
                     if (window.DATA.locks.includes(`${inst.id}_${year.id}`)) {
-                        return `
-                            <div onclick="window.app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed">
-                                <div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div>
-                                <div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div>
-                                <h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3>
-                            </div>`;
+                        return `<div onclick="window.app.showLockedModal('${year.name}')" class="glass-card p-8 rounded-2xl relative opacity-70 grayscale bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed"><div class="absolute top-4 right-4 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Soon</div><div class="text-5xl font-black text-slate-300 dark:text-slate-600 mb-4">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-500 dark:text-slate-400">${year.name}</h3></div>`;
                     }
-                    return `
-                        <div onclick="window.app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer hover:border-t-brand-400 border-t-4 border-transparent transition-all group">
-                            <div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-300 transition-colors">0${year.id}</div>
-                            <h3 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-brand-400 transition-colors">${year.name}</h3>
-                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p>
-                        </div>`;
+                    return `<div onclick="window.app.goToSubjects('${year.id}', '${year.name}')" class="glass-card p-8 rounded-2xl cursor-pointer hover:border-t-brand-400 border-t-4 border-transparent transition-all group"><div class="text-5xl font-black text-brand-100 dark:text-brand-900/40 mb-4 group-hover:text-brand-300 transition-colors">0${year.id}</div><h3 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-brand-400 transition-colors">${year.name}</h3><p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">${year.sub}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -214,14 +214,7 @@
                 document.getElementById('selected-year-name').innerText = year.name;
                 document.getElementById('selected-inst-sub-name').innerText = inst.name;
                 document.getElementById('subjects-grid').innerHTML = window.DATA.subjects[year.id].map(sub => {
-                    return `
-                        <div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all">
-                            <div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div>
-                            <div>
-                                <h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3>
-                                <p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p>
-                            </div>
-                        </div>`;
+                    return `<div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3><p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p></div></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -230,11 +223,7 @@
                 this.toggleView('resources');
                 document.getElementById('selected-resource-subject').innerText = `${sub.name} (${inst.name})`;
                 document.getElementById('resources-grid').innerHTML = links.map(link => {
-                    return `
-                        <a href="${link.url}" class="glass-card p-6 rounded-xl flex items-center justify-between group">
-                            <span class="font-bold text-lg text-slate-900 dark:text-white transition-colors group-hover:text-brand-400">${link.label}</span>
-                            <span class="text-slate-300 dark:text-slate-600 group-hover:text-brand-400 font-bold text-xl">↗</span>
-                        </a>`;
+                    return `<a href="${link.url}" class="glass-card p-6 rounded-xl flex items-center justify-between group"><span class="font-bold text-lg text-slate-900 dark:text-white transition-colors group-hover:text-brand-400">${link.label}</span><span class="text-slate-300 dark:text-slate-600 group-hover:text-brand-400 font-bold text-xl">↗</span></a>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -242,65 +231,69 @@
             toggleView: function(viewId) {
                 ['institutes', 'years', 'subjects', 'resources'].forEach(v => {
                     const el = document.getElementById(`view-${v}`);
-                    if (v === viewId) { 
-                        el.classList.remove('hidden'); 
-                        el.classList.add('animate-fade-in'); 
-                    } else { 
-                        el.classList.add('hidden'); 
-                        el.classList.remove('animate-fade-in'); 
-                    }
+                    if (v === viewId) { el.classList.remove('hidden'); el.classList.add('animate-fade-in'); } 
+                    else { el.classList.add('hidden'); el.classList.remove('animate-fade-in'); }
                 });
             },
             
             updateBreadcrumbs: function() {
                 const bc = document.getElementById('breadcrumbs');
-                if (this.state.view === 'institutes') {
-                    bc.classList.add('hidden');
-                } else {
-                    bc.classList.remove('hidden');
-                    document.getElementById('bc-institute').innerText = this.state.inst.name;
+                if (this.state.view === 'institutes') { bc.classList.add('hidden'); } 
+                else {
+                    bc.classList.remove('hidden'); document.getElementById('bc-institute').innerText = this.state.inst.name;
                     const isSub = (this.state.view === 'subjects' || this.state.view === 'resources');
-                    
-                    if (isSub) {
-                        document.getElementById('bc-slash-1').classList.remove('hidden');
-                        document.getElementById('bc-year').classList.remove('hidden');
-                        document.getElementById('bc-year').innerText = this.state.year.name;
-                    } else {
-                        document.getElementById('bc-slash-1').classList.add('hidden');
-                        document.getElementById('bc-year').classList.add('hidden');
-                    }
+                    if (isSub) { document.getElementById('bc-slash-1').classList.remove('hidden'); document.getElementById('bc-year').classList.remove('hidden'); document.getElementById('bc-year').innerText = this.state.year.name; } 
+                    else { document.getElementById('bc-slash-1').classList.add('hidden'); document.getElementById('bc-year').classList.add('hidden'); }
                 }
+            }
+        };
+
+        // --- PDF SMART APP LOGIC ---
+        window.PDF_SMART_DB = {
+            "AIIMS Deoghar": {
+                "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
+                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk"
+            }
+        };
+
+        window.pdfSmartApp = {
+            isOpen: false, stack: [],
+            els: { drawer: document.getElementById('pdf-smart-drawer'), backdrop: document.getElementById('pdf-smart-backdrop'), body: document.getElementById('pdf-smart-body'), trigger: document.getElementById('pdf-trigger-btn'), title: document.getElementById('pdf-smart-title') },
+            checkVisibility: function() { const isVIP = window.globalUserStatus.isVIP; this.els.trigger.style.display = isVIP ? 'flex' : 'none'; if(!isVIP && this.isOpen) this.close(); },
+            toggle: function() { this.isOpen ? this.close() : this.open(); },
+            open: function() { this.isOpen = true; this.els.drawer.classList.remove('-translate-x-full'); this.els.backdrop.classList.remove('opacity-0', 'pointer-events-none'); if(this.stack.length === 0) this.renderHome(); },
+            close: function() { this.isOpen = false; this.els.drawer.classList.add('-translate-x-full'); this.els.backdrop.classList.add('opacity-0', 'pointer-events-none'); },
+            goBack: function() { if(this.stack.length > 1) { this.stack.pop(); this.renderList(this.stack[this.stack.length-1].val, false); } else { this.close(); } },
+            renderHome: function(push=true) {
+                if(push) this.stack.push({type:'home'}); this.els.title.innerText="Library";
+                this.els.body.innerHTML = Object.keys(window.PDF_SMART_DB).map(name => `<div onclick="window.pdfSmartApp.renderList('${name}')" class="p-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 flex justify-between cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white hover:border-brand-500 transition-colors">${name} <span class="text-brand-500">➝</span></div>`).join('');
+            },
+            renderList: function(col, push=true) {
+                if(push) this.stack.push({type:'list', val:col}); this.els.title.innerText=col;
+                this.els.body.innerHTML = Object.entries(window.PDF_SMART_DB[col]).map(([sub, url]) => `<div onclick="window.pdfSmartApp.renderViewer('${url}')" class="p-3 mb-2 bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer font-bold dark:bg-slate-900 dark:border-slate-800 dark:text-white text-slate-800 hover:border-brand-500 transition-colors">📄 ${sub}</div>`).join('');
+            },
+            renderViewer: function(url) {
+                let fUrl = url.includes('drive.google') ? url.replace(/\/view.*/, '/preview').replace(/\/edit.*/, '/preview') : url;
+                this.stack.push({type:'viewer'}); this.els.title.innerText="Viewing";
+                this.els.body.innerHTML = `<iframe src="${fUrl}" class="w-full h-full rounded-xl bg-white border dark:border-slate-800" frameborder="0"></iframe>`;
             }
         };
 
         window.init3D = function() {
             const container = document.getElementById('canvas-container');
             if(!container) return;
-            const scene = new THREE.Scene(); 
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000); 
-            camera.position.z = 40;
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); 
-            renderer.setSize(window.innerWidth, window.innerHeight); 
-            container.appendChild(renderer.domElement);
-            const group = new THREE.Group(); 
-            scene.add(group); 
-            const geo = new THREE.SphereGeometry(0.3, 8, 8);
+            const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000); camera.position.z = 40;
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
+            const group = new THREE.Group(); scene.add(group); const geo = new THREE.SphereGeometry(0.3, 8, 8);
             let mb = new THREE.MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
-            for(let i=0; i<150; i++) { 
-                const a=i*0.4; 
-                group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); 
-            }
-            (function animate() { 
-                requestAnimationFrame(animate); 
-                group.rotation.x+=0.002; 
-                renderer.render(scene, camera); 
-            })();
+            for(let i=0; i<150; i++) { const a=i*0.4; group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); }
+            (function animate() { requestAnimationFrame(animate); group.rotation.x+=0.002; renderer.render(scene, camera); })();
             window.update3D = () => container.style.opacity = document.documentElement.classList.contains('dark') ? 0.1 : 0.6;
             window.update3D();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+            if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); const icon = document.getElementById('theme-icon'); if(icon) icon.innerText = '☀️'; }
             window.init3D(); window.app.init(); 
         });
     </script>
@@ -322,10 +315,9 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
-
         window.db = db;
 
-        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com" ];
 
         window.deleteBookmark = async function(qId) {
             if (!window.currentUserObj) return;
@@ -335,16 +327,9 @@
         };
 
         window.saveEditedProfile = async function(btn) {
-            const name = document.getElementById('edit-name').value.trim();
-            const joinYear = document.getElementById('edit-join-year').value;
-            const college = document.getElementById('edit-college').value.trim();
-            const city = document.getElementById('edit-city').value.trim();
-            const phone = document.getElementById('edit-phone').value.trim();
-            
+            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
             if (!name) return alert("Name is required!");
-            
             const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
-            
             try {
                 await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
                 if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
@@ -361,14 +346,9 @@
         };
 
         window.handleEmailSignUp = async (btn) => {
-            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; 
-            const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; 
-            const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India";
-            const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
-            
+            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
             if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
             if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
-            
             const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
             try {
                 const uc = await createUserWithEmailAndPassword(auth, e, p);
@@ -391,12 +371,13 @@
             window.currentUserObj = user;
             if (user) {
                 const email = user.email.toLowerCase().trim();
-                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
-                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); });
+                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
+                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); });
 
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
-                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                    if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -406,12 +387,15 @@
                             if (diff >= 0 && d.status === "active") sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
                             else sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
                         }
-                        window.globalUserStatus = sub; if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                        window.globalUserStatus = sub; 
+                        if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                        if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
                 window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
-                if(window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
             }
         });
     </script>

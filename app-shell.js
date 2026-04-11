@@ -109,9 +109,13 @@ window.userPanelApp = {
         const els = this.els(); if(!els.body || !els.footer) return;
         
         const legalFooterHtml = `
-            <div class="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-full px-2 mb-2 mt-4">
-                <a href="#" class="hover:text-brand-500">About Us</a> • <a href="#" class="hover:text-brand-500">Contact</a> • <a href="#" class="hover:text-brand-500">Terms</a> • <a href="#" class="hover:text-brand-500">Privacy</a> • <a href="#" class="hover:text-brand-500">Refunds</a>
-            </div>`;
+    <div class="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-full px-2 mb-2 mt-4">
+        <a href="legal.html?page=about" class="hover:text-brand-500 transition-colors">About Us</a> • 
+        <a href="legal.html?page=contact" class="hover:text-brand-500 transition-colors">Contact</a> • 
+        <a href="legal.html?page=terms" class="hover:text-brand-500 transition-colors">Terms</a> • 
+        <a href="legal.html?page=privacy" class="hover:text-brand-500 transition-colors">Privacy</a> • 
+        <a href="legal.html?page=refunds" class="hover:text-brand-500 transition-colors">Refunds</a>
+    </div>`;
 
         if (user) {
             if (this.viewMode === 'menu') {

@@ -98,7 +98,7 @@
         </div>
     </nav>
 
-    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px]" id="user-panel-drawer">
+    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px] lg:w-[400px]" id="user-panel-drawer">
         <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg shrink-0">
             <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
             <button onclick="window.userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
@@ -106,7 +106,7 @@
             </button>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body">
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50 dark:bg-dark-bg" id="user-panel-body">
             </div>
         
         <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer">
@@ -343,8 +343,8 @@
                         const initial = user.email.charAt(0).toUpperCase();
 
                         this.els.body.innerHTML = `
-                            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
-                                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
+                            <div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm">
+                                <div class="w-20 h-20 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">
                                     ${initial}
                                 </div>
                                 <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
@@ -353,26 +353,26 @@
                                 ${daysHtml}
                             </div>
                             
-                            <div class="flex flex-col gap-2">
-                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                            <div class="flex flex-col gap-3">
+                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 cursor-pointer transition-all shadow-sm hover:shadow group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                                        <span class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-slate-700 flex items-center justify-center text-brand-500 text-lg group-hover:scale-110 transition-transform">👤</span> 
+                                        <span class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-500 text-xl group-hover:scale-110 transition-transform">👤</span> 
                                         My Profile
                                     </div>
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-yellow/50 cursor-pointer transition-all shadow-sm hover:shadow group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                                        <span class="w-8 h-8 rounded-lg bg-accent-yellow/10 dark:bg-slate-700 flex items-center justify-center text-accent-yellow text-lg group-hover:scale-110 transition-transform">🔖</span> 
+                                        <span class="w-10 h-10 rounded-xl bg-accent-yellow/10 dark:bg-slate-800 flex items-center justify-center text-accent-yellow text-xl group-hover:scale-110 transition-transform">🔖</span> 
                                         Bookmarks & Saved
                                     </div>
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                                <a href="checkout.html" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer transition-all shadow-sm hover:shadow group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                                        <span class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-slate-700 flex items-center justify-center text-purple-500 text-lg group-hover:scale-110 transition-transform">💳</span> 
+                                        <span class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-slate-800 flex items-center justify-center text-purple-500 text-xl group-hover:scale-110 transition-transform">💳</span> 
                                         Subscription & Billing
                                     </div>
                                     <span class="text-slate-400 text-xs">❯</span>
@@ -382,50 +382,75 @@
 
                         this.els.footer.innerHTML = `
                             ${legalFooterHtml}
-                            <button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2 mt-2 border border-red-200 dark:border-red-800">
+                            <button onclick="window.firebaseSignOut()" class="w-full py-3.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2 mt-2 border border-red-200 dark:border-red-800 shadow-sm">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
                             </button>
                         `;
 
                     } else if (this.viewMode === 'bookmarks') {
-                        // 2. BOOKMARKS VIEW
+                        // 2. FULL DECK-STYLE BOOKMARKS VIEW
                         const bookmarks = Object.values(window.userBookmarks || {}).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         let bookmarksHtml = '';
                         
                         if (bookmarks.length === 0) {
                             bookmarksHtml = `
-                                <div class="flex flex-col items-center justify-center py-12 text-center">
+                                <div class="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4">
                                     <span class="text-5xl mb-4 opacity-70">🔖</span>
                                     <h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4>
                                     <p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p>
-                                    <button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">Go Back</button>
+                                    <button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2.5 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-lg font-bold text-sm hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors border border-brand-200 dark:border-brand-800">Go Back</button>
                                 </div>
                             `;
                         } else {
-                            bookmarksHtml = `<div class="space-y-4 mt-4">`;
+                            bookmarksHtml = `<div class="space-y-5 mt-4 pb-10">`;
                             bookmarks.forEach((bm) => {
+                                // Format text to match Deck View (bolding text wrapped in **)
+                                let formattedText = (bm.text || 'Saved Question').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                
                                 let optionsHtml = '';
                                 if (bm.type === 'MCQ' && bm.options) {
-                                    optionsHtml = `<div class="mt-3 space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-700">`;
+                                    optionsHtml = `<div class="mt-4 space-y-2.5">`;
                                     bm.options.forEach((opt, idx) => {
                                         const letter = String.fromCharCode(65 + idx); 
                                         const isCorrect = bm.ans_key === letter;
-                                        const style = isCorrect ? 'text-green-700 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded' : 'text-slate-600 dark:text-slate-400 px-2 py-1';
-                                        optionsHtml += `<div class="text-xs ${style}">${letter}) ${opt.replace(/<[^>]*>/g, "")}</div>`;
+                                        
+                                        // Deck-style options
+                                        let btnClass = "w-full text-left p-3.5 rounded-xl border transition-colors flex items-start gap-3 shadow-sm";
+                                        if (isCorrect) {
+                                            btnClass += " bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold";
+                                        } else {
+                                            btnClass += " bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
+                                        }
+                                        
+                                        let formattedOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                        
+                                        // The letter badge
+                                        const letterBadgeClass = isCorrect 
+                                            ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700" 
+                                            : "bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600";
+
+                                        const letterBadge = `<span class="flex-shrink-0 w-7 h-7 rounded-lg ${letterBadgeClass} text-xs font-bold flex items-center justify-center border">${letter}</span>`;
+                                        
+                                        optionsHtml += `<div class="${btnClass}">${letterBadge}<span class="pt-0.5 text-sm font-medium leading-snug">${formattedOpt}</span></div>`;
                                     });
                                     optionsHtml += `</div>`;
                                 }
 
                                 bookmarksHtml += `
-                                    <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 relative group transition-all hover:border-brand-300 dark:hover:border-brand-700">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="text-[10px] text-brand-500 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded">${bm.subject || 'QBank'}</div>
-                                            <span class="text-[10px] text-slate-400 font-medium">${new Date(bm.timestamp).toLocaleDateString()}</span>
+                                    <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 relative group transition-all shadow-sm hover:shadow-md">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800">${bm.subject || 'QBank'}</div>
+                                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">${new Date(bm.timestamp).toLocaleDateString()}</span>
                                         </div>
-                                        <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">${bm.text || 'Saved Question'}</div>
+                                        
+                                        <div class="text-base font-bold text-slate-900 dark:text-white mb-2 leading-relaxed">${formattedText}</div>
+                                        
                                         ${optionsHtml}
-                                        <div class="mt-4">
-                                            <a href="${bm.url || '#'}" class="block w-full text-center text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2.5 rounded-lg transition-colors shadow-sm">Review in QBank ➝</a>
+                                        
+                                        <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                            <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 px-4 py-2.5 rounded-xl transition-colors border border-brand-200 dark:border-brand-800 flex items-center gap-1.5 shadow-sm">
+                                                Review in QBank <span class="text-lg leading-none">➝</span>
+                                            </a>
                                         </div>
                                     </div>
                                 `;
@@ -434,12 +459,14 @@
                         }
 
                         this.els.body.innerHTML = `
-                            <div class="mb-4">
-                                <button onclick="window.userPanelApp.setView('menu')" class="text-sm text-brand-500 font-bold flex items-center gap-1 mb-6 hover:text-brand-600 transition-colors">
-                                    <span class="text-lg leading-none mb-0.5">←</span> Back to Menu
-                                </button>
-                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Saved Items</h3>
-                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Quickly access your difficult questions synced from the cloud.</p>
+                            <div class="mb-2">
+                                <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                                    <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back
+                                    </button>
+                                </div>
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Saved Items</h3>
+                                <p class="text-xs text-slate-500 font-medium">Quickly access your difficult questions synced from the cloud.</p>
                                 ${bookmarksHtml}
                             </div>
                         `;
@@ -452,24 +479,26 @@
                         
                         this.els.body.innerHTML = `
                             <div class="mb-4">
-                                <button onclick="window.userPanelApp.setView('menu')" class="text-sm text-brand-500 font-bold flex items-center gap-1 mb-6">
-                                    <span class="text-lg leading-none mb-0.5">←</span> Back to Menu
-                                </button>
+                                <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                                    <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back
+                                    </button>
+                                </div>
                                 
-                                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-6">Edit Profile</h3>
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-6">Edit Profile</h3>
                                 
-                                <div class="space-y-4">
+                                <div class="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                     <div>
                                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Full Name</label>
-                                        <input type="text" id="edit-name" value="${pData.fullName || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
+                                        <input type="text" id="edit-name" value="${pData.fullName || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     </div>
                                     <div>
                                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">College Name</label>
-                                        <input type="text" id="edit-college" value="${pData.college || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
+                                        <input type="text" id="edit-college" value="${pData.college || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     </div>
                                     <div>
                                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Join Year / Batch</label>
-                                        <select id="edit-join-year" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium outline-none">
+                                        <select id="edit-join-year" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium outline-none focus:ring-2 focus:ring-brand-500 transition-shadow">
                                             <option value="">Select</option>
                                             <option value="2025 Batch" ${isS(currentYear, '2025 Batch')}>2025 Batch</option>
                                             <option value="2024 Batch" ${isS(currentYear, '2024 Batch')}>2024 Batch</option>
@@ -482,14 +511,14 @@
                                     <div class="grid grid-cols-2 gap-3">
                                         <div>
                                             <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">City</label>
-                                            <input type="text" id="edit-city" value="${pData.city || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
+                                            <input type="text" id="edit-city" value="${pData.city || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                         </div>
                                         <div>
                                             <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone</label>
-                                            <input type="tel" id="edit-phone" value="${pData.phone || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
+                                            <input type="tel" id="edit-phone" value="${pData.phone || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                         </div>
                                     </div>
-                                    <button onclick="window.saveEditedProfile(this)" class="w-full py-4 mt-6 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all">Save Changes</button>
+                                    <button onclick="window.saveEditedProfile(this)" class="w-full py-4 mt-6 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all">Save Changes</button>
                                 </div>
                             </div>
                         `;
@@ -502,38 +531,41 @@
                     if (this.authMode === 'login') {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
-                                <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400 mb-4 object-cover" alt="Logo">
-                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Member Login</h3>
+                                <img src="${APP_LOGO_URL}" class="w-20 h-20 rounded-2xl shadow-xl ring-4 ring-offset-4 ring-brand-400/30 mb-6 object-cover" alt="Logo">
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Welcome Back</h3>
+                                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Log in to sync your progress.</p>
+                                
                                 <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
-                                <div class="w-full space-y-3 mb-6 mt-4">
-                                    <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
+                                
+                                <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     <div class="relative w-full">
-                                        <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
-                                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400">
+                                        <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                             <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                         </button>
                                     </div>
-                                    <div class="text-right w-full">
+                                    <div class="text-right w-full pt-1">
                                         <button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 uppercase tracking-wider hover:text-brand-600 transition-colors">Forgot Password?</button>
                                     </div>
                                 </div>
-                                <button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all hover:bg-brand-600">Sign In</button>
-                                <div class="text-center mt-4">
-                                    <span class="text-xs text-slate-500">Don't have an account?</span> 
-                                    <button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 hover:underline ml-1">Create One</button>
+                                <button onclick="window.handleEmailLogin(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all hover:bg-brand-600">Sign In</button>
+                                <div class="text-center mt-6">
+                                    <span class="text-sm text-slate-500">Don't have an account?</span> 
+                                    <button onclick="window.toggleAuthMode('register')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Create One</button>
                                 </div>
                             </div>`;
                     } else {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-start min-h-[calc(100vh-250px)] pb-4">
-                                <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400 mb-4 object-cover mt-2" alt="Logo">
-                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
-                                <p class="text-xs text-slate-500 mb-4">Join the community.</p>
+                                <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400/50 mb-4 object-cover mt-2" alt="Logo">
+                                <h3 class="text-xl font-black text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
+                                <p class="text-sm text-slate-500 mb-6">Join the community.</p>
                                 
                                 <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
                                 
-                                <div class="w-full space-y-3 mb-6">
-                                    <select id="reg-country" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                                <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <select id="reg-country" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-shadow font-medium">
                                         <option value="">Select Country</option>
                                         <option value="India" selected>India</option>
                                         <option disabled>──────────</option>
@@ -731,14 +763,14 @@
                                         <option value="Zimbabwe">Zimbabwe</option>
                                     </select>
                                     
-                                    <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
+                                    <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     
-                                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    <input type="password" id="reg-pass" placeholder="Create Password (Min 6)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
+                                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                                    <input type="password" id="reg-pass" placeholder="Create Password (Min 6)" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     
                                     <div class="grid grid-cols-2 gap-3">
-                                        <select id="reg-join-year" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none">
+                                        <select id="reg-join-year" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none font-medium focus:ring-2 focus:ring-brand-500 transition-shadow">
                                             <option value="">Batch</option>
                                             <option value="2025 Batch">2025 Batch</option>
                                             <option value="2024 Batch">2024 Batch</option>
@@ -747,13 +779,14 @@
                                             <option value="Intern">Intern</option>
                                             <option value="JR/SR">JR / SR</option>
                                         </select>
-                                        <input type="text" id="reg-college" placeholder="College" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
+                                        <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                     </div>
-                                    <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
+                                    <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
                                 </div>
-                                <button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg active:scale-95 transition-all hover:bg-green-700">Create Account</button>
-                                <div class="text-center mt-4">
-                                    <button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 hover:underline">Already have an account? Sign In</button>
+                                <button onclick="window.handleEmailSignUp(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700">Create Account</button>
+                                <div class="text-center mt-6">
+                                    <span class="text-sm text-slate-500">Already have an account?</span>
+                                    <button onclick="window.toggleAuthMode('login')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Sign In</button>
                                 </div>
                             </div>`;
                     }

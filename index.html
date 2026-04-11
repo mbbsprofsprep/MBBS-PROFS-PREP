@@ -197,6 +197,7 @@
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
+        window.userBookmarks = {}; // NEW: Global dictionary to hold synced Firebase bookmarks
 
         // Shared App Logo to keep consistency
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
@@ -388,7 +389,8 @@
 
                     } else if (this.viewMode === 'bookmarks') {
                         // 2. BOOKMARKS VIEW
-                        const bookmarks = JSON.parse(localStorage.getItem('medqs_bookmarks')) || [];
+                        // Fetching live data from window.userBookmarks dictionary and sorting by newest first
+                        const bookmarks = Object.values(window.userBookmarks || {}).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         let bookmarksHtml = '';
                         
                         if (bookmarks.length === 0) {
@@ -396,8 +398,8 @@
                                 <div class="flex flex-col items-center justify-center py-12 text-center">
                                     <span class="text-5xl mb-4 opacity-70">🔖</span>
                                     <h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4>
-                                    <p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will appear here for quick review.</p>
-                                    <button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-sm">Go Back</button>
+                                    <p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p>
+                                    <button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">Go Back</button>
                                 </div>
                             `;
                         } else {
@@ -420,7 +422,7 @@
                                     <span class="text-lg leading-none mb-0.5">←</span> Back to Menu
                                 </button>
                                 <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Saved Items</h3>
-                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Quickly access your difficult questions.</p>
+                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Quickly access your difficult questions synced from the cloud.</p>
                                 ${bookmarksHtml}
                             </div>
                         `;
@@ -1151,13 +1153,24 @@
                 // Keep profile data synced
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
-                    window.userPanelApp.renderState(); 
+                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') {
+                        window.userPanelApp.renderState(); 
+                    }
                 });
                 
+                // SYNC FIREBASE BOOKMARKS
+                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
+                    window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
+                    // Auto-update UI if the user is currently looking at the bookmarks view
+                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') {
+                        window.userPanelApp.renderState();
+                    }
+                });
+
                 // VIP BYPASS LOGIC
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
-                    window.userPanelApp.renderState();
+                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                     window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
@@ -1175,14 +1188,15 @@
                             }
                         }
                         window.globalUserStatus = sub; 
-                        window.userPanelApp.renderState();
+                        if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                         window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
                 window.currentUserProfileData = {}; 
+                window.userBookmarks = {};
                 window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
-                window.userPanelApp.renderState(); 
+                if(window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
                 window.pdfSmartApp.checkVisibility();
             }
         });

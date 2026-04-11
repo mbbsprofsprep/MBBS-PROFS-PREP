@@ -125,9 +125,6 @@
                         <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search (e.g., PPH, Fibroid)..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
                     <button id="summaryButton" onclick="window.handleSecretClick()" title="Generate Checklist" style="display: none;">☕️</button>
-                    <button id="revealAnswersBtn" onclick="window.toggleAnswers()" class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors bg-white dark:bg-dark-surface" title="Toggle Answers">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
                 <div class="md:col-span-3" id="chapterFilterWrapper"></div>
@@ -191,6 +188,7 @@
         window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         window.isDataLoaded = false;
         window.userBookmarks = {}; 
+        window.initialViewConfigured = false;
 
         window.COLLEGE_NAME = "AIIMS";
         window.curriculumData = [];
@@ -200,15 +198,15 @@
         // --- EYE TOGGLE LOGIC ---
         window.toggleAnswers = function() {
             document.body.classList.toggle('show-answers');
-            const btn = document.getElementById('revealAnswersBtn');
-            if (document.body.classList.contains('show-answers')) {
-                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" /></svg>`;
-                btn.classList.add('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-200', 'dark:border-brand-800');
-                btn.classList.remove('text-slate-400');
-            } else {
-                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
-                btn.classList.remove('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-200', 'dark:border-brand-800');
-                btn.classList.add('text-slate-400');
+            const btn = document.getElementById('floating-eye-btn');
+            if(btn) {
+                if (document.body.classList.contains('show-answers')) {
+                    btn.classList.add('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-300', 'dark:border-brand-700');
+                    btn.classList.remove('text-slate-400', 'bg-white', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700');
+                } else {
+                    btn.classList.remove('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-300', 'dark:border-brand-700');
+                    btn.classList.add('text-slate-400', 'bg-white', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700');
+                }
             }
         };
 
@@ -265,7 +263,16 @@
             window.populateFilters(); 
             window.populateDeckFilters(); 
             window.populateTable();
+            
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+
+            // Mobile-first Deck View Trigger
+            if (!window.initialViewConfigured) {
+                window.initialViewConfigured = true;
+                if (window.innerWidth < 768 && !window.isDeckMode) {
+                    window.toggleDeckMode();
+                }
+            }
         };
 
         // --- BOOKMARK LOGIC ---
@@ -431,7 +438,6 @@
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
                 
-                // TABLE VIEW BOOKMARK BUTTON
                 const bookmarked = window.isBookmarked(item.q);
                 const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
                 const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
@@ -443,7 +449,6 @@
                     </div>`;
             });
 
-            // ADD LOCK BANNERS
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
@@ -474,7 +479,6 @@
                 }
                 
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
-                
                 if (showRow && window.filterState.chapters.size > 0 && !(item.chapter && item.chapter.some(ch => window.filterState.chapters.has(ch)))) showRow = false;
                 
                 if (showRow && window.filterState.exams.size > 0) {
@@ -524,11 +528,6 @@
         }
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
-
-        window.toggleTheme = function() {
-            const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            const icon = document.getElementById('theme-icon'); if (icon) icon.innerText = isDark ? '☀️' : '🌙';
-        }
 
         // ==========================================
         // DECK VIEW
@@ -637,6 +636,15 @@
             fab.title = "Switch to Deck View";
             fab.onclick = window.toggleDeckMode; 
             document.body.appendChild(fab);
+
+            // FLOATING EYE BUTTON (Only visible in Table Mode)
+            const eyeFab = document.createElement('button');
+            eyeFab.id = 'floating-eye-btn';
+            eyeFab.onclick = window.toggleAnswers;
+            eyeFab.className = 'fixed bottom-[96px] right-6 z-[10000] w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-400 shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all hover:scale-110 active:scale-90';
+            eyeFab.title = "Reveal Table Answers";
+            eyeFab.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+            document.body.appendChild(eyeFab);
         }
 
         window.populateDeckFilters = function() {
@@ -803,18 +811,21 @@
             const mainContent = document.getElementById('main-wrapper');
             const deck = document.getElementById('universal-deck-layer');
             const fab = document.getElementById('view-toggle-btn');
+            const eyeFab = document.getElementById('floating-eye-btn');
             
             if (window.isDeckMode) {
                 if (mainContent) mainContent.style.display = 'none';
                 deck.style.display = 'flex';
                 fab.innerHTML = '📋';
                 fab.title = "Switch to Table View";
+                if(eyeFab) eyeFab.style.display = 'none'; 
                 window.syncDeckWithFilters(); 
             } else {
                 if (mainContent) mainContent.style.display = 'block';
                 deck.style.display = 'none';
                 fab.innerHTML = '🎴'; 
                 fab.title = "Switch to Deck View";
+                if(eyeFab) eyeFab.style.display = 'flex'; 
             }
         }
 

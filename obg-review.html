@@ -250,6 +250,7 @@
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
 
+            // Calculate active displayData based on access level
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
@@ -260,8 +261,11 @@
                 window.displayData = [];
             }
 
+            // Generate filters only AFTER data is calculated
             window.populateFilters(); 
             window.populateDeckFilters(); 
+
+            // Paint UI
             window.populateTable();
             
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
@@ -282,28 +286,38 @@
             }
 
             const item = window.displayData[index];
+            if (!item) return;
+
             const qId = item.q; 
-            const cleanStem = item.stem.replace(/<[^>]*>/g, "");
+            const cleanStem = item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Question";
             
             const bookmarkData = {
                 q: item.q,
-                type: item.type,
+                type: item.type || "General",
                 text: cleanStem, 
-                options: item.options || null, 
-                ans_key: item.ans_key || null, 
-                subject: window.COLLEGE_NAME + " - " + (item.chapter ? item.chapter[0] : 'General'),
+                subject: window.COLLEGE_NAME + " - " + (item.chapter && item.chapter.length > 0 ? item.chapter[0] : 'General'),
                 url: window.location.href,
                 timestamp: new Date().toISOString()
             };
+
+            if (item.options) bookmarkData.options = item.options;
+            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
             
             const isSaved = window.isBookmarked(qId);
-            if (window.executeBookmarkToggle) window.executeBookmarkToggle(qId, bookmarkData, isSaved);
+            
+            if (window.executeBookmarkToggle) {
+                window.executeBookmarkToggle(qId, bookmarkData, isSaved);
+            } else {
+                alert("App is still connecting to the cloud. Please wait a moment.");
+            }
         };
 
         window.isBookmarked = function(qId) { return !!window.userBookmarks[qId]; };
 
+        // Seamless non-destructive UI Updater
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
+            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
@@ -314,9 +328,11 @@
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
+                // Target Table View Button
                 const tBtn = document.getElementById(`bmk-table-${item.q}`);
                 if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
 
+                // Target Deck View Button
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
@@ -438,6 +454,7 @@
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
                 
+                // TABLE VIEW BOOKMARK BUTTON
                 const bookmarked = window.isBookmarked(item.q);
                 const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
                 const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
@@ -449,6 +466,7 @@
                     </div>`;
             });
 
+            // ADD LOCK BANNERS
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
@@ -479,6 +497,7 @@
                 }
                 
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
+                
                 if (showRow && window.filterState.chapters.size > 0 && !(item.chapter && item.chapter.some(ch => window.filterState.chapters.has(ch)))) showRow = false;
                 
                 if (showRow && window.filterState.exams.size > 0) {
@@ -865,6 +884,22 @@
         window.db = db;
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+
+        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
+            try {
+                const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
+                if (isSaved) {
+                    await set(dbRef, null);
+                    window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+                } else {
+                    await set(dbRef, bookmarkData);
+                    window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error syncing bookmark: " + e.message);
+            }
+        };
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;

@@ -317,67 +317,21 @@
         const db = getDatabase(fbApp);
         window.db = db;
 
-        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com" ];
-
-        window.deleteBookmark = async function(qId) {
-            if (!window.currentUserObj) return;
-            if (!confirm("Remove this question from your saved items?")) return;
-            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
-            catch(e) { alert("Failed to remove bookmark: " + e.message); }
-        };
-
-        window.saveEditedProfile = async function(btn) {
-            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
-            if (!name) return alert("Name is required!");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
-            try {
-                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
-                if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
-                btn.innerText = "Saved!"; btn.classList.replace('bg-brand-500', 'bg-green-500');
-                setTimeout(() => { btn.innerText = originalText; btn.classList.replace('bg-green-500', 'bg-brand-500'); btn.disabled = false; window.userPanelApp.setView('menu'); }, 1000);
-            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = originalText; }
-        };
-
-        window.handleEmailLogin = (btn) => {
-            const e = document.getElementById('login-email').value; const p = document.getElementById('login-pass').value;
-            if(!e || !p) return window.showAuthError("Email/Pass required");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Verifying...";
-            signInWithEmailAndPassword(auth, e, p).catch(err => { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); });
-        };
-
-        window.handleEmailSignUp = async (btn) => {
-            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
-            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
-            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
-            try {
-                const uc = await createUserWithEmailAndPassword(auth, e, p);
-                await updateProfile(uc.user, { displayName: n });
-                await set(ref(db, 'users/' + uc.user.uid + '/profile'), { fullName: n, email: e, joinYear: j, college: c, country: cy, city: city || "Not provided", phone: phone || "Not provided", createdAt: new Date().toISOString() });
-            } catch(err) { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); }
-        };
-
-        window.handleForgotPass = () => {
-            const e = document.getElementById('login-email').value;
-            if(!e) return window.showAuthError("Enter email first");
-            sendPasswordResetEmail(auth, e).then(() => {
-                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
-            }).catch(err => window.showAuthError(err.message));
-        };
-
-        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
-                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); });
+                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
+                    window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
+                });
 
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                    if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -389,13 +343,11 @@
                         }
                         window.globalUserStatus = sub; 
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                        if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
                 window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
-                if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
             }
         });
     </script>

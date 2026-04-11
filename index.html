@@ -106,11 +106,9 @@
             </button>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body">
-            </div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body"></div>
         
-        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer">
-            </div>
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer"></div>
     </aside>
     
     <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
@@ -193,13 +191,12 @@
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
 
     <script>
-        // Secure Global State explicitly attached to window
+        // Secure Global State
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
         window.userBookmarks = {}; // Global store for Cloud Bookmarks
 
-        // Shared App Logo
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
         window.toggleAuthMode = function(mode) {
@@ -229,7 +226,7 @@
             } else { alert(msg); }
         };
 
-        // UI Routing Data
+        // --- THE FULLY RESTORED MASSIVE DATABASE ---
         window.DATA = {
             locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
             institutes: [
@@ -253,8 +250,30 @@
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Pediatrics', icon: '🧸', id: 'pediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anesthesia', icon: '💉', id: 'anesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-                'deoghar_obg': [{ label: 'Chapter Wise PYQ', url: 'obg-review.html?college=deoghar'}],
-                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+                'delhi_biochemistry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/biochemistry-aiims-delhi.html'}],
+                'delhi_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anatomy-aiims-delhi.html'}],
+                'delhi_physiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/physiology-aiims-delhi.html'}],
+                'deoghar_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anatomy-database.html' }],
+                'deoghar_biochemistry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/biochemistry-database.html' }],
+                'deoghar_physiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/physiology.html' }],
+                'deoghar_microbiology': [{ label: 'Chapter Wise PYQ-Apurva Sastry Index', url: 'https://medqs.blogspot.com/2025/10/microbiology-database.html' }],
+                'deoghar_pharmacology': [{ label: 'CHAPTER WISE PYQ-GRG INDEX', url: 'https://medqs.blogspot.com/2025/11/pharma-database.html' }],
+                'deoghar_pathology': [{ label:'Pathology Ed8.0', url: 'https://medqs.blogspot.com/2025/12/patho-ed8.html' }],
+                'deoghar_fmt': [{ label: 'Chapter Wise PYQ-ed8 Index', url: 'https://medqs.blogspot.com/2025/10/fmt-database.html' }],
+                'deoghar_psm': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/cfm-pyqs.html' }],
+                'deoghar_ent': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/ent-pyqs.html'}],
+                'deoghar_ophthalmology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/ophthalmology-pyqs.html'}],
+                'deoghar_psychiatry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/psychiatry-pyqs.html'}],
+                'deoghar_orthopaedics': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/orthopaedics-pyqs.html'}],
+                'deoghar_medicine': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/medicine-pyq.html'}],
+                'deoghar_surgery': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/surgery-pyqs.html'},{label:'Bailey and Love Chapterwise', url:'https://medqs.blogspot.com/2026/03/surgery-bailey-and-love.html'}],
+                'deoghar_obg': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/obg-pyqs.html'},{ label: 'DC DUTTA Index', url: 'https://medqs.blogspot.com/2026/03/obg-pyqs-dutta.html'}],
+                'deoghar_pediatrics': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/pediatrics-pyqs.html'}],
+                'deoghar_dermatology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/dermatology-pyqs.html'}],
+                'deoghar_anesthesia': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anesthesia-pyqs.html'}],
+                'deoghar_radiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/radiology-pyqs.html'}],
+                'kalyani_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2026/01/anatomy-aiims-kalyani.html'}],
+                'kalyani_physiology': [{ label: 'Chapter wise PYQ',url:'https://medqs.blogspot.com/2026/01/physiology-aiims-kalyani.html'}]
             }
         };
 
@@ -306,9 +325,7 @@
                     </div>`;
 
                 if (user) {
-                    // --------- LOGGED IN VIEWS ---------
                     if (this.viewMode === 'menu') {
-                        // 1. MAIN DASHBOARD VIEW
                         let badgeHtml = ''; 
                         let daysHtml = '';
                         
@@ -353,7 +370,7 @@
                             </div>
                             
                             <div class="flex flex-col gap-2">
-                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-slate-700 flex items-center justify-center text-brand-500 text-lg group-hover:scale-110 transition-transform">👤</span> 
                                         My Profile
@@ -361,7 +378,7 @@
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-accent-yellow/10 dark:bg-slate-700 flex items-center justify-center text-accent-yellow text-lg group-hover:scale-110 transition-transform">🔖</span> 
                                         Bookmarks & Saved
@@ -369,7 +386,7 @@
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
+                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-slate-700 flex items-center justify-center text-purple-500 text-lg group-hover:scale-110 transition-transform">💳</span> 
                                         Subscription & Billing
@@ -388,7 +405,6 @@
 
                     } else if (this.viewMode === 'bookmarks') {
                         // ---- RENDER CLOUD BOOKMARKS VIEW ----
-                        // Convert Firebase object to an array and sort by newest first
                         const bookmarksObj = window.userBookmarks || {};
                         const bookmarks = Object.values(bookmarksObj).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         
@@ -430,7 +446,6 @@
                         this.els.footer.innerHTML = ``; // Hide footer here to give more space
 
                     } else if (this.viewMode === 'edit_profile') {
-                        // 3. EDIT PROFILE VIEW
                         const currentYear = pData.joinYear || '';
                         const isS = (v, t) => (v === t) ? 'selected' : '';
                         
@@ -477,7 +492,7 @@
                                 </div>
                             </div>
                         `;
-                        this.els.footer.innerHTML = ``; // Hide footer
+                        this.els.footer.innerHTML = ``; 
                     }
                     
                 } else {
@@ -520,8 +535,200 @@
                                         <option value="">Select Country</option>
                                         <option value="India" selected>India</option>
                                         <option disabled>──────────</option>
-                                        <option value="Afghanistan">Afghanistan</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="Andorra">Andorra</option><option value="Angola">Angola</option><option value="Antigua and Barbuda">Antigua and Barbuda</option><option value="Argentina">Argentina</option><option value="Armenia">Armenia</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Azerbaijan">Azerbaijan</option><option value="Bahamas">Bahamas</option><option value="Bahrain">Bahrain</option><option value="Bangladesh">Bangladesh</option><option value="Barbados">Barbados</option><option value="Belarus">Belarus</option><option value="Belgium">Belgium</option><option value="Belize">Belize</option><option value="Benin">Benin</option><option value="Bhutan">Bhutan</option><option value="Bolivia">Bolivia</option><option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option><option value="Botswana">Botswana</option><option value="Brazil">Brazil</option><option value="Brunei">Brunei</option><option value="Bulgaria">Bulgaria</option><option value="Burkina Faso">Burkina Faso</option><option value="Burundi">Burundi</option><option value="Côte d'Ivoire">Côte d'Ivoire</option><option value="Cabo Verde">Cabo Verde</option><option value="Cambodia">Cambodia</option><option value="Cameroon">Cameroon</option><option value="Canada">Canada</option><option value="Central African Republic">Central African Republic</option><option value="Chad">Chad</option><option value="Chile">Chile</option><option value="China">China</option><option value="Colombia">Colombia</option><option value="Comoros">Comoros</option><option value="Congo">Congo</option><option value="Costa Rica">Costa Rica</option><option value="Croatia">Croatia</option><option value="Cuba">Cuba</option><option value="Cyprus">Cyprus</option><option value="Czechia">Czechia</option><option value="Denmark">Denmark</option><option value="Djibouti">Djibouti</option><option value="Dominica">Dominica</option><option value="Dominican Republic">Dominican Republic</option><option value="Ecuador">Ecuador</option><option value="Egypt">Egypt</option><option value="El Salvador">El Salvador</option><option value="Equatorial Guinea">Equatorial Guinea</option><option value="Eritrea">Eritrea</option><option value="Estonia">Estonia</option><option value="Eswatini">Eswatini</option><option value="Ethiopia">Ethiopia</option><option value="Fiji">Fiji</option><option value="Finland">Finland</option><option value="France">France</option><option value="Gabon">Gabon</option><option value="Gambia">Gambia</option><option value="Georgia">Georgia</option><option value="Germany">Germany</option><option value="Ghana">Ghana</option><option value="Greece">Greece</option><option value="Grenada">Grenada</option><option value="Guatemala">Guatemala</option><option value="Guinea">Guinea</option><option value="Guinea-Bissau">Guinea-Bissau</option><option value="Guyana">Guyana</option><option value="Haiti">Haiti</option><option value="Honduras">Honduras</option><option value="Hungary">Hungary</option><option value="Iceland">Iceland</option><option value="Indonesia">Indonesia</option><option value="Iran">Iran</option><option value="Iraq">Iraq</option><option value="Ireland">Ireland</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Jamaica">Jamaica</option><option value="Japan">Japan</option><option value="Jordan">Jordan</option><option value="Kazakhstan">Kazakhstan</option><option value="Kenya">Kenya</option><option value="Kiribati">Kiribati</option><option value="Kuwait">Kuwait</option><option value="Kyrgyzstan">Kyrgyzstan</option><option value="Laos">Laos</option><option value="Latvia">Latvia</option><option value="Lebanon">Lebanon</option><option value="Lesotho">Lesotho</option><option value="Liberia">Liberia</option><option value="Libya">Libya</option><option value="Liechtenstein">Liechtenstein</option><option value="Lithuania">Lithuania</option><option value="Luxembourg">Luxembourg</option><option value="Madagascar">Madagascar</option><option value="Malawi">Malawi</option><option value="Malaysia">Malaysia</option><option value="Maldives">Maldives</option><option value="Mali">Mali</option><option value="Malta">Malta</option><option value="Marshall Islands">Marshall Islands</option><option value="Mauritania">Mauritania</option><option value="Mauritius">Mauritius</option><option value="Mexico">Mexico</option><option value="Micronesia">Micronesia</option><option value="Moldova">Moldova</option><option value="Monaco">Monaco</option><option value="Mongolia">Mongolia</option><option value="Montenegro">Montenegro</option><option value="Morocco">Morocco</option><option value="Mozambique">Mozambique</option><option value="Myanmar">Myanmar</option><option value="Namibia">Namibia</option><option value="Nauru">Nauru</option><option value="Nepal">Nepal</option><option value="Netherlands">Netherlands</option><option value="New Zealand">New Zealand</option><option value="Nicaragua">Nicaragua</option><option value="Niger">Niger</option><option value="Nigeria">Nigeria</option><option value="North Korea">North Korea</option><option value="North Macedonia">North Macedonia</option><option value="Norway">Norway</option><option value="Oman">Oman</option><option value="Pakistan">Pakistan</option><option value="Palau">Palau</option><option value="Palestine State">Palestine State</option><option value="Panama">Panama</option><option value="Papua New Guinea">Papua New Guinea</option><option value="Paraguay">Paraguay</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Qatar">Qatar</option><option value="Romania">Romania</option><option value="Russia">Russia</option><option value="Rwanda">Rwanda</option><option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option><option value="Saint Lucia">Saint Lucia</option><option value="Saint Vincent and the Grenadines">Saint Vincent and the Grenadines</option><option value="Samoa">Samoa</option><option value="San Marino">San Marino</option><option value="Sao Tome and Principe">Sao Tome and Principe</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Senegal">Senegal</option><option value="Serbia">Serbia</option><option value="Seychelles">Seychelles</option><option value="Sierra Leone">Sierra Leone</option><option value="Singapore">Singapore</option><option value="Slovakia">Slovakia</option><option value="Slovenia">Slovenia</option><option value="Solomon Islands">Solomon Islands</option><option value="Somalia">Somalia</option><option value="South Africa">South Africa</option><option value="South Korea">South Korea</option><option value="South Sudan">South Sudan</option><option value="Spain">Spain</option><option value="Sri Lanka">Sri Lanka</option><option value="Sudan">Sudan</option><option value="Suriname">Suriname</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Syria">Syria</option><option value="Tajikistan">Tajikistan</option><option value="Tanzania">Tanzania</option><option value="Thailand">Thailand</option><option value="Timor-Leste">Timor-Leste</option><option value="Togo">Togo</option><option value="Tonga">Tonga</option><option value="Trinidad and Tobago">Trinidad and Tobago</option><option value="Tunisia">Tunisia</option><option value="Turkey">Turkey</option><option value="Turkmenistan">Turkmenistan</option><option value="Tuvalu">Tuvalu</option><option value="Uganda">Uganda</option><option value="Ukraine">Ukraine</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States of America">United States of America</option><option value="Uruguay">Uruguay</option><option value="Uzbekistan">Uzbekistan</option><option value="Vanuatu">Vanuatu</option><option value="Venezuela">Venezuela</option><option value="Vietnam">Vietnam</option><option value="Yemen">Yemen</option><option value="Zambia">Zambia</option><option value="Zimbabwe">Zimbabwe</option>
+                                        <option value="Afghanistan">Afghanistan</option>
+                                        <option value="Albania">Albania</option>
+                                        <option value="Algeria">Algeria</option>
+                                        <option value="Andorra">Andorra</option>
+                                        <option value="Angola">Angola</option>
+                                        <option value="Antigua and Barbuda">Antigua and Barbuda</option>
+                                        <option value="Argentina">Argentina</option>
+                                        <option value="Armenia">Armenia</option>
+                                        <option value="Australia">Australia</option>
+                                        <option value="Austria">Austria</option>
+                                        <option value="Azerbaijan">Azerbaijan</option>
+                                        <option value="Bahamas">Bahamas</option>
+                                        <option value="Bahrain">Bahrain</option>
+                                        <option value="Bangladesh">Bangladesh</option>
+                                        <option value="Barbados">Barbados</option>
+                                        <option value="Belarus">Belarus</option>
+                                        <option value="Belgium">Belgium</option>
+                                        <option value="Belize">Belize</option>
+                                        <option value="Benin">Benin</option>
+                                        <option value="Bhutan">Bhutan</option>
+                                        <option value="Bolivia">Bolivia</option>
+                                        <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
+                                        <option value="Botswana">Botswana</option>
+                                        <option value="Brazil">Brazil</option>
+                                        <option value="Brunei">Brunei</option>
+                                        <option value="Bulgaria">Bulgaria</option>
+                                        <option value="Burkina Faso">Burkina Faso</option>
+                                        <option value="Burundi">Burundi</option>
+                                        <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                                        <option value="Cabo Verde">Cabo Verde</option>
+                                        <option value="Cambodia">Cambodia</option>
+                                        <option value="Cameroon">Cameroon</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="Central African Republic">Central African Republic</option>
+                                        <option value="Chad">Chad</option>
+                                        <option value="Chile">Chile</option>
+                                        <option value="China">China</option>
+                                        <option value="Colombia">Colombia</option>
+                                        <option value="Comoros">Comoros</option>
+                                        <option value="Congo">Congo</option>
+                                        <option value="Costa Rica">Costa Rica</option>
+                                        <option value="Croatia">Croatia</option>
+                                        <option value="Cuba">Cuba</option>
+                                        <option value="Cyprus">Cyprus</option>
+                                        <option value="Czechia">Czechia</option>
+                                        <option value="Denmark">Denmark</option>
+                                        <option value="Djibouti">Djibouti</option>
+                                        <option value="Dominica">Dominica</option>
+                                        <option value="Dominican Republic">Dominican Republic</option>
+                                        <option value="Ecuador">Ecuador</option>
+                                        <option value="Egypt">Egypt</option>
+                                        <option value="El Salvador">El Salvador</option>
+                                        <option value="Equatorial Guinea">Equatorial Guinea</option>
+                                        <option value="Eritrea">Eritrea</option>
+                                        <option value="Estonia">Estonia</option>
+                                        <option value="Eswatini">Eswatini</option>
+                                        <option value="Ethiopia">Ethiopia</option>
+                                        <option value="Fiji">Fiji</option>
+                                        <option value="Finland">Finland</option>
+                                        <option value="France">France</option>
+                                        <option value="Gabon">Gabon</option>
+                                        <option value="Gambia">Gambia</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Germany">Germany</option>
+                                        <option value="Ghana">Ghana</option>
+                                        <option value="Greece">Greece</option>
+                                        <option value="Grenada">Grenada</option>
+                                        <option value="Guatemala">Guatemala</option>
+                                        <option value="Guinea">Guinea</option>
+                                        <option value="Guinea-Bissau">Guinea-Bissau</option>
+                                        <option value="Guyana">Guyana</option>
+                                        <option value="Haiti">Haiti</option>
+                                        <option value="Honduras">Honduras</option>
+                                        <option value="Hungary">Hungary</option>
+                                        <option value="Iceland">Iceland</option>
+                                        <option value="Indonesia">Indonesia</option>
+                                        <option value="Iran">Iran</option>
+                                        <option value="Iraq">Iraq</option>
+                                        <option value="Ireland">Ireland</option>
+                                        <option value="Israel">Israel</option>
+                                        <option value="Italy">Italy</option>
+                                        <option value="Jamaica">Jamaica</option>
+                                        <option value="Japan">Japan</option>
+                                        <option value="Jordan">Jordan</option>
+                                        <option value="Kazakhstan">Kazakhstan</option>
+                                        <option value="Kenya">Kenya</option>
+                                        <option value="Kiribati">Kiribati</option>
+                                        <option value="Kuwait">Kuwait</option>
+                                        <option value="Kyrgyzstan">Kyrgyzstan</option>
+                                        <option value="Laos">Laos</option>
+                                        <option value="Latvia">Latvia</option>
+                                        <option value="Lebanon">Lebanon</option>
+                                        <option value="Lesotho">Lesotho</option>
+                                        <option value="Liberia">Liberia</option>
+                                        <option value="Libya">Libya</option>
+                                        <option value="Liechtenstein">Liechtenstein</option>
+                                        <option value="Lithuania">Lithuania</option>
+                                        <option value="Luxembourg">Luxembourg</option>
+                                        <option value="Madagascar">Madagascar</option>
+                                        <option value="Malawi">Malawi</option>
+                                        <option value="Malaysia">Malaysia</option>
+                                        <option value="Maldives">Maldives</option>
+                                        <option value="Mali">Mali</option>
+                                        <option value="Malta">Malta</option>
+                                        <option value="Marshall Islands">Marshall Islands</option>
+                                        <option value="Mauritania">Mauritania</option>
+                                        <option value="Mauritius">Mauritius</option>
+                                        <option value="Mexico">Mexico</option>
+                                        <option value="Micronesia">Micronesia</option>
+                                        <option value="Moldova">Moldova</option>
+                                        <option value="Monaco">Monaco</option>
+                                        <option value="Mongolia">Mongolia</option>
+                                        <option value="Montenegro">Montenegro</option>
+                                        <option value="Morocco">Morocco</option>
+                                        <option value="Mozambique">Mozambique</option>
+                                        <option value="Myanmar">Myanmar</option>
+                                        <option value="Namibia">Namibia</option>
+                                        <option value="Nauru">Nauru</option>
+                                        <option value="Nepal">Nepal</option>
+                                        <option value="Netherlands">Netherlands</option>
+                                        <option value="New Zealand">New Zealand</option>
+                                        <option value="Nicaragua">Nicaragua</option>
+                                        <option value="Niger">Niger</option>
+                                        <option value="Nigeria">Nigeria</option>
+                                        <option value="North Korea">North Korea</option>
+                                        <option value="North Macedonia">North Macedonia</option>
+                                        <option value="Norway">Norway</option>
+                                        <option value="Oman">Oman</option>
+                                        <option value="Pakistan">Pakistan</option>
+                                        <option value="Palau">Palau</option>
+                                        <option value="Palestine State">Palestine State</option>
+                                        <option value="Panama">Panama</option>
+                                        <option value="Papua New Guinea">Papua New Guinea</option>
+                                        <option value="Paraguay">Paraguay</option>
+                                        <option value="Peru">Peru</option>
+                                        <option value="Philippines">Philippines</option>
+                                        <option value="Poland">Poland</option>
+                                        <option value="Portugal">Portugal</option>
+                                        <option value="Qatar">Qatar</option>
+                                        <option value="Romania">Romania</option>
+                                        <option value="Russia">Russia</option>
+                                        <option value="Rwanda">Rwanda</option>
+                                        <option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option>
+                                        <option value="Saint Lucia">Saint Lucia</option>
+                                        <option value="Saint Vincent and the Grenadines">Saint Vincent and the Grenadines</option>
+                                        <option value="Samoa">Samoa</option>
+                                        <option value="San Marino">San Marino</option>
+                                        <option value="Sao Tome and Principe">Sao Tome and Principe</option>
+                                        <option value="Saudi Arabia">Saudi Arabia</option>
+                                        <option value="Senegal">Senegal</option>
+                                        <option value="Serbia">Serbia</option>
+                                        <option value="Seychelles">Seychelles</option>
+                                        <option value="Sierra Leone">Sierra Leone</option>
+                                        <option value="Singapore">Singapore</option>
+                                        <option value="Slovakia">Slovakia</option>
+                                        <option value="Slovenia">Slovenia</option>
+                                        <option value="Solomon Islands">Solomon Islands</option>
+                                        <option value="Somalia">Somalia</option>
+                                        <option value="South Africa">South Africa</option>
+                                        <option value="South Korea">South Korea</option>
+                                        <option value="South Sudan">South Sudan</option>
+                                        <option value="Spain">Spain</option>
+                                        <option value="Sri Lanka">Sri Lanka</option>
+                                        <option value="Sudan">Sudan</option>
+                                        <option value="Suriname">Suriname</option>
+                                        <option value="Sweden">Sweden</option>
+                                        <option value="Switzerland">Switzerland</option>
+                                        <option value="Syria">Syria</option>
+                                        <option value="Tajikistan">Tajikistan</option>
+                                        <option value="Tanzania">Tanzania</option>
+                                        <option value="Thailand">Thailand</option>
+                                        <option value="Timor-Leste">Timor-Leste</option>
+                                        <option value="Togo">Togo</option>
+                                        <option value="Tonga">Tonga</option>
+                                        <option value="Trinidad and Tobago">Trinidad and Tobago</option>
+                                        <option value="Tunisia">Tunisia</option>
+                                        <option value="Turkey">Turkey</option>
+                                        <option value="Turkmenistan">Turkmenistan</option>
+                                        <option value="Tuvalu">Tuvalu</option>
+                                        <option value="Uganda">Uganda</option>
+                                        <option value="Ukraine">Ukraine</option>
+                                        <option value="United Arab Emirates">United Arab Emirates</option>
+                                        <option value="United Kingdom">United Kingdom</option>
+                                        <option value="United States of America">United States of America</option>
+                                        <option value="Uruguay">Uruguay</option>
+                                        <option value="Uzbekistan">Uzbekistan</option>
+                                        <option value="Vanuatu">Vanuatu</option>
+                                        <option value="Venezuela">Venezuela</option>
+                                        <option value="Vietnam">Vietnam</option>
+                                        <option value="Yemen">Yemen</option>
+                                        <option value="Zambia">Zambia</option>
+                                        <option value="Zimbabwe">Zimbabwe</option>
                                     </select>
+                                    
                                     <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
                                     
                                     <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
@@ -695,11 +902,18 @@
             }
         };
 
-        // --- PDF SMART APP LOGIC ---
+        // --- THE FULLY RESTORED PDF SMART DB ---
         window.PDF_SMART_DB = {
+            "AIIMS Delhi": {
+                "Anatomy": "LINK_1",
+                "Physiology": "LINK_2"
+            },
             "AIIMS Deoghar": {
-                "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
-                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk"
+               "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
+                "ophthalmology": "https://docs.google.com/document/d/1TSn9DqPasjEfccTqkseKVGwU3iugVYMeN-lTJGNtv7A/edit?usp=drivesdk",
+                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk",
+                "ENT": "https://docs.google.com/document/d/1TAJNfXZkak0vdBQy_nYWipJbb4_mQ_apUeqFsIpENAw/edit?usp=drivesdk",
+                "Orthopaedics": "https://docs.google.com/document/d/1TI9sYHWaRdKri4IGlYh7AwNhgZKltM5LKtOncWAFZow/edit?usp=drivesdk"
             }
         };
 
@@ -1008,4 +1222,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

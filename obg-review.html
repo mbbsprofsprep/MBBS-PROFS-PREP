@@ -125,6 +125,9 @@
                         <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search (e.g., PPH, Fibroid)..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
                     <button id="summaryButton" onclick="window.handleSecretClick()" title="Generate Checklist" style="display: none;">☕️</button>
+                    <button id="revealAnswersBtn" onclick="window.toggleAnswers()" class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors bg-white dark:bg-dark-surface" title="Toggle Answers">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
                 <div class="md:col-span-3" id="chapterFilterWrapper"></div>
@@ -194,6 +197,21 @@
         window.qnaData = [];
         window.displayData = [];
 
+        // --- EYE TOGGLE LOGIC ---
+        window.toggleAnswers = function() {
+            document.body.classList.toggle('show-answers');
+            const btn = document.getElementById('revealAnswersBtn');
+            if (document.body.classList.contains('show-answers')) {
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" /></svg>`;
+                btn.classList.add('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-200', 'dark:border-brand-800');
+                btn.classList.remove('text-slate-400');
+            } else {
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+                btn.classList.remove('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-200', 'dark:border-brand-800');
+                btn.classList.add('text-slate-400');
+            }
+        };
+
         // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -234,7 +252,6 @@
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
 
-            // Calculate active displayData based on access level
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
@@ -245,11 +262,8 @@
                 window.displayData = [];
             }
 
-            // Generate filters only AFTER data is calculated
             window.populateFilters(); 
             window.populateDeckFilters(); 
-
-            // Paint UI
             window.populateTable();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
         };
@@ -267,30 +281,22 @@
             const bookmarkData = {
                 q: item.q,
                 type: item.type,
-                text: cleanStem, // Save full question text
-                options: item.options || null, // Save options for MCQ rendering
-                ans_key: item.ans_key || null, // Save answer key for MCQ highlighting
+                text: cleanStem, 
+                options: item.options || null, 
+                ans_key: item.ans_key || null, 
                 subject: window.COLLEGE_NAME + " - " + (item.chapter ? item.chapter[0] : 'General'),
                 url: window.location.href,
                 timestamp: new Date().toISOString()
             };
             
             const isSaved = window.isBookmarked(qId);
-            
-            // Safe pass-off to the authenticated module
-            if (window.executeBookmarkToggle) {
-                window.executeBookmarkToggle(qId, bookmarkData, isSaved);
-            }
+            if (window.executeBookmarkToggle) window.executeBookmarkToggle(qId, bookmarkData, isSaved);
         };
 
-        window.isBookmarked = function(qId) {
-            return !!window.userBookmarks[qId];
-        };
+        window.isBookmarked = function(qId) { return !!window.userBookmarks[qId]; };
 
-        // Seamless non-destructive UI Updater
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
-            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
@@ -301,11 +307,9 @@
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
-                // Target Table View Button
                 const tBtn = document.getElementById(`bmk-table-${item.q}`);
                 if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
 
-                // Target Deck View Button
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
@@ -322,17 +326,11 @@
             } 
             
             window.qnaData.forEach(item => { 
-                if (key === 'type' && item.type) {
-                    values.add(item.type); 
-                } else if (key === 'exam' && item.examBatch) {
-                    if (Array.isArray(item.examBatch)) {
-                        item.examBatch.forEach(e => values.add(e));
-                    } else {
-                        values.add(item.examBatch);
-                    }
-                } else if (item[key]) {
-                    values.add(item[key]); 
-                }
+                if (key === 'type' && item.type) { values.add(item.type); } 
+                else if (key === 'exam' && item.examBatch) {
+                    if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } 
+                    else { values.add(item.examBatch); }
+                } else if (item[key]) { values.add(item[key]); }
             });
             return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
         }
@@ -526,6 +524,11 @@
         }
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
+
+        window.toggleTheme = function() {
+            const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const icon = document.getElementById('theme-icon'); if (icon) icon.innerText = isDark ? '☀️' : '🌙';
+        }
 
         // ==========================================
         // DECK VIEW
@@ -850,108 +853,42 @@
         const db = getDatabase(fbApp);
         window.db = db;
 
-        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com" ];
-
-        window.deleteBookmark = async function(qId) {
-            if (!window.currentUserObj) return;
-            if (!confirm("Remove this question from your saved items?")) return;
-            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
-            catch(e) { alert("Failed to remove bookmark: " + e.message); }
-        };
-
-        window.saveEditedProfile = async function(btn) {
-            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
-            if (!name) return alert("Name is required!");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
-            try {
-                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
-                if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
-                btn.innerText = "Saved!"; btn.classList.replace('bg-brand-500', 'bg-green-500');
-                setTimeout(() => { btn.innerText = originalText; btn.classList.replace('bg-green-500', 'bg-brand-500'); btn.disabled = false; window.userPanelApp.setView('menu'); }, 1000);
-            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = originalText; }
-        };
-
-        window.handleEmailLogin = (btn) => {
-            const e = document.getElementById('login-email').value; const p = document.getElementById('login-pass').value;
-            if(!e || !p) return window.showAuthError("Email/Pass required");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Verifying...";
-            signInWithEmailAndPassword(auth, e, p).catch(err => { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); });
-        };
-
-        window.handleEmailSignUp = async (btn) => {
-            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
-            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
-            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
-            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
-            try {
-                const uc = await createUserWithEmailAndPassword(auth, e, p);
-                await updateProfile(uc.user, { displayName: n });
-                await set(ref(db, 'users/' + uc.user.uid + '/profile'), { fullName: n, email: e, joinYear: j, college: c, country: cy, city: city || "Not provided", phone: phone || "Not provided", createdAt: new Date().toISOString() });
-            } catch(err) { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); }
-        };
-
-        window.handleForgotPass = () => {
-            const e = document.getElementById('login-email').value;
-            if(!e) return window.showAuthError("Enter email first");
-            sendPasswordResetEmail(auth, e).then(() => {
-                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
-            }).catch(err => window.showAuthError(err.message));
-        };
-
-        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
-
-        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
-            const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
-            if (isSaved) {
-                await set(dbRef, null);
-                window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
-            } else {
-                await set(dbRef, bookmarkData);
-                window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
-            }
-        };
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
-            const summaryBtn = document.getElementById('summaryButton');
-            const allowedCoffeeUsers = ["pankajkumarmahto1009@gmail.com", "educateindiainstitute@gmail.com"];
-
             if (user) {
                 const email = user.email.toLowerCase().trim();
-                localStorage.setItem('medqs_user_email', email);
-                if (summaryBtn) { if (allowedCoffeeUsers.includes(email)) summaryBtn.style.display = 'inline-block'; else summaryBtn.style.display = 'none'; }
-
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
-                    if (window.isDataLoaded) window.updateBookmarkUI(); 
+                    if(window.isDataLoaded) window.updateBookmarkUI();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
                 if (allowedVIPs.includes(email)) {
-                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false }; window.accessLevel = 'premium';
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
+                    window.accessLevel = 'premium';
                     if(window.isDataLoaded) window.processDataForAccess();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                 } else {
-                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (snapshot) => {
-                        let subDataObj = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-                        if (snapshot.exists()) {
-                            const subData = snapshot.val(); const today = new Date(); today.setHours(0,0,0,0); const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
-                            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                            if (daysLeft >= 0 && subData.status === "active") subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
-                            else subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
+                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
+                        let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                        if (s.exists()) {
+                            const d = s.val(); const today = new Date(); today.setHours(0,0,0,0); const exp = new Date(d.validUntil); exp.setHours(0,0,0,0);
+                            const diff = Math.ceil((exp - today) / 86400000);
+                            if (diff >= 0 && d.status === "active") sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
+                            else sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
                         }
-                        window.globalUserStatus = subDataObj; window.accessLevel = subDataObj.isVIP ? 'premium' : 'free';
+                        window.globalUserStatus = sub; window.accessLevel = sub.isVIP ? 'premium' : 'free';
                         if(window.isDataLoaded) window.processDataForAccess();
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                     });
                 }
-            } else {
-                if (summaryBtn) summaryBtn.style.display = 'none';
-                localStorage.removeItem('medqs_user_email');
-                window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false }; window.userBookmarks = {}; window.currentUserProfileData = {}; window.accessLevel = 'guest';
+            } else { 
+                window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; window.accessLevel = 'guest';
                 if(window.isDataLoaded) window.processDataForAccess();
-                if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
+                if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
             }
         });
     </script>

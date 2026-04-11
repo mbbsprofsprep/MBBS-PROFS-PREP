@@ -176,23 +176,9 @@
                 this.toggleView('institutes');
                 document.getElementById('institutes-grid').innerHTML = window.DATA.institutes.map(inst => {
                     if (inst.locked) {
-                        return `
-                            <div onclick="window.app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50">
-                                <div class="absolute top-3 right-3 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">Soon</div>
-                                <div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300">${inst.badge}</div>
-                                <h3 class="font-bold text-lg mb-1 text-slate-500">${inst.name}</h3>
-                                <p class="text-sm text-slate-400">${inst.city}</p>
-                            </div>`;
+                        return `<div onclick="window.app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300">${inst.badge}</div><h3 class="font-bold text-lg mb-1 text-slate-500">${inst.name}</h3><p class="text-sm text-slate-400">${inst.city}</p></div>`;
                     }
-                    return `
-                        <div onclick="window.app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform group">
-                            <div class="flex justify-between mb-4">
-                                <div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg dark:bg-brand-900/30">${inst.badge}</div>
-                                <span class="text-slate-300 group-hover:text-accent-yellow transition-colors">↗</span>
-                            </div>
-                            <h3 class="font-bold text-lg mb-1 text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">${inst.name}</h3>
-                            <p class="text-sm text-slate-500 dark:text-slate-400">${inst.city}</p>
-                        </div>`;
+                    return `<div onclick="window.app.goToYears('${inst.id}', '${inst.name}')" class="glass-card p-6 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform group"><div class="flex justify-between mb-4"><div class="w-12 h-12 rounded-lg bg-brand-50 text-brand-400 flex items-center justify-center font-bold text-lg dark:bg-brand-900/30">${inst.badge}</div><span class="text-slate-300 group-hover:text-accent-yellow transition-colors">↗</span></div><h3 class="font-bold text-lg mb-1 text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">${inst.name}</h3><p class="text-sm text-slate-500 dark:text-slate-400">${inst.city}</p></div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
@@ -248,7 +234,6 @@
             }
         };
 
-        // --- PDF SMART APP LOGIC ---
         window.PDF_SMART_DB = {
             "AIIMS Deoghar": {
                 "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
@@ -332,7 +317,6 @@
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                    if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -344,13 +328,11 @@
                         }
                         window.globalUserStatus = sub; 
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                        if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
                 window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
-                if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
             }
         });
     </script>

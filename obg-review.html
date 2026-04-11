@@ -218,7 +218,7 @@
         window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         window.isDataLoaded = false;
         
-        // NEW: Global Bookmark Store
+        // Global Bookmark Store
         window.userBookmarks = {}; 
 
         // Data Arrays
@@ -441,7 +441,7 @@
             return !!window.userBookmarks[qId];
         };
 
-        // --- NATURAL SORTING HELPER ---
+        // --- NATURAL SORTING + ARRAY FLATTENING ---
         window.getUniqueValues = function(key) {
             const values = new Set();
             if (key === 'chapter') {
@@ -452,9 +452,17 @@
             } 
             
             window.qnaData.forEach(item => { 
-                if (key === 'type') values.add(item.type); 
-                else if (key === 'exam') values.add(item.examBatch); 
-                else values.add(item[key]); 
+                if (key === 'type' && item.type) {
+                    values.add(item.type); 
+                } else if (key === 'exam' && item.examBatch) {
+                    if (Array.isArray(item.examBatch)) {
+                        item.examBatch.forEach(e => values.add(e));
+                    } else {
+                        values.add(item.examBatch);
+                    }
+                } else if (item[key]) {
+                    values.add(item[key]); 
+                }
             });
             return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
         }
@@ -550,7 +558,8 @@
                 cell_chapter.innerHTML = chapterHtml;
 
                 let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
-                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${item.examBatch}</div>`;
+                const batchString = Array.isArray(item.examBatch) ? item.examBatch.join(', ') : item.examBatch;
+                cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${batchString}</div>`;
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
                 
@@ -595,10 +604,21 @@
                     let rowText = (tr[i].cells[1].textContent || "") + (tr[i].cells[3].textContent || "") + (tr[i].cells[4].textContent || "");
                     if (rowText.toLowerCase().indexOf(searchText) === -1) showRow = false;
                 }
+                
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
-                // Bug Fix: Check if item.chapter exists before checking array
+                
                 if (showRow && window.filterState.chapters.size > 0 && !(item.chapter && item.chapter.some(ch => window.filterState.chapters.has(ch)))) showRow = false;
-                if (showRow && window.filterState.exams.size > 0 && !window.filterState.exams.has(item.examBatch)) showRow = false;
+                
+                if (showRow && window.filterState.exams.size > 0) {
+                    let hasExamMatch = false;
+                    if (Array.isArray(item.examBatch)) {
+                        hasExamMatch = item.examBatch.some(e => window.filterState.exams.has(e));
+                    } else {
+                        hasExamMatch = window.filterState.exams.has(item.examBatch);
+                    }
+                    if (!hasExamMatch) showRow = false;
+                }
+
                 tr[i].style.display = showRow ? "" : "none";
             }
         }
@@ -643,7 +663,7 @@
         }
 
         // ==========================================
-        // ORIGINAL DECK VIEW RESTORED & UPDATED
+        // DECK VIEW
         // ==========================================
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
@@ -659,11 +679,22 @@
 
             window.activeDeckQuestions = window.displayData.filter(q => {
                 let show = true;
-                let rowText = (q.stem || "") + (q.chapter ? q.chapter.join(" ") : "") + (q.examBatch || "");
+                
+                let examText = Array.isArray(q.examBatch) ? q.examBatch.join(" ") : (q.examBatch || "");
+                let chapterText = Array.isArray(q.chapter) ? q.chapter.join(" ") : (q.chapter || "");
+                let rowText = (q.stem || "") + " " + chapterText + " " + examText;
+                
                 if (search && rowText.toLowerCase().indexOf(search) === -1) show = false;
                 if (show && selectedTypes.length > 0 && !selectedTypes.includes(q.type)) show = false;
-                if (show && selectedBatches.length > 0 && !selectedBatches.includes(q.examBatch)) show = false;
-                // Bug Fix: Check if q.chapter exists
+                
+                if (show && selectedBatches.length > 0) {
+                    if (Array.isArray(q.examBatch)) {
+                        if (!q.examBatch.some(e => selectedBatches.includes(e))) show = false;
+                    } else {
+                        if (!selectedBatches.includes(q.examBatch)) show = false;
+                    }
+                }
+                
                 if (show && selectedChapters.length > 0 && !(q.chapter && q.chapter.some(ch => selectedChapters.includes(ch)))) show = false;
                 return show;
             });
@@ -741,7 +772,6 @@
         }
 
         window.populateDeckFilters = function() {
-            // Extract all chapters directly from curriculum to include empty chapters
             let allChapters = [];
             if (window.curriculumData && window.curriculumData.length > 0) {
                 allChapters = window.curriculumData.flatMap(group => group.chapters);
@@ -749,12 +779,17 @@
                 allChapters = window.qnaData.flatMap(q => q.chapter || []);
             }
 
-            // Natural Sort magic logic
+            let allBatches = [];
+            window.qnaData.forEach(q => {
+                if (Array.isArray(q.examBatch)) allBatches.push(...q.examBatch);
+                else if (q.examBatch) allBatches.push(q.examBatch);
+            });
+
             const naturalSort = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 
             const chapters = [...new Set(allChapters)].sort(naturalSort);
-            const types = [...new Set(window.qnaData.map(q => q.type))].sort(naturalSort);
-            const batches = [...new Set(window.qnaData.map(q => q.examBatch))].sort(naturalSort);
+            const types = [...new Set(window.qnaData.map(q => q.type).filter(Boolean))].sort(naturalSort);
+            const batches = [...new Set(allBatches)].sort(naturalSort);
             
             const container = document.getElementById('deck-filter-content');
             const buildGroup = (label, category, opts) => {
@@ -809,7 +844,6 @@
             const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             let questionHtml = ''; let optsHtml = '';
 
-            // Deck Bookmark Button Logic
             const bookmarked = window.isBookmarked(q.q);
             const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
@@ -821,7 +855,6 @@
                         const letter = window.optionLetters[i]; 
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         
-                        // AMNESIA FIX: Restore state if already answered
                         const status = window.deckStatus[q.q];
                         let btnClass = "deck-option-btn group";
                         let disabledAttr = status ? "disabled" : ""; 
@@ -908,7 +941,7 @@
         }
 
         // ==========================================
-        // 🚀 BOOT SEQUENCE
+        // BOOT SEQUENCE
         // ==========================================
         window.onload = async () => { 
             if (localStorage.getItem('theme') === 'dark') {
@@ -918,13 +951,10 @@
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
-            // Fetch JSON Data First
             await window.fetchQuestions();
-
             window.populateFilters(); 
             window.initDeckView(); 
             window.populateDeckFilters();
-            
             window.processDataForAccess();
         };
     </script>
@@ -947,9 +977,7 @@
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
 
-        // Make db globally accessible for the Bookmark function
         window.db = db;
-
         const allowedVIPs = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
         window.handleEmailLogin = function(btn) {
@@ -1019,7 +1047,6 @@
                 const email = user.email.toLowerCase().trim();
                 localStorage.setItem('medqs_user_email', email);
 
-                // --- SYNC FIREBASE BOOKMARKS ---
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
                     if (window.isDataLoaded) {

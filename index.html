@@ -106,9 +106,11 @@
             </button>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body"></div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body">
+            </div>
         
-        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer"></div>
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer">
+            </div>
     </aside>
     
     <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
@@ -191,12 +193,12 @@
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
 
     <script>
-        // Secure Global State
+        // Secure Global State explicitly attached to window
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
-        window.userBookmarks = {}; // Global store for Cloud Bookmarks
 
+        // Shared App Logo to keep consistency
         const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
         window.toggleAuthMode = function(mode) {
@@ -226,7 +228,7 @@
             } else { alert(msg); }
         };
 
-        // --- THE FULLY RESTORED MASSIVE DATABASE ---
+        // UI Routing Data
         window.DATA = {
             locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
             institutes: [
@@ -250,30 +252,8 @@
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Pediatrics', icon: '🧸', id: 'pediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anesthesia', icon: '💉', id: 'anesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-                'delhi_biochemistry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/biochemistry-aiims-delhi.html'}],
-                'delhi_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anatomy-aiims-delhi.html'}],
-                'delhi_physiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/physiology-aiims-delhi.html'}],
-                'deoghar_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anatomy-database.html' }],
-                'deoghar_biochemistry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/biochemistry-database.html' }],
-                'deoghar_physiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/physiology.html' }],
-                'deoghar_microbiology': [{ label: 'Chapter Wise PYQ-Apurva Sastry Index', url: 'https://medqs.blogspot.com/2025/10/microbiology-database.html' }],
-                'deoghar_pharmacology': [{ label: 'CHAPTER WISE PYQ-GRG INDEX', url: 'https://medqs.blogspot.com/2025/11/pharma-database.html' }],
-                'deoghar_pathology': [{ label:'Pathology Ed8.0', url: 'https://medqs.blogspot.com/2025/12/patho-ed8.html' }],
-                'deoghar_fmt': [{ label: 'Chapter Wise PYQ-ed8 Index', url: 'https://medqs.blogspot.com/2025/10/fmt-database.html' }],
-                'deoghar_psm': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/cfm-pyqs.html' }],
-                'deoghar_ent': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/ent-pyqs.html'}],
-                'deoghar_ophthalmology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/ophthalmology-pyqs.html'}],
-                'deoghar_psychiatry': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/psychiatry-pyqs.html'}],
-                'deoghar_orthopaedics': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/orthopaedics-pyqs.html'}],
-                'deoghar_medicine': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/medicine-pyq.html'}],
-                'deoghar_surgery': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/surgery-pyqs.html'},{label:'Bailey and Love Chapterwise', url:'https://medqs.blogspot.com/2026/03/surgery-bailey-and-love.html'}],
-                'deoghar_obg': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/obg-pyqs.html'},{ label: 'DC DUTTA Index', url: 'https://medqs.blogspot.com/2026/03/obg-pyqs-dutta.html'}],
-                'deoghar_pediatrics': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/pediatrics-pyqs.html'}],
-                'deoghar_dermatology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/dermatology-pyqs.html'}],
-                'deoghar_anesthesia': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/anesthesia-pyqs.html'}],
-                'deoghar_radiology': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2025/12/radiology-pyqs.html'}],
-                'kalyani_anatomy': [{ label: 'Chapter Wise PYQ', url: 'https://medqs.blogspot.com/2026/01/anatomy-aiims-kalyani.html'}],
-                'kalyani_physiology': [{ label: 'Chapter wise PYQ',url:'https://medqs.blogspot.com/2026/01/physiology-aiims-kalyani.html'}]
+                'deoghar_obg': [{ label: 'Chapter Wise PYQ', url: 'obg-review.html?college=deoghar'}],
+                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
         };
 
@@ -325,7 +305,10 @@
                     </div>`;
 
                 if (user) {
+                    // --------- LOGGED IN VIEWS ---------
+                    
                     if (this.viewMode === 'menu') {
+                        // 1. MAIN DASHBOARD VIEW
                         let badgeHtml = ''; 
                         let daysHtml = '';
                         
@@ -370,7 +353,7 @@
                             </div>
                             
                             <div class="flex flex-col gap-2">
-                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-slate-700 flex items-center justify-center text-brand-500 text-lg group-hover:scale-110 transition-transform">👤</span> 
                                         My Profile
@@ -378,7 +361,7 @@
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-accent-yellow/10 dark:bg-slate-700 flex items-center justify-center text-accent-yellow text-lg group-hover:scale-110 transition-transform">🔖</span> 
                                         Bookmarks & Saved
@@ -386,7 +369,7 @@
                                     <span class="text-slate-400 text-xs">❯</span>
                                 </a>
                                 
-                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
                                     <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm">
                                         <span class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-slate-700 flex items-center justify-center text-purple-500 text-lg group-hover:scale-110 transition-transform">💳</span> 
                                         Subscription & Billing
@@ -404,31 +387,29 @@
                         `;
 
                     } else if (this.viewMode === 'bookmarks') {
-                        // ---- RENDER CLOUD BOOKMARKS VIEW ----
-                        const bookmarksObj = window.userBookmarks || {};
-                        const bookmarks = Object.values(bookmarksObj).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                        
+                        // 2. BOOKMARKS VIEW
+                        const bookmarks = JSON.parse(localStorage.getItem('medqs_bookmarks')) || [];
                         let bookmarksHtml = '';
                         
                         if (bookmarks.length === 0) {
                             bookmarksHtml = `
                                 <div class="flex flex-col items-center justify-center py-12 text-center">
-                                    <span class="text-5xl mb-4 opacity-50">☁️</span>
-                                    <h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Cloud Bookmarks</h4>
-                                    <p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you save in the library will sync here across all your devices.</p>
-                                </div>`;
+                                    <span class="text-5xl mb-4 opacity-70">🔖</span>
+                                    <h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4>
+                                    <p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will appear here for quick review.</p>
+                                    <button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-sm">Go Back</button>
+                                </div>
+                            `;
                         } else {
                             bookmarksHtml = `<div class="space-y-3 mt-4">`;
                             bookmarks.forEach((bm) => {
                                 bookmarksHtml += `
                                     <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 relative group transition-all hover:border-brand-300 dark:hover:border-brand-700">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="text-xs text-brand-500 font-bold uppercase tracking-wide">${bm.subject || 'Saved Q'}</div>
-                                            <div class="text-[10px] font-black text-slate-400 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">${bm.q}</div>
-                                        </div>
-                                        <div class="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-3 mb-3">${bm.text}</div>
+                                        <div class="text-xs text-brand-500 font-bold mb-2 uppercase tracking-wide">${bm.subject || 'QBank'}</div>
+                                        <div class="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-3 mb-3">${bm.text || 'Saved Question'}</div>
                                         <a href="${bm.url || '#'}" class="inline-block text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2 rounded-lg transition-colors shadow-sm">Review Question ➝</a>
-                                    </div>`;
+                                    </div>
+                                `;
                             });
                             bookmarksHtml += `</div>`;
                         }
@@ -439,13 +420,14 @@
                                     <span class="text-lg leading-none mb-0.5">←</span> Back to Menu
                                 </button>
                                 <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Saved Items</h3>
-                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Synced securely to your profile.</p>
+                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Quickly access your difficult questions.</p>
                                 ${bookmarksHtml}
                             </div>
                         `;
                         this.els.footer.innerHTML = ``; // Hide footer here to give more space
 
                     } else if (this.viewMode === 'edit_profile') {
+                        // 3. EDIT PROFILE VIEW
                         const currentYear = pData.joinYear || '';
                         const isS = (v, t) => (v === t) ? 'selected' : '';
                         
@@ -492,11 +474,12 @@
                                 </div>
                             </div>
                         `;
-                        this.els.footer.innerHTML = ``; 
+                        this.els.footer.innerHTML = ``; // Hide footer
                     }
                     
                 } else {
                     // --------- LOGGED OUT VIEWS ---------
+                    
                     if (this.authMode === 'login') {
                         this.els.body.innerHTML = `
                             <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
@@ -902,18 +885,11 @@
             }
         };
 
-        // --- THE FULLY RESTORED PDF SMART DB ---
+        // --- PDF SMART APP LOGIC ---
         window.PDF_SMART_DB = {
-            "AIIMS Delhi": {
-                "Anatomy": "LINK_1",
-                "Physiology": "LINK_2"
-            },
             "AIIMS Deoghar": {
-               "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
-                "ophthalmology": "https://docs.google.com/document/d/1TSn9DqPasjEfccTqkseKVGwU3iugVYMeN-lTJGNtv7A/edit?usp=drivesdk",
-                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk",
-                "ENT": "https://docs.google.com/document/d/1TAJNfXZkak0vdBQy_nYWipJbb4_mQ_apUeqFsIpENAw/edit?usp=drivesdk",
-                "Orthopaedics": "https://docs.google.com/document/d/1TI9sYHWaRdKri4IGlYh7AwNhgZKltM5LKtOncWAFZow/edit?usp=drivesdk"
+                "Pathology": "https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview",
+                "CFM": "https://docs.google.com/document/d/1FxoWgI71WdNPrM8WSf1yAPPeeZhT4f9KuGvwaY779mE/edit?usp=drivesdk"
             }
         };
 
@@ -1177,15 +1153,6 @@
                     window.currentUserProfileData = s.val() || {}; 
                     window.userPanelApp.renderState(); 
                 });
-
-                // --- CLOUD BOOKMARKS SYNC ---
-                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
-                    window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
-                    // Re-render side panel dynamically if the user is looking at the bookmarks tab
-                    if (window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') {
-                        window.userPanelApp.renderState();
-                    }
-                });
                 
                 // VIP BYPASS LOGIC
                 if (allowedVIPs.includes(email)) {
@@ -1215,7 +1182,6 @@
             } else { 
                 window.currentUserProfileData = {}; 
                 window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
-                window.userBookmarks = {}; 
                 window.userPanelApp.renderState(); 
                 window.pdfSmartApp.checkVisibility();
             }

@@ -447,9 +447,13 @@
                                         
                                         ${optionsHtml}
                                         
-                                        <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                        <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                            <button onclick="window.deleteBookmark('${bm.q}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1.5 uppercase tracking-wide">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Remove
+                                            </button>
+                                            
                                             <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 px-4 py-2.5 rounded-xl transition-colors border border-brand-200 dark:border-brand-800 flex items-center gap-1.5 shadow-sm">
-                                                Review in QBank <span class="text-lg leading-none">➝</span>
+                                                Review <span class="text-lg leading-none">➝</span>
                                             </a>
                                         </div>
                                     </div>
@@ -1087,6 +1091,18 @@
             "indrajeet91434@gmail.com", 
             "pankajkumarmahto1009@gmail.com"
         ];
+
+        // GLOBAL DELETE FUNCTION
+        window.deleteBookmark = async function(qId) {
+            if (!window.currentUserObj) return;
+            if (!confirm("Remove this question from your saved items?")) return;
+            try {
+                await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null);
+                // Realtime onValue listener will automatically update the UI immediately!
+            } catch(e) {
+                alert("Failed to remove bookmark: " + e.message);
+            }
+        };
 
         window.saveEditedProfile = async function(btn) {
             const name = document.getElementById('edit-name').value.trim();

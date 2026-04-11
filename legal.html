@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal & Info - MBBS Profs Prep</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' },
+                        accent: { yellow: '#ffc107', yellowHover: '#e0a800' },
+                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
+                    },
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; }
+        body { background-color: #f0f9ff; color: #0f172a; transition: background-color 0.3s ease, color 0.3s ease; }
+        html.dark body { background-color: #020617 !important; color: #f8fafc !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 10px; }
+        html.dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; color: #f1f5f9; }
+        
+        .legal-content h2 { font-size: 1.5rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: #0ea5e9; }
+        html.dark .legal-content h2 { color: #38bdf8; }
+        .legal-content p { margin-bottom: 1rem; line-height: 1.7; color: #475569; }
+        html.dark .legal-content p { color: #cbd5e1; }
+        .legal-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.5rem; color: #475569; }
+        html.dark .legal-content ul { color: #cbd5e1; }
+        .legal-content li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+
+<body class="bg-brand-50 text-slate-900 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen">
+    
+    <script src="app-shell.js"></script>
+
+    <div id="canvas-container"></div>
+
+    <main class="relative z-10 pt-28 pb-20 w-full px-4 md:px-6 flex-1 max-w-4xl mx-auto">
+        <div class="glass-card p-8 md:p-12 rounded-2xl shadow-sm legal-content">
+            
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-6 mb-8 text-center">
+                <h1 id="page-title" class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Loading...</h1>
+                <p class="text-sm text-slate-500 mt-2">Last Updated: <span id="current-date">January 2026</span></p>
+            </div>
+
+            <div id="content-about" class="hidden">
+                <p class="text-lg font-medium text-slate-700 dark:text-slate-300">Welcome to MBBS Profs Prep, India's premier digital learning portal dedicated to medical undergraduates.</p>
+                <h2>Our Mission</h2>
+                <p>Medical education is vast, demanding, and rigorous. Our mission is to simplify exam preparation for MBBS students across AIIMS and other leading medical colleges in India by providing meticulously curated, high-yield Previous Year Questions (PYQs) structured specifically for university professional exams.</p>
+                <h2>What We Do</h2>
+                <p>We aggregate, digitize, and systematically categorize academic data ranging from First Prof to Final Prof. Our platform allows students to filter questions by unit, chapter, and exam batch, saving countless hours of manual searching. Through our native app-like experience, students can bookmark tough questions, toggle MCQ answers, and review topics seamlessly on any device.</p>
+                <h2>Our Vision</h2>
+                <p>We aim to be the ultimate companion for every medical student in India, ensuring that no student walks into an exam hall unprepared. By bridging the gap between vast textbook curriculum and targeted exam patterns, we help shape confident, knowledgeable future doctors.</p>
+            </div>
+
+            <div id="content-contact" class="hidden">
+                <p>If you have any questions, concerns, or technical issues regarding your subscription or account, we are here to help!</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div class="bg-brand-50 dark:bg-slate-800 p-6 rounded-xl border border-brand-100 dark:border-slate-700">
+                        <div class="text-3xl mb-3">📧</div>
+                        <h3 class="font-bold text-lg mb-2 dark:text-white">Email Support</h3>
+                        <p class="text-sm mb-4">For fast assistance, drop us an email. We aim to respond within 24 hours.</p>
+                        <a href="mailto:educateindiainstitute@gmail.com" class="text-brand-600 dark:text-brand-400 font-bold hover:underline">educateindiainstitute@gmail.com</a>
+                    </div>
+                    
+                    <div class="bg-brand-50 dark:bg-slate-800 p-6 rounded-xl border border-brand-100 dark:border-slate-700">
+                        <div class="text-3xl mb-3">📍</div>
+                        <h3 class="font-bold text-lg mb-2 dark:text-white">Headquarters</h3>
+                        <p class="text-sm">MBBS Profs Prep<br>India</p>
+                        <p class="text-xs text-slate-500 mt-4">(Please use email for the fastest resolution to technical queries).</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-terms" class="hidden">
+                <p>By accessing or using the MBBS Profs Prep platform, you agree to comply with and be bound by these Terms and Conditions.</p>
+                <h2>1. Account Registration</h2>
+                <p>You must register for an account to access our Question Banks. You agree to provide accurate information (Name, College, Batch) and to keep your login credentials secure. Sharing your account credentials with multiple users is strictly prohibited and may result in immediate account termination without refund.</p>
+                <h2>2. Subscription & Access</h2>
+                <p>Certain sections of the platform are locked behind a premium subscription. Access is granted only for the duration of your active subscription period. We reserve the right to modify subscription pricing, but changes will not affect your currently active billing cycle.</p>
+                <h2>3. Intellectual Property</h2>
+                <p>All content, including compiled Question Banks, MCQs, website design, and UI layouts are the intellectual property of MBBS Profs Prep. You may not scrape, copy, redistribute, or reproduce our database for commercial or public use.</p>
+                <h2>4. Disclaimer of Warranties</h2>
+                <p>While we strive for 100% accuracy, medical knowledge is constantly evolving. The platform is provided "as is" for exam preparation purposes. It does not constitute professional medical advice, and we are not liable for any discrepancies in the answer keys or exam outcomes.</p>
+                <h2>5. Account Termination</h2>
+                <p>We reserve the right to suspend or terminate your access to the platform at any time for violations of these Terms, including but not limited to unauthorized data scraping or abusive behavior.</p>
+            </div>
+
+            <div id="content-privacy" class="hidden">
+                <p>Your privacy is critically important to us. This policy outlines how we collect, use, and protect your data.</p>
+                <h2>1. Information We Collect</h2>
+                <ul>
+                    <li><strong>Personal Data:</strong> Name, Email Address, College Name, City, and Phone Number provided during registration.</li>
+                    <li><strong>Usage Data:</strong> Questions you bookmark, pages you visit, and device information to optimize your experience.</li>
+                </ul>
+                <h2>2. How We Use Your Information</h2>
+                <p>We use your data exclusively to provide our educational services. Your email is used for account authentication and password resets. Your profile data (College/Batch) helps us tailor content. Your bookmarked questions are synced securely to the cloud so you can access them across devices.</p>
+                <h2>3. Data Storage & Third Parties</h2>
+                <p>Your data is securely stored using Google Firebase. We utilize enterprise-grade security protocols. We do not sell, rent, or trade your personal information to any third-party marketing companies.</p>
+                <p>For payments, we utilize external secure payment gateways (e.g., Razorpay). We do not store your credit card or bank details on our servers.</p>
+                <h2>4. Your Rights</h2>
+                <p>You have the right to request access to the data we hold about you, or request its deletion. You can edit your profile data at any time via the "My Profile" tab in your account drawer.</p>
+            </div>
+
+            <div id="content-refunds" class="hidden">
+                <p>We want you to be completely satisfied with your MBBS Profs Prep subscription. Please review our policy regarding cancellations and refunds.</p>
+                <h2>1. Digital Goods Policy</h2>
+                <p>Because our platform provides immediate access to digital Question Banks and educational materials upon purchase, <strong>all subscription sales are considered final.</strong></p>
+                <h2>2. Refund Eligibility</h2>
+                <p>We generally do not offer refunds once a subscription is activated and access is granted. However, exceptions may be made under the following circumstances:</p>
+                <ul>
+                    <li>You were incorrectly charged multiple times due to a technical error on our payment gateway.</li>
+                    <li>You have not logged in or accessed any premium content since the payment was made, and you request a refund within 48 hours of the transaction.</li>
+                </ul>
+                <h2>3. Cancellations</h2>
+                <p>If you are on a recurring billing cycle (e.g., monthly), you may cancel your subscription at any time. Cancellation will prevent future charges, but you will retain premium access until the end of your current paid billing period. We do not provide prorated refunds for partial months.</p>
+                <h2>4. Requesting a Refund</h2>
+                <p>If you believe you qualify for a refund due to a technical billing error, please contact us immediately at <strong>educateindiainstitute@gmail.com</strong> with your registered email address and proof of payment.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        // Set Date
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        // Logic to determine which page to show based on URL parameter
+        document.addEventListener("DOMContentLoaded", () => {
+            const params = new URLSearchParams(window.location.search);
+            const page = params.get('page') || 'about';
+            
+            // Hide all first (just in case)
+            ['about', 'contact', 'terms', 'privacy', 'refunds'].forEach(id => {
+                const el = document.getElementById('content-' + id);
+                if (el) el.classList.add('hidden');
+            });
+
+            // Show selected and update title
+            const activeEl = document.getElementById('content-' + page);
+            const titleEl = document.getElementById('page-title');
+            
+            if (activeEl) {
+                activeEl.classList.remove('hidden');
+                
+                switch(page) {
+                    case 'about': titleEl.innerText = "About Us"; break;
+                    case 'contact': titleEl.innerText = "Contact Support"; break;
+                    case 'terms': titleEl.innerText = "Terms & Conditions"; break;
+                    case 'privacy': titleEl.innerText = "Privacy Policy"; break;
+                    case 'refunds': titleEl.innerText = "Cancellation & Refunds"; break;
+                }
+            } else {
+                // Fallback to about if invalid parameter
+                document.getElementById('content-about').classList.remove('hidden');
+                titleEl.innerText = "About Us";
+            }
+        });
+        
+        // 3D Background Init
+        window.init3D = function() {
+            const container = document.getElementById('canvas-container');
+            if(!container) return;
+            const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000); camera.position.z = 40;
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
+            const group = new THREE.Group(); scene.add(group); const geo = new THREE.SphereGeometry(0.3, 8, 8);
+            let mb = new THREE.MeshBasicMaterial({ color: 0x3395ff }), my = new THREE.MeshBasicMaterial({ color: 0xffc107 });
+            for(let i=0; i<150; i++) { const a=i*0.4; group.add(new THREE.Mesh(geo, i%4===0?my:mb).translateOnAxis(new THREE.Vector3((i*0.8)-60, Math.sin(a)*8, Math.cos(a)*8),1)); }
+            (function animate() { requestAnimationFrame(animate); group.rotation.x+=0.002; renderer.render(scene, camera); })();
+            window.update3D = () => container.style.opacity = document.documentElement.classList.contains('dark') ? 0.1 : 0.6;
+            window.update3D();
+        }
+        
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); }
+        window.init3D();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
+            authDomain: "mbbs-profs-prep48c.firebaseapp.com",
+            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
+            projectId: "mbbs-profs-prep48c",
+            storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
+            messagingSenderId: "378639777472",
+            appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
+        };
+        const fbApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fbApp);
+        const db = getDatabase(fbApp);
+        window.db = db;
+
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com" ];
+
+        // Global functions for App Shell authentication
+        window.handleEmailLogin = (btn) => {
+            const e = document.getElementById('login-email').value; const p = document.getElementById('login-pass').value;
+            if(!e || !p) return window.showAuthError("Email/Pass required");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Verifying...";
+            signInWithEmailAndPassword(auth, e, p).catch(err => { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); });
+        };
+        window.handleEmailSignUp = async (btn) => {
+            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
+            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
+            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
+            try {
+                const uc = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(uc.user, { displayName: n });
+                await set(ref(db, 'users/' + uc.user.uid + '/profile'), { fullName: n, email: e, joinYear: j, college: c, country: cy, city: city || "Not provided", phone: phone || "Not provided", createdAt: new Date().toISOString() });
+            } catch(err) { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); }
+        };
+        window.handleForgotPass = () => {
+            const e = document.getElementById('login-email').value; if(!e) return window.showAuthError("Enter email first");
+            sendPasswordResetEmail(auth, e).then(() => {
+                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+            }).catch(err => window.showAuthError(err.message));
+        };
+        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
+        window.saveEditedProfile = async function(btn) {
+            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
+            if (!name) return alert("Name is required!");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
+            try {
+                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
+                if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
+                btn.innerText = "Saved!"; btn.classList.replace('bg-brand-500', 'bg-green-500');
+                setTimeout(() => { btn.innerText = originalText; btn.classList.replace('bg-green-500', 'bg-brand-500'); btn.disabled = false; window.userPanelApp.setView('menu'); }, 1000);
+            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = originalText; }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            window.currentUserObj = user;
+            if (user) {
+                const email = user.email.toLowerCase().trim();
+                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
+                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); });
+
+                if (allowedVIPs.includes(email)) {
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                } else {
+                    onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
+                        let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+                        if (s.exists()) {
+                            const d = s.val(); const today = new Date(); today.setHours(0,0,0,0); const exp = new Date(d.validUntil); exp.setHours(0,0,0,0);
+                            const diff = Math.ceil((exp - today) / 86400000);
+                            if (diff >= 0 && d.status === "active") sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
+                            else sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
+                        }
+                        window.globalUserStatus = sub; 
+                        if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                    });
+                }
+            } else { 
+                window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
+                if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+            }
+        });
+    </script>
+</body>
+</html>

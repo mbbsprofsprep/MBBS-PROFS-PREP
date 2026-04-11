@@ -35,13 +35,11 @@
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
         html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
 
-        /* Custom scrollbar for sidebars and accordions */
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
         html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
 
-        /* Hide summary default arrow in Safari/Chrome */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
 
@@ -110,39 +108,7 @@
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>
 
-    <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
-        <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
-            <div class="flex items-center gap-3 md:gap-4">
-                <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
-                <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
-                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
-                    <div class="leading-tight hidden sm:block">
-                        <h1 class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Return to Portal</p>
-                    </div>
-                </a>
-            </div>
-            <div class="flex items-center gap-3">
-                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="window.toggleTheme()">
-                    <span id="theme-icon">🌙</span>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px]" id="user-panel-drawer">
-        <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg shrink-0">
-            <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
-            <button onclick="window.userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="user-panel-body"></div>
-        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer"></div>
-    </aside>
-    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
+    <script src="app-shell.js"></script>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
         <header class="text-center mb-10">
@@ -206,485 +172,27 @@
     <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
         <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
             <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
-            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
-                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
-            </div>
         </div>
     </footer>
 
     <script>
+        // --- CONSTANTS & GLOBALS ---
         window.SECRET_CODE = "777pankaj";
         window.optionLetters = ['A', 'B', 'C', 'D'];
         window.motivationalMessages = ["Hi [Name]! You are bringing life to your studies!", "Hey [Name], every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!"];
 
-        // Secure Global State
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {};
         window.accessLevel = 'guest'; 
         window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         window.isDataLoaded = false;
-        
-        // Global Bookmark Store
         window.userBookmarks = {}; 
 
-        // Shared App Logo to keep consistency
-        const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
-
-        // Data Arrays
         window.COLLEGE_NAME = "AIIMS";
         window.curriculumData = [];
         window.qnaData = [];
         window.displayData = [];
-
-        // --- AUTH UI HELPERS ---
-        window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };
-        window.togglePassword = function() {
-            const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
-            const icon = document.getElementById('eye-icon');
-            if (!input) return;
-            if (input.type === "password") {
-                input.type = "text";
-                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
-            } else {
-                input.type = "password";
-                if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
-            }
-        };
-        window.showAuthError = function(msg) {
-            const errDiv = document.getElementById('auth-error-msg');
-            if(errDiv) { errDiv.innerText = msg; errDiv.classList.remove('hidden'); setTimeout(() => errDiv.classList.add('hidden'), 5000); } 
-            else { alert(msg); }
-        };
-
-        // --- THE FULLY ENHANCED MULTI-VIEW USER PANEL ---
-        window.userPanelApp = {
-            isOpen: false, 
-            authMode: 'login', 
-            viewMode: 'menu', 
-            
-            els: function() { 
-                return {
-                    drawer: document.getElementById('user-panel-drawer'), 
-                    backdrop: document.getElementById('user-panel-backdrop'), 
-                    body: document.getElementById('user-panel-body'), 
-                    footer: document.getElementById('user-panel-footer') 
-                }
-            },
-            
-            toggle: function() { this.isOpen ? this.close() : this.open(); },
-            
-            open: function() { 
-                this.isOpen = true; 
-                this.viewMode = 'menu'; 
-                this.renderState(); 
-                const e = this.els();
-                if(e.drawer) e.drawer.classList.remove('-translate-x-full'); 
-                if(e.backdrop) e.backdrop.classList.remove('opacity-0', 'pointer-events-none'); 
-            },
-            
-            close: function() { 
-                this.isOpen = false; 
-                const e = this.els();
-                if(e.drawer) e.drawer.classList.add('-translate-x-full'); 
-                if(e.backdrop) e.backdrop.classList.add('opacity-0', 'pointer-events-none'); 
-            },
-            
-            setView: function(view) { 
-                this.viewMode = view; 
-                this.renderState(); 
-            },
-            
-            renderState: function() {
-                const user = window.currentUserObj;
-                const pData = window.currentUserProfileData || {};
-                const els = this.els();
-                if(!els.body || !els.footer) return;
-                
-                const legalFooterHtml = `
-                    <div class="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-full px-2 mb-2 mt-4">
-                        <a href="#" class="hover:text-brand-500 transition-colors">About Us</a> • 
-                        <a href="#" class="hover:text-brand-500 transition-colors">Contact</a> • 
-                        <a href="#" class="hover:text-brand-500 transition-colors">Terms</a> • 
-                        <a href="#" class="hover:text-brand-500 transition-colors">Privacy</a> • 
-                        <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
-                    </div>`;
-
-                if (user) {
-                    if (this.viewMode === 'menu') {
-                        let badgeHtml = ''; let daysHtml = '';
-                        
-                        if (window.globalUserStatus.isVIP) {
-                            badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP ACCESS</span>`;
-                            const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US');
-                            daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center"><span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span><span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span></div>`;
-                        } else if (window.globalUserStatus.expired) {
-                            const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
-                            badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">EXPIRED</span>`;
-                            daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended ${daysAgo} days ago.</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg shadow-sm">Renew Now</a></div>`;
-                        } else {
-                            badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">FREE PLAN</span>`;
-                            daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span><a href="checkout.html" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-brand-600">Unlock QBank</a></div>`;
-                        }
-
-                        const nameToDisplay = user.displayName || pData.fullName || "User";
-                        const initial = user.email.charAt(0).toUpperCase();
-
-                        els.body.innerHTML = `
-                            <div class="flex flex-col items-center justify-center p-6 bg-brand-50 dark:bg-dark-bg rounded-2xl border border-brand-100 dark:border-slate-800 mb-6 shadow-sm">
-                                <div class="w-20 h-20 rounded-full bg-white dark:bg-dark-surface flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">${initial}</div>
-                                <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
-                                <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${user.email}</p>
-                                ${badgeHtml}
-                                ${daysHtml}
-                            </div>
-                            <div class="flex flex-col gap-2">
-                                <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                                    <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-slate-700 flex items-center justify-center text-brand-500 text-lg group-hover:scale-110 transition-transform">👤</span> My Profile</div><span class="text-slate-400 text-xs">❯</span>
-                                </a>
-                                <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                                    <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-8 h-8 rounded-lg bg-accent-yellow/10 dark:bg-slate-700 flex items-center justify-center text-accent-yellow text-lg group-hover:scale-110 transition-transform">🔖</span> Bookmarks & Saved</div><span class="text-slate-400 text-xs">❯</span>
-                                </a>
-                                <a href="checkout.html" class="flex items-center justify-between p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                                    <div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-slate-700 flex items-center justify-center text-purple-500 text-lg group-hover:scale-110 transition-transform">💳</span> Subscription</div><span class="text-slate-400 text-xs">❯</span>
-                                </a>
-                            </div>`;
-                        els.footer.innerHTML = `${legalFooterHtml}<button onclick="window.firebaseSignOut()" class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2 mt-2 border border-red-200 dark:border-red-800"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout</button>`;
-
-                    } else if (this.viewMode === 'bookmarks') {
-                        const bookmarks = Object.values(window.userBookmarks || {}).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                        let bookmarksHtml = '';
-                        
-                        if (bookmarks.length === 0) {
-                            bookmarksHtml = `<div class="flex flex-col items-center justify-center py-12 text-center"><span class="text-5xl mb-4 opacity-70">🔖</span><h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4><p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p><button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">Go Back</button></div>`;
-                        } else {
-                            bookmarksHtml = `<div class="space-y-4 mt-4">`;
-                            bookmarks.forEach((bm) => {
-                                let optionsHtml = '';
-                                if (bm.type === 'MCQ' && bm.options) {
-                                    optionsHtml = `<div class="mt-3 space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-700">`;
-                                    bm.options.forEach((opt, idx) => {
-                                        const letter = String.fromCharCode(65 + idx); 
-                                        const isCorrect = bm.ans_key === letter;
-                                        const style = isCorrect ? 'text-green-700 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded' : 'text-slate-600 dark:text-slate-400 px-2 py-1';
-                                        optionsHtml += `<div class="text-xs ${style}">${letter}) ${opt.replace(/<[^>]*>/g, "")}</div>`;
-                                    });
-                                    optionsHtml += `</div>`;
-                                }
-
-                                bookmarksHtml += `
-                                    <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 relative group transition-all hover:border-brand-300 dark:hover:border-brand-700">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="text-[10px] text-brand-500 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded">${bm.subject || 'QBank'}</div>
-                                            <span class="text-[10px] text-slate-400 font-medium">${new Date(bm.timestamp).toLocaleDateString()}</span>
-                                        </div>
-                                        <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">${bm.text || 'Saved Question'}</div>
-                                        ${optionsHtml}
-                                        <div class="mt-4">
-                                            <a href="${bm.url || '#'}" class="block w-full text-center text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2.5 rounded-lg transition-colors shadow-sm">Review in QBank ➝</a>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            bookmarksHtml += `</div>`;
-                        }
-
-                        els.body.innerHTML = `
-                            <div class="mb-4">
-                                <button onclick="window.userPanelApp.setView('menu')" class="text-sm text-brand-500 font-bold flex items-center gap-1 mb-6 hover:text-brand-600 transition-colors"><span class="text-lg leading-none mb-0.5">←</span> Back to Menu</button>
-                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Saved Items</h3>
-                                <p class="text-xs text-slate-500 mb-4 border-b border-slate-200 dark:border-slate-800 pb-4">Quickly access your difficult questions synced from the cloud.</p>
-                                ${bookmarksHtml}
-                            </div>`;
-                        els.footer.innerHTML = ``;
-
-                    } else if (this.viewMode === 'edit_profile') {
-                        const currentYear = pData.joinYear || '';
-                        const isS = (v, t) => (v === t) ? 'selected' : '';
-                        els.body.innerHTML = `
-                            <div class="mb-4">
-                                <button onclick="window.userPanelApp.setView('menu')" class="text-sm text-brand-500 font-bold flex items-center gap-1 mb-6"><span class="text-lg leading-none mb-0.5">←</span> Back to Menu</button>
-                                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-6">Edit Profile</h3>
-                                <div class="space-y-4">
-                                    <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Full Name</label><input type="text" id="edit-name" value="${pData.fullName || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" /></div>
-                                    <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">College Name</label><input type="text" id="edit-college" value="${pData.college || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" /></div>
-                                    <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Join Year / Batch</label><select id="edit-join-year" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium outline-none"><option value="">Select</option><option value="2025 Batch" ${isS(currentYear, '2025 Batch')}>2025 Batch</option><option value="2024 Batch" ${isS(currentYear, '2024 Batch')}>2024 Batch</option><option value="2023 Batch" ${isS(currentYear, '2023 Batch')}>2023 Batch</option><option value="2022 Batch" ${isS(currentYear, '2022 Batch')}>2022 Batch</option><option value="2021 Batch" ${isS(currentYear, '2021 Batch')}>2021 Batch (Intern)</option><option value="Post-Grad / JR" ${isS(currentYear, 'Post-Grad / JR')}>Post-Grad / JR</option></select></div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">City</label><input type="text" id="edit-city" value="${pData.city || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" /></div>
-                                        <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone</label><input type="tel" id="edit-phone" value="${pData.phone || ''}" class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" /></div>
-                                    </div>
-                                    <button onclick="window.saveEditedProfile(this)" class="w-full py-4 mt-6 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all">Save Changes</button>
-                                </div>
-                            </div>`;
-                        els.footer.innerHTML = ``;
-                    }
-                } else {
-                    if (this.authMode === 'login') {
-                        els.body.innerHTML = `
-                            <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
-                                <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400 mb-4 object-cover" alt="Logo">
-                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Member Login</h3>
-                                <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
-                                <div class="w-full space-y-3 mb-6 mt-4">
-                                    <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
-                                    <div class="relative w-full">
-                                        <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium" />
-                                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3 text-slate-400">
-                                            <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                        </button>
-                                    </div>
-                                    <div class="text-right w-full">
-                                        <button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 uppercase tracking-wider hover:text-brand-600 transition-colors">Forgot Password?</button>
-                                    </div>
-                                </div>
-                                <button onclick="window.handleEmailLogin(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg active:scale-95 transition-all hover:bg-brand-600">Sign In</button>
-                                <div class="text-center mt-4">
-                                    <span class="text-xs text-slate-500">Don't have an account?</span> 
-                                    <button onclick="window.toggleAuthMode('register')" class="text-xs font-bold text-brand-500 hover:underline ml-1">Create One</button>
-                                </div>
-                            </div>`;
-                    } else {
-                        els.body.innerHTML = `
-                            <div class="flex flex-col items-center justify-start min-h-[calc(100vh-250px)] pb-4">
-                                <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400 mb-4 object-cover mt-2" alt="Logo">
-                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
-                                <p class="text-xs text-slate-500 mb-4">Join the community.</p>
-                                
-                                <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
-                                
-                                <div class="w-full space-y-3 mb-6">
-                                    <select id="reg-country" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-                                        <option value="">Select Country</option>
-                                        <option value="India" selected>India</option>
-                                        <option disabled>──────────</option>
-                                        <option value="Afghanistan">Afghanistan</option>
-                                        <option value="Albania">Albania</option>
-                                        <option value="Algeria">Algeria</option>
-                                        <option value="Andorra">Andorra</option>
-                                        <option value="Angola">Angola</option>
-                                        <option value="Antigua and Barbuda">Antigua and Barbuda</option>
-                                        <option value="Argentina">Argentina</option>
-                                        <option value="Armenia">Armenia</option>
-                                        <option value="Australia">Australia</option>
-                                        <option value="Austria">Austria</option>
-                                        <option value="Azerbaijan">Azerbaijan</option>
-                                        <option value="Bahamas">Bahamas</option>
-                                        <option value="Bahrain">Bahrain</option>
-                                        <option value="Bangladesh">Bangladesh</option>
-                                        <option value="Barbados">Barbados</option>
-                                        <option value="Belarus">Belarus</option>
-                                        <option value="Belgium">Belgium</option>
-                                        <option value="Belize">Belize</option>
-                                        <option value="Benin">Benin</option>
-                                        <option value="Bhutan">Bhutan</option>
-                                        <option value="Bolivia">Bolivia</option>
-                                        <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
-                                        <option value="Botswana">Botswana</option>
-                                        <option value="Brazil">Brazil</option>
-                                        <option value="Brunei">Brunei</option>
-                                        <option value="Bulgaria">Bulgaria</option>
-                                        <option value="Burkina Faso">Burkina Faso</option>
-                                        <option value="Burundi">Burundi</option>
-                                        <option value="Côte d'Ivoire">Côte d'Ivoire</option>
-                                        <option value="Cabo Verde">Cabo Verde</option>
-                                        <option value="Cambodia">Cambodia</option>
-                                        <option value="Cameroon">Cameroon</option>
-                                        <option value="Canada">Canada</option>
-                                        <option value="Central African Republic">Central African Republic</option>
-                                        <option value="Chad">Chad</option>
-                                        <option value="Chile">Chile</option>
-                                        <option value="China">China</option>
-                                        <option value="Colombia">Colombia</option>
-                                        <option value="Comoros">Comoros</option>
-                                        <option value="Congo">Congo</option>
-                                        <option value="Costa Rica">Costa Rica</option>
-                                        <option value="Croatia">Croatia</option>
-                                        <option value="Cuba">Cuba</option>
-                                        <option value="Cyprus">Cyprus</option>
-                                        <option value="Czechia">Czechia</option>
-                                        <option value="Denmark">Denmark</option>
-                                        <option value="Djibouti">Djibouti</option>
-                                        <option value="Dominica">Dominica</option>
-                                        <option value="Dominican Republic">Dominican Republic</option>
-                                        <option value="Ecuador">Ecuador</option>
-                                        <option value="Egypt">Egypt</option>
-                                        <option value="El Salvador">El Salvador</option>
-                                        <option value="Equatorial Guinea">Equatorial Guinea</option>
-                                        <option value="Eritrea">Eritrea</option>
-                                        <option value="Estonia">Estonia</option>
-                                        <option value="Eswatini">Eswatini</option>
-                                        <option value="Ethiopia">Ethiopia</option>
-                                        <option value="Fiji">Fiji</option>
-                                        <option value="Finland">Finland</option>
-                                        <option value="France">France</option>
-                                        <option value="Gabon">Gabon</option>
-                                        <option value="Gambia">Gambia</option>
-                                        <option value="Georgia">Georgia</option>
-                                        <option value="Germany">Germany</option>
-                                        <option value="Ghana">Ghana</option>
-                                        <option value="Greece">Greece</option>
-                                        <option value="Grenada">Grenada</option>
-                                        <option value="Guatemala">Guatemala</option>
-                                        <option value="Guinea">Guinea</option>
-                                        <option value="Guinea-Bissau">Guinea-Bissau</option>
-                                        <option value="Guyana">Guyana</option>
-                                        <option value="Haiti">Haiti</option>
-                                        <option value="Honduras">Honduras</option>
-                                        <option value="Hungary">Hungary</option>
-                                        <option value="Iceland">Iceland</option>
-                                        <option value="Indonesia">Indonesia</option>
-                                        <option value="Iran">Iran</option>
-                                        <option value="Iraq">Iraq</option>
-                                        <option value="Ireland">Ireland</option>
-                                        <option value="Israel">Israel</option>
-                                        <option value="Italy">Italy</option>
-                                        <option value="Jamaica">Jamaica</option>
-                                        <option value="Japan">Japan</option>
-                                        <option value="Jordan">Jordan</option>
-                                        <option value="Kazakhstan">Kazakhstan</option>
-                                        <option value="Kenya">Kenya</option>
-                                        <option value="Kiribati">Kiribati</option>
-                                        <option value="Kuwait">Kuwait</option>
-                                        <option value="Kyrgyzstan">Kyrgyzstan</option>
-                                        <option value="Laos">Laos</option>
-                                        <option value="Latvia">Latvia</option>
-                                        <option value="Lebanon">Lebanon</option>
-                                        <option value="Lesotho">Lesotho</option>
-                                        <option value="Liberia">Liberia</option>
-                                        <option value="Libya">Libya</option>
-                                        <option value="Liechtenstein">Liechtenstein</option>
-                                        <option value="Lithuania">Lithuania</option>
-                                        <option value="Luxembourg">Luxembourg</option>
-                                        <option value="Madagascar">Madagascar</option>
-                                        <option value="Malawi">Malawi</option>
-                                        <option value="Malaysia">Malaysia</option>
-                                        <option value="Maldives">Maldives</option>
-                                        <option value="Mali">Mali</option>
-                                        <option value="Malta">Malta</option>
-                                        <option value="Marshall Islands">Marshall Islands</option>
-                                        <option value="Mauritania">Mauritania</option>
-                                        <option value="Mauritius">Mauritius</option>
-                                        <option value="Mexico">Mexico</option>
-                                        <option value="Micronesia">Micronesia</option>
-                                        <option value="Moldova">Moldova</option>
-                                        <option value="Monaco">Monaco</option>
-                                        <option value="Mongolia">Mongolia</option>
-                                        <option value="Montenegro">Montenegro</option>
-                                        <option value="Morocco">Morocco</option>
-                                        <option value="Mozambique">Mozambique</option>
-                                        <option value="Myanmar">Myanmar</option>
-                                        <option value="Namibia">Namibia</option>
-                                        <option value="Nauru">Nauru</option>
-                                        <option value="Nepal">Nepal</option>
-                                        <option value="Netherlands">Netherlands</option>
-                                        <option value="New Zealand">New Zealand</option>
-                                        <option value="Nicaragua">Nicaragua</option>
-                                        <option value="Niger">Niger</option>
-                                        <option value="Nigeria">Nigeria</option>
-                                        <option value="North Korea">North Korea</option>
-                                        <option value="North Macedonia">North Macedonia</option>
-                                        <option value="Norway">Norway</option>
-                                        <option value="Oman">Oman</option>
-                                        <option value="Pakistan">Pakistan</option>
-                                        <option value="Palau">Palau</option>
-                                        <option value="Palestine State">Palestine State</option>
-                                        <option value="Panama">Panama</option>
-                                        <option value="Papua New Guinea">Papua New Guinea</option>
-                                        <option value="Paraguay">Paraguay</option>
-                                        <option value="Peru">Peru</option>
-                                        <option value="Philippines">Philippines</option>
-                                        <option value="Poland">Poland</option>
-                                        <option value="Portugal">Portugal</option>
-                                        <option value="Qatar">Qatar</option>
-                                        <option value="Romania">Romania</option>
-                                        <option value="Russia">Russia</option>
-                                        <option value="Rwanda">Rwanda</option>
-                                        <option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option>
-                                        <option value="Saint Lucia">Saint Lucia</option>
-                                        <option value="Saint Vincent and the Grenadines">Saint Vincent and the Grenadines</option>
-                                        <option value="Samoa">Samoa</option>
-                                        <option value="San Marino">San Marino</option>
-                                        <option value="Sao Tome and Principe">Sao Tome and Principe</option>
-                                        <option value="Saudi Arabia">Saudi Arabia</option>
-                                        <option value="Senegal">Senegal</option>
-                                        <option value="Serbia">Serbia</option>
-                                        <option value="Seychelles">Seychelles</option>
-                                        <option value="Sierra Leone">Sierra Leone</option>
-                                        <option value="Singapore">Singapore</option>
-                                        <option value="Slovakia">Slovakia</option>
-                                        <option value="Slovenia">Slovenia</option>
-                                        <option value="Solomon Islands">Solomon Islands</option>
-                                        <option value="Somalia">Somalia</option>
-                                        <option value="South Africa">South Africa</option>
-                                        <option value="South Korea">South Korea</option>
-                                        <option value="South Sudan">South Sudan</option>
-                                        <option value="Spain">Spain</option>
-                                        <option value="Sri Lanka">Sri Lanka</option>
-                                        <option value="Sudan">Sudan</option>
-                                        <option value="Suriname">Suriname</option>
-                                        <option value="Sweden">Sweden</option>
-                                        <option value="Switzerland">Switzerland</option>
-                                        <option value="Syria">Syria</option>
-                                        <option value="Tajikistan">Tajikistan</option>
-                                        <option value="Tanzania">Tanzania</option>
-                                        <option value="Thailand">Thailand</option>
-                                        <option value="Timor-Leste">Timor-Leste</option>
-                                        <option value="Togo">Togo</option>
-                                        <option value="Tonga">Tonga</option>
-                                        <option value="Trinidad and Tobago">Trinidad and Tobago</option>
-                                        <option value="Tunisia">Tunisia</option>
-                                        <option value="Turkey">Turkey</option>
-                                        <option value="Turkmenistan">Turkmenistan</option>
-                                        <option value="Tuvalu">Tuvalu</option>
-                                        <option value="Uganda">Uganda</option>
-                                        <option value="Ukraine">Ukraine</option>
-                                        <option value="United Arab Emirates">United Arab Emirates</option>
-                                        <option value="United Kingdom">United Kingdom</option>
-                                        <option value="United States of America">United States of America</option>
-                                        <option value="Uruguay">Uruguay</option>
-                                        <option value="Uzbekistan">Uzbekistan</option>
-                                        <option value="Vanuatu">Vanuatu</option>
-                                        <option value="Venezuela">Venezuela</option>
-                                        <option value="Vietnam">Vietnam</option>
-                                        <option value="Yemen">Yemen</option>
-                                        <option value="Zambia">Zambia</option>
-                                        <option value="Zimbabwe">Zimbabwe</option>
-                                    </select>
-                                    
-                                    <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    
-                                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    <input type="password" id="reg-pass" placeholder="Create Password (Min 6)" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <select id="reg-join-year" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none">
-                                            <option value="">Batch</option>
-                                            <option value="2025 Batch">2025 Batch</option>
-                                            <option value="2024 Batch">2024 Batch</option>
-                                            <option value="2023 Batch">2023 Batch</option>
-                                            <option value="2022 Batch">2022 Batch</option>
-                                            <option value="Intern">Intern</option>
-                                            <option value="JR/SR">JR / SR</option>
-                                        </select>
-                                        <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                    </div>
-                                    <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white" />
-                                </div>
-                                <button onclick="window.handleEmailSignUp(this)" class="w-full py-3.5 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg active:scale-95 transition-all hover:bg-green-700">Create Account</button>
-                                <div class="text-center mt-4">
-                                    <button onclick="window.toggleAuthMode('login')" class="text-xs font-bold text-brand-500 hover:underline">Already have an account? Sign In</button>
-                                </div>
-                            </div>`;
-                    }
-                    els.footer.innerHTML = legalFooterHtml;
-                }
-            }
-        };
 
         // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
@@ -1019,11 +527,6 @@
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
-        window.toggleTheme = function() {
-            const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            const icon = document.getElementById('theme-icon'); if (icon) icon.innerText = isDark ? '☀️' : '🌙';
-        }
-
         // ==========================================
         // DECK VIEW
         // ==========================================
@@ -1345,116 +848,57 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
-        window.db = db; // Export DB for the edit profile function
+        window.db = db;
 
-        const allowedVIPs = [
-            "pankajmahto109@gmail.com", 
-            "educateindiainstitute@gmail.com", 
-            "indrajeet91434@gmail.com", 
-            "pankajkumarmahto1009@gmail.com"
-        ];
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com" ];
+
+        window.deleteBookmark = async function(qId) {
+            if (!window.currentUserObj) return;
+            if (!confirm("Remove this question from your saved items?")) return;
+            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
+            catch(e) { alert("Failed to remove bookmark: " + e.message); }
+        };
 
         window.saveEditedProfile = async function(btn) {
-            const name = document.getElementById('edit-name').value.trim();
-            const joinYear = document.getElementById('edit-join-year').value;
-            const college = document.getElementById('edit-college').value.trim();
-            const city = document.getElementById('edit-city').value.trim();
-            const phone = document.getElementById('edit-phone').value.trim();
-            
+            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
             if (!name) return alert("Name is required!");
-            
-            const originalText = btn.innerText;
-            btn.disabled = true; 
-            btn.innerText = "Saving...";
-            
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
             try {
-                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { 
-                    fullName: name, 
-                    joinYear: joinYear, 
-                    college: college, 
-                    city: city, 
-                    phone: phone 
-                });
-                
-                if (window.currentUserObj.displayName !== name) {
-                    await updateProfile(window.currentUserObj, { displayName: name });
-                }
-                
-                btn.innerText = "Saved!";
-                btn.classList.replace('bg-brand-500', 'bg-green-500');
-                
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.replace('bg-green-500', 'bg-brand-500');
-                    btn.disabled = false;
-                    window.userPanelApp.setView('menu');
-                }, 1000);
-            } catch(e) { 
-                alert(e.message); 
-                btn.disabled = false; 
-                btn.innerText = originalText; 
-            }
+                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
+                if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
+                btn.innerText = "Saved!"; btn.classList.replace('bg-brand-500', 'bg-green-500');
+                setTimeout(() => { btn.innerText = originalText; btn.classList.replace('bg-green-500', 'bg-brand-500'); btn.disabled = false; window.userPanelApp.setView('menu'); }, 1000);
+            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = originalText; }
         };
 
-        window.handleEmailLogin = function(btn) {
-            const email = document.getElementById('login-email').value.trim();
-            const pass = document.getElementById('login-pass').value;
-            if(!email || !pass) return window.showAuthError("Please enter both email and password.");
-            
-            const originalText = btn.innerText; btn.innerText = "Verifying..."; btn.disabled = true;
-
-            signInWithEmailAndPassword(auth, email, pass).catch(e => {
-                btn.innerText = originalText; btn.disabled = false;
-                window.showAuthError("Login failed: " + e.message);
-            });
+        window.handleEmailLogin = (btn) => {
+            const e = document.getElementById('login-email').value; const p = document.getElementById('login-pass').value;
+            if(!e || !p) return window.showAuthError("Email/Pass required");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Verifying...";
+            signInWithEmailAndPassword(auth, e, p).catch(err => { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); });
         };
 
-        window.handleEmailSignUp = async function(btn) {
-            const name = document.getElementById('reg-name').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const pass = document.getElementById('reg-pass').value;
-            const joinYear = document.getElementById('reg-join-year').value.trim();
-            const college = document.getElementById('reg-college').value.trim();
-            const country = document.getElementById('reg-country').value.trim();
-            const city = document.getElementById('reg-city').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim();
-            
-            if(!name || !email || !pass || !college || !country || !joinYear) {
-                return window.showAuthError("Please fill out all mandatory fields.");
-            }
-            if(pass.length < 6) return window.showAuthError("Password must be at least 6 characters.");
-            
-            const originalText = btn.innerText; btn.innerText = "Creating Profile..."; btn.disabled = true;
-
+        window.handleEmailSignUp = async (btn) => {
+            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
+            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
+            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                await updateProfile(userCredential.user, { displayName: name });
-                
-                await set(ref(db, 'users/' + userCredential.user.uid + '/profile'), {
-                    fullName: name, 
-                    email: email, 
-                    joinYear: joinYear, 
-                    phone: phone || "Not provided", 
-                    college: college, 
-                    city: city || "Not provided", 
-                    country: country, 
-                    createdAt: new Date().toISOString()
-                });
-            } catch(e) {
-                btn.innerText = originalText; btn.disabled = false;
-                window.showAuthError(e.message);
-            }
+                const uc = await createUserWithEmailAndPassword(auth, e, p);
+                await updateProfile(uc.user, { displayName: n });
+                await set(ref(db, 'users/' + uc.user.uid + '/profile'), { fullName: n, email: e, joinYear: j, college: c, country: cy, city: city || "Not provided", phone: phone || "Not provided", createdAt: new Date().toISOString() });
+            } catch(err) { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); }
         };
 
-        window.handleForgotPass = function() {
-            const email = document.getElementById('login-email').value.trim();
-            if(!email) return window.showAuthError("Enter your email in the box above.");
-            sendPasswordResetEmail(auth, email).then(() => {
-                document.getElementById('auth-error-msg').innerText = "Reset link sent!";
-            }).catch(e => { window.showAuthError(e.message); });
+        window.handleForgotPass = () => {
+            const e = document.getElementById('login-email').value;
+            if(!e) return window.showAuthError("Enter email first");
+            sendPasswordResetEmail(auth, e).then(() => {
+                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+            }).catch(err => window.showAuthError(err.message));
         };
 
-        window.firebaseSignOut = function() { signOut(auth).then(() => window.location.reload()); };
+        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
 
         window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
             const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
@@ -1469,70 +913,45 @@
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;
-            
             const summaryBtn = document.getElementById('summaryButton');
             const allowedCoffeeUsers = ["pankajkumarmahto1009@gmail.com", "educateindiainstitute@gmail.com"];
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 localStorage.setItem('medqs_user_email', email);
-                
-                if (summaryBtn) {
-                    if (allowedCoffeeUsers.includes(email)) summaryBtn.style.display = 'inline-block';
-                    else summaryBtn.style.display = 'none';
-                }
+                if (summaryBtn) { if (allowedCoffeeUsers.includes(email)) summaryBtn.style.display = 'inline-block'; else summaryBtn.style.display = 'none'; }
 
-                // Sync Profile Data
-                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
-                    window.currentUserProfileData = s.val() || {}; 
-                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') {
-                        window.userPanelApp.renderState(); 
-                    }
-                });
-
-                // Sync Bookmarks Data
-                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
-                    window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
-                    if (window.isDataLoaded) {
-                        window.updateBookmarkUI(); 
-                    }
-                    if(window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') {
-                        window.userPanelApp.renderState();
-                    }
+                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
+                onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
+                    window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
+                    if (window.isDataLoaded) window.updateBookmarkUI(); 
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
                 if (allowedVIPs.includes(email)) {
-                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
-                    window.accessLevel = 'premium';
+                    window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false }; window.accessLevel = 'premium';
                     if(window.isDataLoaded) window.processDataForAccess();
-                    window.userPanelApp.renderState();
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (snapshot) => {
                         let subDataObj = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
                         if (snapshot.exists()) {
-                            const subData = snapshot.val();
-                            const today = new Date(); today.setHours(0,0,0,0);
-                            const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
+                            const subData = snapshot.val(); const today = new Date(); today.setHours(0,0,0,0); const expiry = new Date(subData.validUntil); expiry.setHours(0,0,0,0);
                             const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
                             if (daysLeft >= 0 && subData.status === "active") subDataObj = { isVIP: true, daysLeft: daysLeft, validUntil: subData.validUntil, expired: false };
                             else subDataObj = { isVIP: false, daysLeft: daysLeft, validUntil: subData.validUntil, expired: true };
                         }
-                        window.globalUserStatus = subDataObj;
-                        window.accessLevel = subDataObj.isVIP ? 'premium' : 'free';
+                        window.globalUserStatus = subDataObj; window.accessLevel = subDataObj.isVIP ? 'premium' : 'free';
                         if(window.isDataLoaded) window.processDataForAccess();
-                        window.userPanelApp.renderState();
+                        if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                     });
                 }
             } else {
                 if (summaryBtn) summaryBtn.style.display = 'none';
-                
                 localStorage.removeItem('medqs_user_email');
-                window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-                window.userBookmarks = {}; 
-                window.currentUserProfileData = {};
-                window.accessLevel = 'guest';
+                window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false }; window.userBookmarks = {}; window.currentUserProfileData = {}; window.accessLevel = 'guest';
                 if(window.isDataLoaded) window.processDataForAccess();
-                window.userPanelApp.renderState();
+                if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
             }
         });
     </script>

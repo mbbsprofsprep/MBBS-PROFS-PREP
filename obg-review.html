@@ -396,6 +396,7 @@
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
 
+            // Calculate active displayData based on access level
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
@@ -405,7 +406,12 @@
             } else {
                 window.displayData = [];
             }
-            window.populateFilters(); // Re-populate filters to reflect displayData limits
+
+            // Generate filters only AFTER data is calculated
+            window.populateFilters(); 
+            window.populateDeckFilters(); 
+
+            // Paint UI
             window.populateTable();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
         };
@@ -452,7 +458,7 @@
             return !!window.userBookmarks[qId];
         };
 
-        // --- NATURAL SORTING + ARRAY FLATTENING WITH VISIBILITY CHECK ---
+        // --- NATURAL SORTING + ARRAY FLATTENING ---
         window.getUniqueValues = function(key) {
             const values = new Set();
             if (key === 'chapter') {
@@ -462,8 +468,8 @@
                 return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
             } 
             
-            // Only pull unique values from displayData so locked content doesn't show up in filters
-            window.displayData.forEach(item => { 
+            // FIX: Pull unique values from FULL qnaData so no categories are hidden for free users
+            window.qnaData.forEach(item => { 
                 if (key === 'type' && item.type) {
                     values.add(item.type); 
                 } else if (key === 'exam' && item.examBatch) {
@@ -792,7 +798,8 @@
             }
 
             let allBatches = [];
-            window.displayData.forEach(q => {
+            // FIX: Pull from FULL qnaData to prevent blank filters for free users
+            window.qnaData.forEach(q => {
                 if (Array.isArray(q.examBatch)) allBatches.push(...q.examBatch);
                 else if (q.examBatch) allBatches.push(q.examBatch);
             });
@@ -800,7 +807,8 @@
             const naturalSort = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 
             const chapters = [...new Set(allChapters)].sort(naturalSort);
-            const types = [...new Set(window.displayData.map(q => q.type).filter(Boolean))].sort(naturalSort);
+            // FIX: Pull from FULL qnaData
+            const types = [...new Set(window.qnaData.map(q => q.type).filter(Boolean))].sort(naturalSort);
             const batches = [...new Set(allBatches)].sort(naturalSort);
             
             const container = document.getElementById('deck-filter-content');
@@ -975,10 +983,8 @@
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
             await window.fetchQuestions();
-            window.populateFilters(); 
             window.initDeckView(); 
-            window.populateDeckFilters();
-            window.processDataForAccess();
+            // Filter population happens automatically in processDataForAccess() now
         };
     </script>
 

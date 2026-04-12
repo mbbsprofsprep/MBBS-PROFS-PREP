@@ -356,7 +356,15 @@
             }
         };
 
-        // --- BOOKMARK LOGIC ---
+     // --- BOOKMARK LOGIC ---
+        
+        // Helper to generate a 100% globally unique, Firebase-safe ID
+        window.getUniqueQuestionId = function(qId) {
+            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`;
+            // Replace spaces with underscores and strip invalid Firebase characters
+            return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
+        };
+
         window.toggleBookmark = async function(btn, index) {
             if (!window.currentUserObj) {
                 return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
@@ -365,14 +373,21 @@
             const item = window.displayData[index];
             if (!item) return;
 
-            const qId = item.q; 
+            // 1. Generate the globally unique ID (e.g., AIIMS_DEOGHAR_OBG_DGT1)
+            const uniqueId = window.getUniqueQuestionId(item.q);
+            
+            // 2. Strip HTML tags safely
             const cleanStem = item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Question";
+            
+            // 3. Fix the Array/String Chapter Bug
+            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+            const chapterString = chArray.length > 0 ? chArray[0] : 'General';
             
             const bookmarkData = {
                 q: item.q,
                 type: item.type || "General",
                 text: cleanStem, 
-                subject: window.COLLEGE_NAME + " - " + (item.chapter && item.chapter.length > 0 ? item.chapter[0] : 'General'),
+                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
                 url: window.location.href,
                 timestamp: new Date().toISOString()
             };
@@ -380,16 +395,20 @@
             if (item.options) bookmarkData.options = item.options;
             if (item.ans_key) bookmarkData.ans_key = item.ans_key;
             
-            const isSaved = window.isBookmarked(qId);
+            const isSaved = window.isBookmarked(item.q);
             
             if (window.executeBookmarkToggle) {
-                window.executeBookmarkToggle(qId, bookmarkData, isSaved);
+                // Pass the bulletproof uniqueId to Firebase
+                window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
             } else {
                 alert("App is still connecting to the cloud. Please wait a moment.");
             }
         };
 
-        window.isBookmarked = function(qId) { return !!window.userBookmarks[qId]; };
+        window.isBookmarked = function(qId) { 
+            const uniqueId = window.getUniqueQuestionId(qId);
+            return !!window.userBookmarks[uniqueId]; 
+        };
 
         // Seamless non-destructive UI Updater
         window.updateBookmarkUI = function() {
@@ -401,7 +420,10 @@
             const deckBase = 'px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm transition-colors';
 
             window.displayData.forEach((item) => {
-                const isSaved = !!window.userBookmarks[item.q];
+                // Check against the global unique ID
+                const uniqueId = window.getUniqueQuestionId(item.q);
+                const isSaved = !!window.userBookmarks[uniqueId];
+                
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 

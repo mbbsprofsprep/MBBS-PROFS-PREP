@@ -190,10 +190,86 @@
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
 
+        // --- GOOGLE FORM REPORT CONFIG ---
+        window.REPORT_CONFIG = { 
+            formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", 
+            entryID_QID: "entry.1044663891", 
+            entryID_Type: "entry.1296716381", 
+            entryID_Desc: "entry.621177596" 
+        };
+        window.selectedReportType = "Other";
+
         window.COLLEGE_NAME = "AIIMS";
         window.curriculumData = [];
         window.qnaData = [];
         window.displayData = [];
+
+        // --- REPORT QUESTION LOGIC ---
+        window.selectReportType = function(btn) {
+            document.querySelectorAll('.rep-type-btn').forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-red-400', 'bg-slate-100', 'dark:bg-slate-800'));
+            btn.classList.add('ring-2', 'ring-offset-1', 'ring-red-400', 'bg-slate-100', 'dark:bg-slate-800');
+            window.selectedReportType = btn.getAttribute('data-val');
+        };
+
+        window.submitReportToForm = function(qid, btn) {
+            const desc = document.getElementById('report-desc').value;
+            btn.innerText = "Sending..."; btn.disabled = true;
+
+            const currentUrl = window.location.href;
+            const combinedID = `${qid} | ${currentUrl}`;
+
+            const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?` +
+                        `${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(combinedID)}&` +
+                        `${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&` +
+                        `${window.REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`;
+
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+
+            setTimeout(() => {
+                document.getElementById('modal-body-content').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p>
+                    </div>`;
+                document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
+                setTimeout(() => iframe.remove(), 2000);
+            }, 1200);
+        };
+
+        window.openReportModal = function(qId) {
+            if (!window.currentUserObj) {
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            }
+            window.selectedReportType = "Other";
+            
+            const bodyHtml = `
+                <div class="text-left space-y-4 mt-2">
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Help us improve by reporting issues with Question <b>${qId}</b>.</p>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
+                        <textarea id="report-desc" rows="3" placeholder="Briefly explain the issue..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
+                    </div>
+                </div>
+            `;
+            const footerHtml = `
+                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30">Submit Report</button>
+                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
+            `;
+            window.showModal("Report Issue", bodyHtml, footerHtml, "🚩");
+        };
 
         // --- EYE TOGGLE LOGIC ---
         window.toggleAnswers = function() {
@@ -250,7 +326,6 @@
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
 
-            // Calculate active displayData based on access level
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
@@ -261,11 +336,8 @@
                 window.displayData = [];
             }
 
-            // Generate filters only AFTER data is calculated
             window.populateFilters(); 
             window.populateDeckFilters(); 
-
-            // Paint UI
             window.populateTable();
             
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
@@ -314,13 +386,11 @@
 
         window.isBookmarked = function(qId) { return !!window.userBookmarks[qId]; };
 
-        // Seamless non-destructive UI Updater
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
-            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-            const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
+            const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
             const deckBase = 'px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm transition-colors';
 
             window.displayData.forEach((item) => {
@@ -328,17 +398,14 @@
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
-                // Target Table View Button
                 const tBtn = document.getElementById(`bmk-table-${item.q}`);
                 if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
 
-                // Target Deck View Button
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
         };
 
-        // --- NATURAL SORTING + ARRAY FLATTENING ---
         window.getUniqueValues = function(key) {
             const values = new Set();
             if (key === 'chapter') {
@@ -454,19 +521,18 @@
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
                 
-                // TABLE VIEW BOOKMARK BUTTON
                 const bookmarked = window.isBookmarked(item.q);
                 const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
                 const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
 
                 cell_ai.innerHTML = `
-                    <div class="flex flex-col gap-2 items-center justify-center">
-                        <button onclick="window.askAI(this, window.displayData[${index}])" class="w-full max-w-[80px] bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border border-green-500/20 hover:bg-green-500 hover:text-white transition-colors">Ask AI</button>
-                        <button id="bmk-table-${item.q}" onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
+                    <div class="flex flex-col gap-1.5 items-center justify-center">
+                        <button onclick="window.askAI(this, window.displayData[${index}])" class="w-full max-w-[80px] bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border border-green-500/20 hover:bg-green-500 hover:text-white transition-colors">AI Help</button>
+                        <button id="bmk-table-${item.q}" onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
+                        <button onclick="window.openReportModal('${item.q}')" class="w-full max-w-[80px] bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border border-red-100 dark:border-red-900/50 hover:bg-red-500 hover:text-white transition-colors">Report</button>
                     </div>`;
             });
 
-            // ADD LOCK BANNERS
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
@@ -497,7 +563,6 @@
                 }
                 
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
-                
                 if (showRow && window.filterState.chapters.size > 0 && !(item.chapter && item.chapter.some(ch => window.filterState.chapters.has(ch)))) showRow = false;
                 
                 if (showRow && window.filterState.exams.size > 0) {
@@ -782,6 +847,7 @@
                         <div class="flex gap-2">
                             <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
                             <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                            <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
                         </div>
                     </div>
                     ${questionHtml}
@@ -884,22 +950,6 @@
         window.db = db;
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
-
-        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
-            try {
-                const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
-                if (isSaved) {
-                    await set(dbRef, null);
-                    window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
-                } else {
-                    await set(dbRef, bookmarkData);
-                    window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Error syncing bookmark: " + e.message);
-            }
-        };
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;

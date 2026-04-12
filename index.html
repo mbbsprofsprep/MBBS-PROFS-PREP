@@ -98,11 +98,11 @@
         <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
             <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
             <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
-                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Refunds</a>
+                <a href="legal.html?page=about" class="hover:text-brand-500 transition-colors">About Us</a>
+                <a href="legal.html?page=contact" class="hover:text-brand-500 transition-colors">Contact</a>
+                <a href="legal.html?page=terms" class="hover:text-brand-500 transition-colors">Terms & Conditions</a>
+                <a href="legal.html?page=privacy" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
+                <a href="legal.html?page=refunds" class="hover:text-brand-500 transition-colors">Refunds</a>
             </div>
         </div>
     </footer>
@@ -124,7 +124,6 @@
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
 
     <script>
-        // GLOBALS required by app-shell.js
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.currentUserProfileData = {}; 
@@ -303,6 +302,55 @@
         window.db = db;
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+
+        // Exposed functions for App Shell and Index to interact with Firebase Module
+        window.deleteBookmark = async function(qId) {
+            if (!window.currentUserObj) return;
+            if (!confirm("Remove this question from your saved items?")) return;
+            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
+            catch(e) { alert("Failed to remove bookmark: " + e.message); }
+        };
+
+        window.saveEditedProfile = async function(btn) {
+            const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
+            if (!name) return alert("Name is required!");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Saving...";
+            try {
+                await update(ref(db, 'users/' + window.currentUserObj.uid + '/profile'), { fullName: name, joinYear: joinYear, college: college, city: city, phone: phone });
+                if (window.currentUserObj.displayName !== name) { await updateProfile(window.currentUserObj, { displayName: name }); }
+                btn.innerText = "Saved!"; btn.classList.replace('bg-brand-500', 'bg-green-500');
+                setTimeout(() => { btn.innerText = originalText; btn.classList.replace('bg-green-500', 'bg-brand-500'); btn.disabled = false; window.userPanelApp.setView('menu'); }, 1000);
+            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = originalText; }
+        };
+
+        window.handleEmailLogin = (btn) => {
+            const e = document.getElementById('login-email').value; const p = document.getElementById('login-pass').value;
+            if(!e || !p) return window.showAuthError("Email/Pass required");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Verifying...";
+            signInWithEmailAndPassword(auth, e, p).catch(err => { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); });
+        };
+
+        window.handleEmailSignUp = async (btn) => {
+            const n = document.getElementById('reg-name').value; const e = document.getElementById('reg-email').value; const p = document.getElementById('reg-pass').value; const j = document.getElementById('reg-join-year').value; const c = document.getElementById('reg-college').value; const cy = document.getElementById('reg-country') ? document.getElementById('reg-country').value : "India"; const city = document.getElementById('reg-city').value; const phone = document.getElementById('reg-phone').value;
+            if(!n || !e || !p || !c || !cy || !j) return window.showAuthError("Please fill all mandatory fields.");
+            if(p.length < 6) return window.showAuthError("Password must be at least 6 characters.");
+            const originalText = btn.innerText; btn.disabled = true; btn.innerText = "Creating Profile...";
+            try {
+                const uc = await createUserWithEmailAndPassword(auth, e, p);
+                await updateProfile(uc.user, { displayName: n });
+                await set(ref(db, 'users/' + uc.user.uid + '/profile'), { fullName: n, email: e, joinYear: j, college: c, country: cy, city: city || "Not provided", phone: phone || "Not provided", createdAt: new Date().toISOString() });
+            } catch(err) { btn.disabled = false; btn.innerText = originalText; window.showAuthError(err.message); }
+        };
+
+        window.handleForgotPass = () => {
+            const e = document.getElementById('login-email').value;
+            if(!e) return window.showAuthError("Enter email first");
+            sendPasswordResetEmail(auth, e).then(() => {
+                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+            }).catch(err => window.showAuthError(err.message));
+        };
+
+        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
 
         onAuthStateChanged(auth, (user) => {
             window.currentUserObj = user;

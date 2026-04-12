@@ -286,7 +286,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        // Notice we are now importing 'remove' from the database toolkit!
+        import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
@@ -304,12 +305,46 @@
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
-        // Exposed functions for App Shell and Index to interact with Firebase Module
+        // Universal Toggle Bookmark Function
+        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
+            try {
+                const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
+                if (isSaved) {
+                    await remove(dbRef);
+                    if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+                } else {
+                    await set(dbRef, bookmarkData);
+                    if (window.showModal) window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error syncing bookmark: " + e.message);
+            }
+        };
+
+        // Universal Delete Bookmark Function (With Optimistic UI Updates)
         window.deleteBookmark = async function(qId) {
             if (!window.currentUserObj) return;
             if (!confirm("Remove this question from your saved items?")) return;
-            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
-            catch(e) { alert("Failed to remove bookmark: " + e.message); }
+            
+            // 1. Optimistic UI Update (Makes it disappear instantly from the side panel)
+            if (window.userBookmarks && window.userBookmarks[qId]) {
+                delete window.userBookmarks[qId];
+            }
+            if (window.userPanelApp && window.userPanelApp.isOpen) {
+                window.userPanelApp.renderState();
+            }
+            if (typeof window.updateBookmarkUI === 'function') {
+                window.updateBookmarkUI();
+            }
+
+            // 2. Cloud Deletion (Uses standard remove() safely)
+            try { 
+                await remove(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`)); 
+            } catch(e) { 
+                console.error(e);
+                alert("Failed to remove bookmark from cloud: " + e.message); 
+            }
         };
 
         window.saveEditedProfile = async function(btn) {
@@ -357,15 +392,26 @@
             window.currentUserObj = user;
             if (user) {
                 const email = user.email.toLowerCase().trim();
-                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { window.currentUserProfileData = s.val() || {}; if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); });
+                
+                // Profile Listener
+                onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
+                    window.currentUserProfileData = s.val() || {}; 
+                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                });
+                
+                // Bookmarks Listener (Removed viewMode strict check for instant updates)
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
-                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
+                    if(typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
+                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
                 });
 
+                // Permissions Listener
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
-                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                    window.accessLevel = 'premium';
+                    if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
+                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -376,14 +422,18 @@
                             else sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
                         }
                         window.globalUserStatus = sub; 
-                        if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                        window.accessLevel = sub.isVIP ? 'premium' : 'free';
+                        if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
+                        if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
                     });
                 }
             } else { 
-                window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
+                window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; window.accessLevel = 'guest';
+                if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
             }
         });
     </script>
+        
 </body>
 </html>

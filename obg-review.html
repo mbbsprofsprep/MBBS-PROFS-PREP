@@ -1007,7 +1007,24 @@
         window.deleteBookmark = async function(qId) {
             if (!window.currentUserObj) return;
             if (!confirm("Remove this question from your saved items?")) return;
-            try { await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`), null); } 
+            
+            try { 
+                let targetKey = qId;
+                
+                // If the short ID (e.g., 'DGT1') doesn't directly exist as a key,
+                // search the bookmarks to find the new globally unique key (e.g., 'AIIMS_DEOGHAR_OBG_DGT1')
+                if (window.userBookmarks && !window.userBookmarks[qId]) {
+                    const foundKey = Object.keys(window.userBookmarks).find(
+                        key => window.userBookmarks[key].q === qId
+                    );
+                    if (foundKey) {
+                        targetKey = foundKey;
+                    }
+                }
+
+                // Delete using the correct key
+                await set(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${targetKey}`), null); 
+            } 
             catch(e) { alert("Failed to remove bookmark: " + e.message); }
         };
 

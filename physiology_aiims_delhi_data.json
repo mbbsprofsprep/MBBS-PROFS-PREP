@@ -1,0 +1,230 @@
+{
+  "collegeName": "AIIMS DELHI",
+  "curriculumData": [
+    {
+      "unit": "General Physiology",
+      "chapters": [
+        "1. Homeostasis",
+        "2. Body Fluid Compartments",
+        "3. Cellular Physiology",
+        "4. Transport Across Cell Membrane"
+      ]
+    },
+    {
+      "unit": "Nerve & Muscle",
+      "chapters": [
+        "5. Neuron & Nerve",
+        "6. Resting Membrane Potential",
+        "7. Action Potential in Neuron",
+        "8. Nerve Fibre Classification",
+        "9. Functional Anatomy of Skeletal Muscle",
+        "10. Mechanism of Muscle Contraction",
+        "11. Smooth Muscle"
+      ]
+    },
+    {
+      "unit": "Cardiovascular System",
+      "chapters": [
+        "12. Conducting System of the Heart",
+        "13. Action Potential in Cardiac Muscle",
+        "14. Basics of ECG",
+        "15. Cardiac Cycle",
+        "16. Cardiac output",
+        "17. Hemodynamic",
+        "18. BP and its regulation"
+      ]
+    },
+    {
+      "unit": "Renal System",
+      "chapters": [
+        "19. Functional anatomy of Renal System",
+        "20. GFR",
+        "21. JG Apparatus",
+        "22. Renal clearance",
+        "23. Tubular functions",
+        "24. Counter current system"
+      ]
+    },
+    {
+      "unit": "Respiratory System",
+      "chapters": [
+        "25. Functional anatomy of Respiratory system",
+        "26. Mechanics of respiration",
+        "27. Ventilation Perfusion",
+        "28. Compliance",
+        "29. Lung volume and capacities",
+        "30. Principles of Gas diffusion",
+        "31. Oxygen transport",
+        "32. CO2 Transport",
+        "33. Regulation of respiration",
+        "34. Hypoxia",
+        "35. High altitude physiology",
+        "36. Deep sea diving"
+      ]
+    },
+    {
+      "unit": "Gastrointestinal System",
+      "chapters": [
+        "37. Gastrointestinal motility",
+        "38. Gastro intestinal hormones",
+        "39. Secretion and absorption"
+      ]
+    },
+    {
+      "unit": "Nervous System (General & Sensory)",
+      "chapters": [
+        "40. Synaptic transmission : pre synaptic events",
+        "41. Synaptic transmission post synaptic events",
+        "42. Somato sensory receptors: tactile",
+        "43. Nociceptors",
+        "44. Proprioceptors and reflexes"
+      ]
+    },
+    {
+      "unit": "Nervous System (Motor & Higher)",
+      "chapters": [
+        "45. Ascending tracks of spinal cord",
+        "46. Descending tracts of spinal cords",
+        "47. Basal ganglia and cerebellum",
+        "48. Special senses visual and auditory transduction",
+        "49. Special senses smell and taste",
+        "50. Hypothalamus",
+        "51. Sleep and EEG",
+        "52. Learning and memory"
+      ]
+    },
+    {
+      "unit": "Endocrinology",
+      "chapters": [
+        "53. Mechanism of hormone action",
+        "54. Pitutory hormones",
+        "55. Thyroid hormones",
+        "56. Endocrine pancreas",
+        "57. Hormonal regulation of calcium balance",
+        "58. Adrenal hormones"
+      ]
+    },
+    {
+      "unit": "Reproductive System",
+      "chapters": [
+        "59. Male reproductive physiology",
+        "60. Female reproductive physiology"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"DLT1","type":"Theory","stem":"Draw a well labelled diagram of Synapse.<br>Describe the steps involved in synaptic transmission.<br>Explain the mechanism of synaptic plasticity in consolidation of memory. [4+6+10=20]","ans_key":"","chapter":"40. Synaptic transmission : pre synaptic events","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT2","type":"Theory","stem":"Describe the hormonal regulation of blood calcium level.<br>Discuss the physiological basis of carpopedal spasm in tetany. [10+5=15]","ans_key":"","chapter":"57. Hormonal regulation of calcium balance","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT3","type":"Theory","stem":"Draw a well labelled diagram of the neural circuitry of basal ganglia.<br>Describe the pathophysiology of Parkinsonism.<br>List the motor deficits in Parkinsonism. [5+6+4=15]","ans_key":"","chapter":"47. Basal ganglia and cerebellum","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT4","type":"Theory","stem":"SAQ: Transport across cell membrane [10]","ans_key":"","chapter":"4. Transport Across Cell Membrane","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT5","type":"Theory","stem":"SAQ: Hormonal regulation of menstrual cycle [10]","ans_key":"","chapter":"60. Female reproductive physiology","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT6","type":"Theory","stem":"SAQ: Phototransduction in retina [10] ","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT7","type":"Theory","stem":"SAQ: Excitation contraction coupling in skeletal muscle [10]","ans_key":"","chapter":"10. Mechanism of Muscle Contraction","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT8","type":"Theory","stem":"SAQ: Pain pathways and perception [10]","ans_key":"","chapter":"43. Nociceptors","examBatch":"2024 Batch Prof Paper I"},
+    {"q":"DLT9","type":"Theory","stem":"Define Hemostasis. Enumerate the steps involved in hemostasis.<br>Describe the role of platelets in the mediation of white plug formation at the site of vessel injury and its applied significance. [2+6+8+4=20]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT10","type":"Theory","stem":"List the mechanisms involved in regulation of blood pressure.<br>Discuss the short-term regulation of blood pressure. [7+8=15]","ans_key":"","chapter":"18. BP and its regulation","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT11","type":"Theory","stem":"Describe the neural regulation of respiration with the help of a labelled diagram.<br>Explain the mechanism by which ventilation is controlled by changes in blood levels of carbon dioxide. [10+5=15]","ans_key":"","chapter":"33. Regulation of respiration","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT12","type":"Theory","stem":"SAQ: Ionic basis of action potential of ventricular cardiac muscle [10]","ans_key":"","chapter":"13. Action Potential in Cardiac Muscle","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT13","type":"Theory","stem":"SAQ: Regulation of HCl secretion in the stomach [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT14","type":"Theory","stem":"SAQ: High altitude pulmonary edema [10]","ans_key":"","chapter":"35. High altitude physiology","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT15","type":"Theory","stem":"SAQ: Mechanism of tubulo-glomerular feedback [10]","ans_key":"","chapter":"20. GFR","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT16","type":"Theory","stem":"SAQ: Pressure-volume relation of left ventricle during a cardiac cycle [10]","ans_key":"","chapter":"15. Cardiac Cycle","examBatch":"2024 Batch Prof Paper II"},
+    {"q":"DLT17","type":"Theory","stem":"Describe excitation-contraction coupling in skeletal muscle.<br>Draw a well labelled diagram of neuromuscular junction. [12+8]","ans_key":"","chapter":"10. Mechanism of Muscle Contraction","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT18","type":"Theory","stem":"Draw a well labelled diagram to show the neural circuitry of cerebellum.<br>Discuss the functions of cerebellum. [7+8]","ans_key":"","chapter":"47. Basal ganglia and cerebellum","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT19","type":"Theory","stem":"Enumerate any five functions of hypothalamus.<br>Discuss the neural regulation of food and water intake. [5+10]","ans_key":"","chapter":"50. Hypothalamus","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT20","type":"Theory","stem":"SAQ: Endogenous pain modulation [10]","ans_key":"","chapter":"43. Nociceptors","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT21","type":"Theory","stem":"SAQ: Role of thyroid hormone in health and disease [10]","ans_key":"","chapter":"55. Thyroid hormones","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT22","type":"Theory","stem":"SAQ: Blood testes barrier [10]","ans_key":"","chapter":"59. Male reproductive physiology","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT23","type":"Theory","stem":"SAQ: Physiological basis of yoga and meditation therapy [10]","ans_key":"","chapter":"1. Homeostasis","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT24","type":"Theory","stem":"SAQ: Auditory transduction [10] ","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2023 Batch Prof Paper I"},
+    {"q":"DLT25","type":"Theory","stem":"Describe factors, determinants and regulation of cardiac output.<br>Add a note on changes in cardiac output in exercise. [15+5]","ans_key":"","chapter":"16. Cardiac output","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT26","type":"Theory","stem":"Discuss chemical regulation of respiration.<br>Draw a well labelled diagram of oxy-haemoglobin dissociation curve. [10+5] ","ans_key":"","chapter":"33. Regulation of respiration","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT27","type":"Theory","stem":"Describe the regulation of glomerular filtration rate (GFR).<br>Add a note on various factors affecting GFR. [8+7]","ans_key":"","chapter":"20. GFR","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT28","type":"Theory","stem":"SAQ: Pathophysiology of peptic ulcer disease [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT29","type":"Theory","stem":"SAQ: Stages of erythropoiesis and its regulation [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT30","type":"Theory","stem":"SAQ: Physiological changes during ascent to high altitude [10]","ans_key":"","chapter":"35. High altitude physiology","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT31","type":"Theory","stem":"SAQ: Role of micronutrients in health and disease [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT32","type":"Theory","stem":"SAQ: Special features of foetal circulation [10] ","ans_key":"","chapter":"17. Hemodynamic","examBatch":"2023 Batch Prof Paper II"},
+    {"q":"DLT33","type":"Theory","stem":"Draw a well labelled diagram showing neuronal circuitry of basal ganglia.<br>Describe the functions of Basal Ganglia.<br>Briefly describe the clinical disorders associated with basal ganglia damage. [6+8+6=20] ","ans_key":"","chapter":"47. Basal ganglia and cerebellum","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT34","type":"Theory","stem":"Describe the functions of the various cells in endocrine pancreas.<br>Discuss the mechanism of action of insulin.<br>Describe the pathophysiology of Type-2 Diabetes Mellitus. [4+6+5=15]","ans_key":"","chapter":"56. Endocrine pancreas","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT35","type":"Theory","stem":"Describe the events occurring during excitation-contraction coupling in skeletal muscle.<br>Briefly describe, how the excitation-contraction coupling in skeletal muscle is different from that in cardiac muscle. [10+5=15] ","ans_key":"","chapter":"10. Mechanism of Muscle Contraction","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT36","type":"Theory","stem":"SAQ: Active Transport [10]","ans_key":"","chapter":"4. Transport Across Cell Membrane","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT37","type":"Theory","stem":"SAQ: Stages of Sleep [10]","ans_key":"","chapter":"51. Sleep and EEG","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT38","type":"Theory","stem":"SAQ: Sensory modulation of pain [10]","ans_key":"","chapter":"43. Nociceptors","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT39","type":"Theory","stem":"SAQ: Photo transduction [10] ","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT40","type":"Theory","stem":"SAQ: Spermatogenesis [10]","ans_key":"","chapter":"59. Male reproductive physiology","examBatch":"2022 Batch Prof Paper I"},
+    {"q":"DLT41","type":"Theory","stem":"Define cardiac output.<br>Enlist the methods of measurement of cardiac output.<br>Describe the determinants of cardiac output.<br>Add a note on hypovolemic shock. [2+4+10+4=20]","ans_key":"","chapter":"16. Cardiac output","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT42","type":"Theory","stem":"Describe i) early events in haemostasis ii) steps involved in clot formation.<br>Give the physiological basis of use of anticoagulants for clinical use. [5+6+4=15] ","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT43","type":"Theory","stem":"With the help of well labelled diagrams and graphs, describe the role of chemoreceptors in chemical regulation of respiration.<br>Add a short note on periodic breathing. [10+5=15] ","ans_key":"","chapter":"33. Regulation of respiration","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT44","type":"Theory","stem":"SAQ: Peptic ulcer disease [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT45","type":"Theory","stem":"SAQ: Functions of dietary fiber [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT46","type":"Theory","stem":"SAQ: Counter-current mechanisms for urine concentration [10] ","ans_key":"","chapter":"24. Counter current system","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT47","type":"Theory","stem":"SAQ: Auto regulation of blood flow [10]","ans_key":"","chapter":"17. Hemodynamic","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT48","type":"Theory","stem":"SAQ: Physiological effects of microgravity [10]","ans_key":"","chapter":"36. Deep sea diving","examBatch":"2022 Batch Prof Paper II"},
+    {"q":"DLT49","type":"Theory","stem":"Enumerate the various forms of memory.<br>Describe the role of hippocampus and medial temporal lobe in memory processing and storage.<br>Add a note on Alzheimer's disease. [5+10+5=20]","ans_key":"","chapter":"52. Learning and memory","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT50","type":"Theory","stem":"Describe the functional components of autonomic nervous system.<br>Briefly describe the physiological basis of autonomic function tests. [6+6+3=15]","ans_key":"","chapter":"12. Conducting System of the Heart","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT51","type":"Theory","stem":"List the physiologic effects of glucocorticoids.<br>Describe the anti-inflammatory and anti-allergic effects of glucocorticoids.<br>Add a note on Cushing Syndrome. [3+7+5=15]","ans_key":"","chapter":"58. Adrenal hormones","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT52","type":"Theory","stem":"SAQ: Second messenger system [10]","ans_key":"","chapter":"53. Mechanism of hormone action","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT53","type":"Theory","stem":"SAQ: Role of internal ear in hearing [10]","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT54","type":"Theory","stem":"SAQ: Goiter [10]","ans_key":"","chapter":"55. Thyroid hormones","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT55","type":"Theory","stem":"SAQ: Length-tension relationship in smooth muscle [10]","ans_key":"","chapter":"11. Smooth Muscle","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT56","type":"Theory","stem":"SAQ: Hormonal control of menstrual cycle [10]","ans_key":"","chapter":"60. Female reproductive physiology","examBatch":"2021 Batch Prof Paper I"},
+    {"q":"DLT57","type":"Theory","stem":"Briefly discuss the cardiovascular and respiratory response during moderate degree of aerobic exercise.<br>Add a note on changes in cardiovascular and respiratory system in trained athletes. [12+8=20]","ans_key":"","chapter":"16. Cardiac output","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT58","type":"Theory","stem":"Briefly discuss the hormonal, secretory and motor response to presence of chyme in the small intestine. [10+5=15]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT59","type":"Theory","stem":"State the factors affecting glomerular filtration rate.<br>Briefly discuss the mechanism for production of the concentrated urine. [5+10=15]","ans_key":"","chapter":"24. Counter current system","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT60","type":"Theory","stem":"SAQ: Mechanism of hemostasis [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT61","type":"Theory","stem":"SAQ: Diet plan for an adult male [10]","ans_key":"","chapter":"1. Homeostasis","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT62","type":"Theory","stem":"SAQ: Decompression sickness [10]","ans_key":"","chapter":"36. Deep sea diving","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT63","type":"Theory","stem":"SAQ: Vitamin A [10]","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT64","type":"Theory","stem":"SAQ: Peptic ulcer [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2021 Batch Prof Paper II"},
+    {"q":"DLT65","type":"Theory","stem":"How is an action potential initiated & propagated in a nerve?<br>Write briefly about the genesis of resting membrane potential. [3+15+2=20] ","ans_key":"","chapter":"7. Action Potential in Neuron","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT66","type":"Theory","stem":"Enumerate the functions of hypothalamus.<br>Discuss the role of hypothalamus in control of feeding behavior. [5+10=15]","ans_key":"","chapter":"50. Hypothalamus","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT67","type":"Theory","stem":"Describe the changes in the uterus and ovary during various phases of menstrual cycle.<br>Add a note on 'safe period' as a method of contraception. [6+6+3=15] ","ans_key":"","chapter":"60. Female reproductive physiology","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT68","type":"Theory","stem":"SAQ: Role of middle ear in hearing [10]","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT69","type":"Theory","stem":"SAQ: Tetany [10]","ans_key":"","chapter":"57. Hormonal regulation of calcium balance","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT70","type":"Theory","stem":"SAQ: Phantom limb [10]","ans_key":"","chapter":"42. Somato sensory receptors: tactile","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT71","type":"Theory","stem":"SAQ: Decerebrate rigidity [10]","ans_key":"","chapter":"46. Descending tracts of spinal cords","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT72","type":"Theory","stem":"SAQ: Cushing&#8217;s syndrome [10]","ans_key":"","chapter":"58. Adrenal hormones","examBatch":"2020 Batch Prof Paper I"},
+    {"q":"DLT73","type":"Theory","stem":"Define Blood Pressure. Discuss the determinants of Blood Pressure.<br>Add a note on long-term regulation of blood pressure. [3+7+10=20] ","ans_key":"","chapter":"18. BP and its regulation","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT74","type":"Theory","stem":"Define Jaundice. Describe the fate of bilirubin.<br>Add a note on Obstructive jaundice. [3+8+4=15] ","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT75","type":"Theory","stem":"Explain the neural control of breathing.<br>Add a note on Cheyne Stokes breathing. [10+5=15] ","ans_key":"","chapter":"33. Regulation of respiration","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT76","type":"Theory","stem":"SAQ: Pathophysiology of peptic ulcer [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT77","type":"Theory","stem":"SAQ: Micturition reflex and its higher control [10] ","ans_key":"","chapter":"19. Functional anatomy of Renal System","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT78","type":"Theory","stem":"SAQ: Oxygen-Hb dissociation curve and factors affecting it [10] ","ans_key":"","chapter":"31. Oxygen transport","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT79","type":"Theory","stem":"SAQ: Vitamin B12 deficiency anaemia [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT80","type":"Theory","stem":"SAQ: Acclimatization in high altitude [10]","ans_key":"","chapter":"35. High altitude physiology","examBatch":"2020 Batch Prof Paper II"},
+    {"q":"DLT81","type":"Theory","stem":"Discuss the various features observed in hemisection of the spinal cord.<br>Add a note on spinal shock. [12+8=20] ","ans_key":"","chapter":"45. Ascending tracks of spinal cord","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT82","type":"Theory","stem":"Explain with the help of suitable diagram the regulation of insulin secretion.<br>Enumerate the actions of insulin.<br>Add a note on diabetes mellitus. [6+5+4=15] ","ans_key":"","chapter":"56. Endocrine pancreas","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT83","type":"Theory","stem":"Make a diagrammatic representation of the phases of a nerve action potential and describe its ionic basis.<br>Explain the physiological basis of effect of local anesthetics on action potential. [3+9+3=15] ","ans_key":"","chapter":"7. Action Potential in Neuron","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT84","type":"Theory","stem":"SAQ: Stages of sleep [10]","ans_key":"","chapter":"51. Sleep and EEG","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT85","type":"Theory","stem":"SAQ: Endocrine regulation of menstrual cycle [10]","ans_key":"","chapter":"60. Female reproductive physiology","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT86","type":"Theory","stem":"SAQ: Visual pathway lesions and field defects [10] ","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT87","type":"Theory","stem":"SAQ: Parkinson&#8217;s disease [10]","ans_key":"","chapter":"47. Basal ganglia and cerebellum","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT88","type":"Theory","stem":"SAQ: Synaptic plasticity [10]","ans_key":"","chapter":"40. Synaptic transmission : pre synaptic events","examBatch":"2019 Batch Prof Paper I"},
+    {"q":"DLT89","type":"Theory","stem":"Define and classify shock.<br>Enumerate the stages of hypovolemic shock and describe in detail the compensatory mechanisms involved in its early stages. [6+4+10=20] ","ans_key":"","chapter":"17. Hemodynamic","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT90","type":"Theory","stem":"With the help of a labeled diagram explain the hemoglobin oxygen dissociation curve.<br>Give the significance of P50 and explain Bohr&#8217;s effect. [8+3+4=15] ","ans_key":"","chapter":"31. Oxygen transport","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT91","type":"Theory","stem":"Describe the properties and functions of various movements of the small intestine.<br>Add a note on peptic ulcer disease. [10+5=15]","ans_key":"","chapter":"37. Gastrointestinal motility","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT92","type":"Theory","stem":"SAQ: Hemolytic anemias [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT93","type":"Theory","stem":"SAQ: Cell mediated immunity [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT94","type":"Theory","stem":"SAQ: Tubulo-glomerular feedback [10]","ans_key":"","chapter":"20. GFR","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT95","type":"Theory","stem":"SAQ: Heart blocks [10] ","ans_key":"","chapter":"14. Basics of ECG","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT96","type":"Theory","stem":"SAQ: Dysbarism [10]","ans_key":"","chapter":"36. Deep sea diving","examBatch":"2019 Batch Prof Paper II"},
+    {"q":"DLT97","type":"Theory","stem":"Enumerate the nuclei of basal ganglia. Describe the principal connections and functions of basal ganglia.<br>Write briefly about pathophysiology of Parkinson disease. [4+6+6+4=20]","ans_key":"","chapter":"47. Basal ganglia and cerebellum","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT98","type":"Theory","stem":"Define muscle twitch and motor unit. Describe the sequence of events during contraction and relaxation of skeletal muscle. [5+10=15]","ans_key":"","chapter":"10. Mechanism of Muscle Contraction","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT99","type":"Theory","stem":"Describe the hormonal regulation of calcium levels in the blood.<br>Enumerate the pathophysiological basis of osteoporosis. [10+5=15]","ans_key":"","chapter":"57. Hormonal regulation of calcium balance","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT100","type":"Theory","stem":"SAQ: Genesis of resting membrane potential [10]","ans_key":"","chapter":"6. Resting Membrane Potential","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT101","type":"Theory","stem":"SAQ: Functions of glial cells [10]","ans_key":"","chapter":"5. Neuron & Nerve","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT102","type":"Theory","stem":"SAQ: Sound signal conduction and transduction in the human ear [10] ","ans_key":"","chapter":"48. Special senses visual and auditory transduction","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT103","type":"Theory","stem":"SAQ: Pathophysiology of Diabetes mellitus [10]","ans_key":"","chapter":"56. Endocrine pancreas","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT104","type":"Theory","stem":"SAQ: Onset of puberty [10]","ans_key":"","chapter":"60. Female reproductive physiology","examBatch":"2018 Batch Prof Paper I"},
+    {"q":"DLT105","type":"Theory","stem":"Describe the various mechanisms involved in regulation of blood pressure. [20] ","ans_key":"","chapter":"18. BP and its regulation","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT106","type":"Theory","stem":"Describe the mechanism of water reabsorption in the tubules of the kidney.<br>Explain the pathophysiological basis of Diabetes insipidus. [10+5=15]","ans_key":"","chapter":"23. Tubular functions","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT107","type":"Theory","stem":"Discuss carbon dioxide dissociation curve.<br>Add a note on respiratory acidosis. [10+5=15] ","ans_key":"","chapter":"32. CO2 Transport","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT108","type":"Theory","stem":"SAQ: Regulation of pancreatic secretion [10]","ans_key":"","chapter":"39. Secretion and absorption","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT109","type":"Theory","stem":"SAQ: Role of vitamin D in health and disease [10]","ans_key":"","chapter":"57. Hormonal regulation of calcium balance","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT110","type":"Theory","stem":"SAQ: Physiological basis of hemolytic disease of new born [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT111","type":"Theory","stem":"SAQ: Mechanism and functions of migrating motor complex [10]","ans_key":"","chapter":"37. Gastrointestinal motility","examBatch":"2018 Batch Prof Paper II"},
+    {"q":"DLT112","type":"Theory","stem":"SAQ: Role of platelets in hemostasis [10]","ans_key":"","chapter":"3. Cellular Physiology","examBatch":"2018 Batch Prof Paper II"}
+  ]
+}
+

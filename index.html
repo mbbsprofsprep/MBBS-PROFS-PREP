@@ -63,7 +63,7 @@
             <div class="animate-fade-in" id="view-institutes">
                 <div class="text-center mb-10 mt-4">
                     <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 text-slate-900 dark:text-white">Select Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-accent-yellow">Institute</span></h1>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm md:text-lg">Access PYQs for all medical colleges.</p>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm md:text-lg">Access PYQs for all 22 medical colleges.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" id="institutes-grid"></div>
             </div>
@@ -130,14 +130,31 @@
         window.userBookmarks = {}; 
 
         window.DATA = {
-            locks: ['delhi_2', 'delhi_3', 'delhi_4', 'kalyani_2', 'kalyani_3', 'kalyani_4'],
+            // These locks determine which YEAR is locked for which AIIMS (e.g. 'delhi_2' locks 2nd year for Delhi)
+            locks: [], 
             institutes: [
                 { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false },
                 { id: 'deoghar', name: 'AIIMS Deoghar', city: 'Jharkhand', badge: 'D', locked: false },
                 { id: 'kalyani', name: 'AIIMS Kalyani', city: 'West Bengal', badge: 'K', locked: false },
-                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: true },
-                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: true },
-                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: true }
+                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: false },
+                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: false },
+                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: false },
+                { id: 'patna', name: 'AIIMS Patna', city: 'Bihar', badge: 'P', locked: false },
+                { id: 'raipur', name: 'AIIMS Raipur', city: 'Chhattisgarh', badge: 'R', locked: false },
+                { id: 'rishikesh', name: 'AIIMS Rishikesh', city: 'Uttarakhand', badge: 'R', locked: false },
+                { id: 'mangalagiri', name: 'AIIMS Mangalagiri', city: 'Andhra Pradesh', badge: 'M', locked: false },
+                { id: 'nagpur', name: 'AIIMS Nagpur', city: 'Maharashtra', badge: 'N', locked: false },
+                { id: 'gorakhpur', name: 'AIIMS Gorakhpur', city: 'Uttar Pradesh', badge: 'G', locked: false },
+                { id: 'bathinda', name: 'AIIMS Bathinda', city: 'Punjab', badge: 'B', locked: false },
+                { id: 'guwahati', name: 'AIIMS Guwahati', city: 'Assam', badge: 'G', locked: false },
+                { id: 'vijayawada', name: 'AIIMS Vijayawada', city: 'Andhra Pradesh', badge: 'V', locked: false },
+                { id: 'bilaspur', name: 'AIIMS Bilaspur', city: 'Himachal Pradesh', badge: 'B', locked: false },
+                { id: 'madurai', name: 'AIIMS Madurai', city: 'Tamil Nadu', badge: 'M', locked: false },
+                { id: 'darbhanga', name: 'AIIMS Darbhanga', city: 'Bihar', badge: 'D', locked: false },
+                { id: 'awantipora', name: 'AIIMS Awantipora', city: 'Kashmir', badge: 'A', locked: false },
+                { id: 'rajkot', name: 'AIIMS Rajkot', city: 'Gujarat', badge: 'R', locked: false },
+                { id: 'bibinagar', name: 'AIIMS Bibinagar', city: 'Telangana', badge: 'B', locked: false },
+                { id: 'raebareli', name: 'AIIMS Raebareli', city: 'Uttar Pradesh', badge: 'R', locked: false }
             ],
             years: [
                 { id: '1', name: 'First Prof', sub: 'Anatomy • Physio • Biochem' },
@@ -152,10 +169,8 @@
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Pediatrics', icon: '🧸', id: 'pediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anesthesia', icon: '💉', id: 'anesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-    'deoghar_obg': [{ label: 'Chapter Wise PYQ', url: 'obg-review.html?college=deoghar'}],
-    'deoghar_ophthalmology': [{ label: 'Chapter Wise PYQ', url: 'ophthal-review.html?college=deoghar'}],
-                'deoghar_anatomy': [{ label: 'Chapter Wise PYQ', url: 'anatomy-review.html?college=deoghar'}],
-    'deoghar_psm': [{ label: 'Chapter Wise PYQ', url: 'cfm-review.html?college=deoghar'}] // <-- Add this!
+                // Static overrides for PDFs and external resources
+                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
         };
 
@@ -165,12 +180,33 @@
             goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
             goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
             goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
+            
             handleSubjectClick: function(sub) {
                 const key = `${this.state.inst.id}_${sub.id}`;
-                const links = window.DATA.overrides[key] || [{ label: `${sub.name} Bank`, url: `#` }];
+                let links = window.DATA.overrides[key];
+                
+                // DYNAMIC AUTO-ROUTER
+                // Instead of hardcoding 88 overrides, the dashboard automatically points the user 
+                // to the correct file, passing the 'college' ID in the URL.
+                if (!links) {
+                    const routeMap = {
+                        'anatomy': 'anatomy-review.html',
+                        'obg': 'obg-review-9.html',
+                        'psm': 'cfm-review.html',
+                        'ophthalmology': 'ophthal-review.html'
+                    };
+                    
+                    if (routeMap[sub.id]) {
+                        links = [{ label: 'Chapter Wise PYQ', url: `${routeMap[sub.id]}?college=${this.state.inst.id}` }];
+                    } else {
+                        links = [{ label: `${sub.name} Bank`, url: `#` }];
+                    }
+                }
+
                 this.state.sub = sub; this.state.view = 'resources';
                 this.renderResources(this.state.inst, this.state.year, sub, links);
             },
+
             showLockedModal: function(name) { alert(`Bank for ${name} is coming soon!`); },
             
             renderInstitutes: function() {
@@ -287,7 +323,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        // Notice we are now importing 'remove' from the database toolkit!
         import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -306,7 +341,6 @@
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
-        // Universal Toggle Bookmark Function
         window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
             try {
                 const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
@@ -323,14 +357,18 @@
             }
         };
 
-        // Universal Delete Bookmark Function (With Optimistic UI Updates)
         window.deleteBookmark = async function(qId) {
             if (!window.currentUserObj) return;
             if (!confirm("Remove this question from your saved items?")) return;
             
-            // 1. Optimistic UI Update (Makes it disappear instantly from the side panel)
-            if (window.userBookmarks && window.userBookmarks[qId]) {
-                delete window.userBookmarks[qId];
+            let targetKey = qId;
+            if (window.userBookmarks && !window.userBookmarks[qId]) {
+                const foundKey = Object.keys(window.userBookmarks).find(key => window.userBookmarks[key].q === qId);
+                if (foundKey) targetKey = foundKey;
+            }
+
+            if (window.userBookmarks && window.userBookmarks[targetKey]) {
+                delete window.userBookmarks[targetKey];
             }
             if (window.userPanelApp && window.userPanelApp.isOpen) {
                 window.userPanelApp.renderState();
@@ -339,9 +377,8 @@
                 window.updateBookmarkUI();
             }
 
-            // 2. Cloud Deletion (Uses standard remove() safely)
             try { 
-                await remove(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`)); 
+                await remove(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${targetKey}`)); 
             } catch(e) { 
                 console.error(e);
                 alert("Failed to remove bookmark from cloud: " + e.message); 
@@ -394,25 +431,23 @@
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 
-                // Profile Listener
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
-                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); 
                 });
                 
-                // Bookmarks Listener (Removed viewMode strict check for instant updates)
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
                     if(typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
-                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
-                // Permissions Listener
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
                     if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
-                    if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
+                    if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                    if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -425,16 +460,17 @@
                         window.globalUserStatus = sub; 
                         window.accessLevel = sub.isVIP ? 'premium' : 'free';
                         if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
-                        if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState();
+                        if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
+                        if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
                 window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; window.accessLevel = 'guest';
                 if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+                if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
             }
         });
     </script>
-        
 </body>
 </html>

@@ -700,24 +700,73 @@
         }
         
         window.copyForChatGPT = function() {
-            const visibleQuestions = []; const tr = document.getElementById("qnaTable").getElementsByTagName("tr");
-            for (let i = 1; i < tr.length; i++) { if (tr[i].style.display !== "none" && tr[i].getAttribute('data-locked-row') !== "true") visibleQuestions.push(window.displayData[tr[i].getAttribute('data-index')]); }
-            if(visibleQuestions.length === 0) return;
+            const visibleQuestions = []; 
+            const table = document.getElementById("qnaTable");
             
-            let clipboardText = `Analyze the given list of questions and generate a study checklist in the exact format shown in the reference document. Use color-coded numbered headings (🔴🟠🟡🟢) in the format ‘🔴 1. Topic Name (xN)’, where xN equals the number of DISTINCT THEORY questions only. Under each heading, include exactly ONE checkbox line (☐) containing compressed, exam-oriented keywords (no explanations). Below it, place one bracketed code line only in the format ‘[Txx, Txx | Mxx, Mxx]’, with T codes first, M codes after ‘|’. Treat subtopics as the unit of prioritization and order headings strictly by theory count only—MCQs must never affect order. Assign each T code and each M code exactly once and only once, anchoring integrated theory questions to their single dominant topic. Place MCQ-only topics at the end, maintain zero redundancy, and ensure the final output is visually identical in structure, density, and style to the reference checklist.\n\n`;
-            
-            visibleQuestions.forEach(q => {
-                clipboardText += `Q ${q.q}: ${q.stem.replace(/<[^>]*>/g, "")}\n`;
-                if (q.type === 'MCQ' && q.options && Array.isArray(q.options)) {
-                    q.options.forEach((opt, idx) => {
-                        clipboardText += `   ${window.optionLetters[idx]}) ${opt.replace(/<[^>]*>/g, "")}\n`;
-                    });
-                }
-                clipboardText += `\n`; 
-            });
+            if (!table) return;
 
-            const t = document.createElement('textarea'); t.value = clipboardText; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
-            window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Copied ${visibleQuestions.length} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `📋`);
+            const tr = table.getElementsByTagName("tr");
+
+            // 1. Gather all currently visible questions safely
+            for (let i = 1; i < tr.length; i++) { 
+                if (tr[i].style.display !== "none" && tr[i].getAttribute('data-locked-row') !== "true") {
+                    const indexStr = tr[i].getAttribute('data-index');
+                    if (indexStr !== null && window.displayData && window.displayData[indexStr]) {
+                        visibleQuestions.push(window.displayData[indexStr]);
+                    }
+                } 
+            }
+            
+            // 2. Prevent Silent Failure if empty
+            if(visibleQuestions.length === 0) {
+                window.showModal("No Questions Found", 
+                    "<p class='text-slate-600 dark:text-slate-400'>No visible questions found to copy. Wait for data to load or clear your filters.</p>", 
+                    `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, 
+                    "⚠️");
+                return;
+            }
+            
+            try {
+                let clipboardText = `Analyze the given list of questions and generate a study checklist in the exact format shown in the reference document. Use color-coded numbered headings (🔴🟠🟡🟢) in the format ‘🔴 1. Topic Name (xN)’, where xN equals the number of DISTINCT THEORY questions only. Under each heading, include exactly ONE checkbox line (☐) containing compressed, exam-oriented keywords (no explanations). Below it, place one bracketed code line only in the format ‘[Txx, Txx | Mxx, Mxx]’, with T codes first, M codes after ‘|’. Treat subtopics as the unit of prioritization and order headings strictly by theory count only—MCQs must never affect order. Assign each T code and each M code exactly once and only once, anchoring integrated theory questions to their single dominant topic. Place MCQ-only topics at the end, maintain zero redundancy, and ensure the final output is visually identical in structure, density, and style to the reference checklist.\n\n`;
+                
+                // 3. Crash-proof the formatting loop
+                visibleQuestions.forEach(q => {
+                    const stemText = q.stem ? q.stem.replace(/<[^>]*>/g, "") : "Missing Question Text";
+                    const qId = q.q ? q.q : "Unknown";
+                    
+                    clipboardText += `Q ${qId}: ${stemText}\n`;
+                    
+                    if (q.type === 'MCQ' && q.options && Array.isArray(q.options)) {
+                        q.options.forEach((opt, idx) => {
+                            const optText = opt ? opt.replace(/<[^>]*>/g, "") : "";
+                            const letter = window.optionLetters && window.optionLetters[idx] ? window.optionLetters[idx] : "-";
+                            clipboardText += `   ${letter}) ${optText}\n`;
+                        });
+                    }
+                    clipboardText += `\n`; 
+                });
+
+                // 4. Copy to Clipboard
+                const t = document.createElement('textarea'); 
+                t.value = clipboardText; 
+                document.body.appendChild(t); 
+                t.select(); 
+                document.execCommand('copy'); 
+                document.body.removeChild(t);
+                
+                // 5. Show Success Modal
+                window.showModal("Copied!", 
+                    `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${visibleQuestions.length} questions for analysis.</p>`, 
+                    `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">Go to ChatGPT</button>`, 
+                    `📋`);
+                    
+            } catch (error) {
+                console.error(error);
+                window.showModal("Error Copying", 
+                    `<p class="text-slate-500 dark:text-slate-400">Failed to copy: ${error.message}</p>`, 
+                    `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, 
+                    `❌`);
+            }
         }
 
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 

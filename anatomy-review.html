@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="dynamic-page-title">MBBS PROFS PREP - Anatomy Exam Review</title>
+    <title id="dynamic-page-title">MBBS PROFS PREP - Exam Review</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,7 +112,7 @@
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
         <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2">Anatomy Exam Review</h1>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">Subject Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300" id="dynamic-college-header">MBBS PROFS PREP</h2>
             <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions.</p>
         </header>
@@ -190,7 +190,33 @@
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
 
-        // --- REPORT CONFIG & SUBJECT CONFIG ---
+        // ====================================================================
+        // 🔴 MASTER ROUTING CONTROLS
+        // ====================================================================
+        const urlParams = new URLSearchParams(window.location.search);
+        window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
+        window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
+        
+        // 🟢 CHANGE THIS STRING FOR EACH NEW SUBJECT FILE (e.g. "PATHOLOGY", "SURGERY", "MEDICINE")
+        window.SUBJECT_CODE = "ANATOMY"; 
+        
+        window.curriculumData = [];
+        window.qnaData = [];
+        window.displayData = [];
+
+        // Instantly update UI Headers before data even loads
+        document.addEventListener("DOMContentLoaded", () => {
+            const titleEl = document.getElementById('dynamic-page-title');
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} (${window.COLLEGE_NAME})`;
+            
+            const mainTitleEl = document.getElementById('dynamic-subject-title');
+            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Exam Review`;
+
+            const headerEl = document.getElementById('dynamic-college-header');
+            if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
+        });
+
+        // --- GOOGLE FORM REPORT CONFIG ---
         window.REPORT_CONFIG = { 
             formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", 
             entryID_QID: "entry.1044663891", 
@@ -198,12 +224,6 @@
             entryID_Desc: "entry.621177596" 
         };
         window.selectedReportType = "Other";
-
-        window.COLLEGE_NAME = "AIIMS";
-        window.SUBJECT_CODE = "ANATOMY"; // Subject identifier for unique bookmarks
-        window.curriculumData = [];
-        window.qnaData = [];
-        window.displayData = [];
 
         // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
@@ -295,44 +315,47 @@
 
         // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const collegeCode = urlParams.get('college') || 'deoghar'; 
-            
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading Question Bank...</p></td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading ${window.COLLEGE_NAME} Question Bank...</p></td></tr>`;
             }
 
             try {
-                const response = await fetch(`anatomy_aiims_${collegeCode}_data.json`);
+                // Dynamically load the correct JSON based on SUBJECT and COLLEGE
+                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+                const response = await fetch(fileName);
+                
                 if (!response.ok) throw new Error("Failed to load JSON file");
                 
                 const data = await response.json();
-                window.COLLEGE_NAME = data.collegeName || "AIIMS";
+                
+                window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME; 
                 window.curriculumData = data.curriculumData || [];
                 window.qnaData = data.qnaData || [];
                 window.isDataLoaded = true;
 
-                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - Anatomy Review (${window.COLLEGE_NAME})`;
+                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
                 const headerEl = document.getElementById('dynamic-college-header');
                 if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
 
             } catch (error) {
                 console.error("Error fetching data:", error);
-                if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions.</p><p class="text-sm">Please check your internet connection or the URL parameter.</p></td></tr>`;
+                if(tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json</b> is uploaded to your server.</p></td></tr>`;
+                }
             }
         };
 
         window.getUnitForChapter = function(chapterName) {
-            if (!window.curriculumData) return "General";
+            if (!window.curriculumData) return window.SUBJECT_CODE;
             for (const section of window.curriculumData) {
                 if (typeof section === 'string') {
-                    if (section === chapterName) return "Anatomy";
+                    if (section === chapterName) return window.SUBJECT_CODE;
                 } else if (section.chapters && section.chapters.includes(chapterName)) {
                     return section.unit;
                 }
             }
-            return "General";
+            return window.SUBJECT_CODE;
         };
 
         window.processDataForAccess = function() {
@@ -520,17 +543,25 @@
                 let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
-                let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
+                let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
                 if (item.type === 'MCQ') {
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
-                            const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
                     qHtml += '</div>';
-                } else { qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div>`; }
+                } else { 
+                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
+                    let stemWithoutMarks = cleanStem; let marksDisplay = '';
+                    if (markMatch) {
+                        stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
+                        marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
+                    }
+                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
+                }
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
@@ -623,10 +654,10 @@
             const chapterString = chArray.join(", "); 
             
             if (item.type === 'MCQ') {
-                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i]}) ${opt}`).join('\n') : "Options not available";
-                textToCopy = `I am studying for an Anatomy Exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
+                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i] || '-'}) ${opt}`).join('\n') : "Options not available";
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
             } else { 
-                textToCopy = `I am studying for an Anatomy Exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; 
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; 
             }
             
             if (navigator.clipboard && window.isSecureContext) {
@@ -709,8 +740,8 @@
             a.href = url;
             
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const subjectName = typeof window.SUBJECT_CODE !== 'undefined' ? window.SUBJECT_CODE.toLowerCase() : "anatomy";
-            a.download = `${subjectName}_export_${timestamp}.json`; 
+            const subjectName = typeof window.SUBJECT_CODE !== 'undefined' ? window.SUBJECT_CODE.toLowerCase() : "data";
+            a.download = `${subjectName}_aiims_${window.COLLEGE_CODE}_data_${timestamp}.json`; 
             
             document.body.appendChild(a);
             a.click();
@@ -751,7 +782,7 @@
                 if (q.type === 'MCQ' && q.options && Array.isArray(q.options)) {
                     q.options.forEach((opt, idx) => {
                         const optText = opt ? opt.replace(/<[^>]*>/g, "") : "";
-                        clipboardText += `   ${window.optionLetters[idx]}) ${optText}\n`;
+                        clipboardText += `   ${window.optionLetters[idx] || '-'}) ${optText}\n`;
                     });
                 }
                 clipboardText += `\n`; 
@@ -1008,7 +1039,7 @@
                 questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
                     optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { 
-                        const letter = window.optionLetters[i]; 
+                        const letter = window.optionLetters[i] || '-'; 
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         
                         const status = window.deckStatus[q.q];
@@ -1023,7 +1054,7 @@
                     }).join('')}</div>`; 
                 }
             } else { 
-                const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\))/);
+                const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
                 let stemWithoutMarks = cleanStem; let marksDisplay = '';
                 if (markMatch) {
                     stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();

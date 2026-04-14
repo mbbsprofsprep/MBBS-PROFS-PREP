@@ -130,31 +130,30 @@
         window.userBookmarks = {}; 
 
         window.DATA = {
-            // These locks determine which YEAR is locked for which AIIMS (e.g. 'delhi_2' locks 2nd year for Delhi)
             locks: [], 
             institutes: [
-                { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false },
-                { id: 'deoghar', name: 'AIIMS Deoghar', city: 'Jharkhand', badge: 'D', locked: false },
-                { id: 'kalyani', name: 'AIIMS Kalyani', city: 'West Bengal', badge: 'K', locked: false },
-                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: false },
-                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: false },
-                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: false },
-                { id: 'patna', name: 'AIIMS Patna', city: 'Bihar', badge: 'P', locked: false },
-                { id: 'raipur', name: 'AIIMS Raipur', city: 'Chhattisgarh', badge: 'R', locked: false },
-                { id: 'rishikesh', name: 'AIIMS Rishikesh', city: 'Uttarakhand', badge: 'R', locked: false },
-                { id: 'mangalagiri', name: 'AIIMS Mangalagiri', city: 'Andhra Pradesh', badge: 'M', locked: false },
-                { id: 'nagpur', name: 'AIIMS Nagpur', city: 'Maharashtra', badge: 'N', locked: false },
-                { id: 'gorakhpur', name: 'AIIMS Gorakhpur', city: 'Uttar Pradesh', badge: 'G', locked: false },
-                { id: 'bathinda', name: 'AIIMS Bathinda', city: 'Punjab', badge: 'B', locked: false },
-                { id: 'guwahati', name: 'AIIMS Guwahati', city: 'Assam', badge: 'G', locked: false },
-                { id: 'vijayawada', name: 'AIIMS Vijayawada', city: 'Andhra Pradesh', badge: 'V', locked: false },
-                { id: 'bilaspur', name: 'AIIMS Bilaspur', city: 'Himachal Pradesh', badge: 'B', locked: false },
-                { id: 'madurai', name: 'AIIMS Madurai', city: 'Tamil Nadu', badge: 'M', locked: false },
-                { id: 'darbhanga', name: 'AIIMS Darbhanga', city: 'Bihar', badge: 'D', locked: false },
-                { id: 'awantipora', name: 'AIIMS Awantipora', city: 'Kashmir', badge: 'A', locked: false },
-                { id: 'rajkot', name: 'AIIMS Rajkot', city: 'Gujarat', badge: 'R', locked: false },
-                { id: 'bibinagar', name: 'AIIMS Bibinagar', city: 'Telangana', badge: 'B', locked: false },
-                { id: 'raebareli', name: 'AIIMS Raebareli', city: 'Uttar Pradesh', badge: 'R', locked: false }
+                { id: 'delhi', name: 'AIIMS Delhi', city: 'New Delhi', badge: 'D', locked: false, visible: true },
+                { id: 'deoghar', name: 'AIIMS Deoghar', city: 'Jharkhand', badge: 'D', locked: false, visible: true },
+                { id: 'kalyani', name: 'AIIMS Kalyani', city: 'West Bengal', badge: 'K', locked: false, visible: true },
+                { id: 'bhubaneswar', name: 'AIIMS Bhubaneswar', city: 'Odisha', badge: 'B', locked: false, visible: false },
+                { id: 'bhopal', name: 'AIIMS Bhopal', city: 'Madhya Pradesh', badge: 'B', locked: false, visible: false },
+                { id: 'jodhpur', name: 'AIIMS Jodhpur', city: 'Rajasthan', badge: 'J', locked: false, visible: false },
+                { id: 'patna', name: 'AIIMS Patna', city: 'Bihar', badge: 'P', locked: false, visible: false },
+                { id: 'raipur', name: 'AIIMS Raipur', city: 'Chhattisgarh', badge: 'R', locked: false, visible: false },
+                { id: 'rishikesh', name: 'AIIMS Rishikesh', city: 'Uttarakhand', badge: 'R', locked: false, visible: false },
+                { id: 'mangalagiri', name: 'AIIMS Mangalagiri', city: 'Andhra Pradesh', badge: 'M', locked: false, visible: false },
+                { id: 'nagpur', name: 'AIIMS Nagpur', city: 'Maharashtra', badge: 'N', locked: false, visible: false },
+                { id: 'gorakhpur', name: 'AIIMS Gorakhpur', city: 'Uttar Pradesh', badge: 'G', locked: false, visible: false },
+                { id: 'bathinda', name: 'AIIMS Bathinda', city: 'Punjab', badge: 'B', locked: false, visible: false },
+                { id: 'guwahati', name: 'AIIMS Guwahati', city: 'Assam', badge: 'G', locked: false, visible: false },
+                { id: 'vijayawada', name: 'AIIMS Vijayawada', city: 'Andhra Pradesh', badge: 'V', locked: false, visible: false },
+                { id: 'bilaspur', name: 'AIIMS Bilaspur', city: 'Himachal Pradesh', badge: 'B', locked: false, visible: false },
+                { id: 'madurai', name: 'AIIMS Madurai', city: 'Tamil Nadu', badge: 'M', locked: false, visible: false },
+                { id: 'darbhanga', name: 'AIIMS Darbhanga', city: 'Bihar', badge: 'D', locked: false, visible: false },
+                { id: 'awantipora', name: 'AIIMS Awantipora', city: 'Kashmir', badge: 'A', locked: false, visible: false },
+                { id: 'rajkot', name: 'AIIMS Rajkot', city: 'Gujarat', badge: 'R', locked: false, visible: false },
+                { id: 'bibinagar', name: 'AIIMS Bibinagar', city: 'Telangana', badge: 'B', locked: false, visible: false },
+                { id: 'raebareli', name: 'AIIMS Raebareli', city: 'Uttar Pradesh', badge: 'R', locked: false, visible: false }
             ],
             years: [
                 { id: '1', name: 'First Prof', sub: 'Anatomy • Physio • Biochem' },
@@ -169,33 +168,48 @@
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Pediatrics', icon: '🧸', id: 'pediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anesthesia', icon: '💉', id: 'anesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-                // Static overrides for PDFs and external resources
-                'deoghar_patholog': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
         };
 
         window.app = {
             state: { view: 'institutes', inst: null, year: null, sub: null },
-            init: function() { this.renderInstitutes(); },
-            goHome: function() { this.state = { view: 'institutes', inst: null, year: null, sub: null }; this.renderInstitutes(); },
-            goToYears: function(id, name) { this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; this.renderYears(this.state.inst); },
-            goToSubjects: function(id, name) { this.state.year = { id, name }; this.state.view = 'subjects'; this.renderSubjects(this.state.inst, this.state.year); },
             
-            handleSubjectClick: function(sub) {
+            init: function() { 
+                history.replaceState({ view: 'institutes' }, '');
+                this.renderInstitutes(); 
+            },
+            
+            goHome: function(push = true) { 
+                this.state = { view: 'institutes', inst: null, year: null, sub: null }; 
+                if (push) history.pushState({ view: 'institutes' }, '');
+                this.renderInstitutes(); 
+            },
+            
+            goToYears: function(id, name, push = true) { 
+                this.state = { view: 'years', inst: { id, name }, year: null, sub: null }; 
+                if (push) history.pushState({ view: 'years', inst: this.state.inst }, '');
+                this.renderYears(this.state.inst); 
+            },
+            
+            goToSubjects: function(id, name, push = true) { 
+                this.state.year = { id, name }; 
+                this.state.view = 'subjects'; 
+                if (push) history.pushState({ view: 'subjects', inst: this.state.inst, year: this.state.year }, '');
+                this.renderSubjects(this.state.inst, this.state.year); 
+            },
+            
+            handleSubjectClick: function(sub, push = true) {
                 const key = `${this.state.inst.id}_${sub.id}`;
                 let links = window.DATA.overrides[key];
                 
-                // DYNAMIC AUTO-ROUTER
-                // Instead of hardcoding 88 overrides, the dashboard automatically points the user 
-                // to the correct file, passing the 'college' ID in the URL.
                 if (!links) {
                     const routeMap = {
                         'anatomy': 'anatomy-review.html',
-                          'physiology': 'physiology-review.html',
+                        'physiology': 'physiology-review.html',
                         'pathology': 'pathology-review.html',
                         'obg': 'obg-review.html',
                         'psm': 'cfm-review.html',
-                    
                         'ophthalmology': 'ophthal-review.html'
                     };
                     
@@ -206,7 +220,9 @@
                     }
                 }
 
-                this.state.sub = sub; this.state.view = 'resources';
+                this.state.sub = sub; 
+                this.state.view = 'resources';
+                if (push) history.pushState({ view: 'resources', inst: this.state.inst, year: this.state.year, sub: this.state.sub }, '');
                 this.renderResources(this.state.inst, this.state.year, sub, links);
             },
 
@@ -214,7 +230,10 @@
             
             renderInstitutes: function() {
                 this.toggleView('institutes');
-                document.getElementById('institutes-grid').innerHTML = window.DATA.institutes.map(inst => {
+                
+                const visibleInstitutes = window.DATA.institutes.filter(inst => inst.visible !== false);
+                
+                document.getElementById('institutes-grid').innerHTML = visibleInstitutes.map(inst => {
                     if (inst.locked) {
                         return `<div onclick="window.app.showLockedModal('${inst.name}')" class="glass-card p-6 rounded-xl relative opacity-75 grayscale bg-slate-100 dark:bg-slate-800/50"><div class="absolute top-3 right-3 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">Soon</div><div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-lg mb-4 border border-slate-300">${inst.badge}</div><h3 class="font-bold text-lg mb-1 text-slate-500">${inst.name}</h3><p class="text-sm text-slate-400">${inst.city}</p></div>`;
                     }
@@ -319,7 +338,26 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); const icon = document.getElementById('theme-icon'); if(icon) icon.innerText = '☀️'; }
-            window.init3D(); window.app.init(); 
+            window.init3D(); 
+            window.app.init(); 
+
+            window.addEventListener('popstate', (e) => {
+                const s = e.state;
+                if (!s || s.view === 'institutes') {
+                    window.app.goHome(false); 
+                } else if (s.view === 'years') {
+                    window.app.state.inst = s.inst;
+                    window.app.renderYears(s.inst);
+                } else if (s.view === 'subjects') {
+                    window.app.state.inst = s.inst;
+                    window.app.state.year = s.year;
+                    window.app.renderSubjects(s.inst, s.year);
+                } else if (s.view === 'resources') {
+                    window.app.state.inst = s.inst;
+                    window.app.state.year = s.year;
+                    window.app.handleSubjectClick(s.sub, false);
+                }
+            });
         });
     </script>
 

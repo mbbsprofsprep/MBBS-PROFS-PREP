@@ -478,13 +478,41 @@
             }).catch(err => window.showAuthError(err.message));
         };
 
-        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
+        window.firebaseSignOut = () => {
+            localStorage.removeItem('my_session_token');
+            signOut(auth).then(() => window.location.reload());
+        };
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             window.currentUserObj = user;
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 
+                // --- MULTI-DEVICE LOGIN PROTECTOR START ---
+                if (!allowedVIPs.includes(email)) {
+                    try {
+                        const sessionRef = ref(db, 'users/' + user.uid + '/current_session');
+                        const myToken = localStorage.getItem('my_session_token') || Math.random().toString(36).substring(2, 15);
+                        
+                        if (!localStorage.getItem('my_session_token')) { 
+                            localStorage.setItem('my_session_token', myToken); 
+                            await set(sessionRef, myToken); 
+                        }
+                        
+                        onValue(sessionRef, (snap) => { 
+                            const cloudToken = snap.val();
+                            if (cloudToken && cloudToken !== myToken) { 
+                                localStorage.removeItem('my_session_token');
+                                alert("Security Alert: Your account was logged into from another device. You are being signed out of this session.");
+                                window.firebaseSignOut();
+                            } 
+                        });
+                    } catch(e) { 
+                        console.error("Session sync error:", e); 
+                    }
+                }
+                // --- MULTI-DEVICE LOGIN PROTECTOR END ---
+
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); 

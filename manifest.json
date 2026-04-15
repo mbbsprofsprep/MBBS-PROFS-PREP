@@ -1,7 +1,7 @@
 {
   "name": "MBBS Profs Prep",
-  "short_name": "Profs Prep",
-  "start_url": "/",
+  "short_name": "MBBS Profs Prep",
+ "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#0ea5e9",

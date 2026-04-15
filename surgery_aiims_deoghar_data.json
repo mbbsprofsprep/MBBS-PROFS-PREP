@@ -1,0 +1,134 @@
+{
+  "collegeName": "AIIMS DEOGHAR",
+  "curriculumData": [
+    {
+      "unit": "Unit A. General Surgery & Embryology",
+      "chapters": [
+        "1. Patient Safety, OT Zones and Surgery Positions",
+        "2. Surgical Blades and Energy Sources",
+        "3. Surgical Drains, Knots and Sutures",
+        "4. Post Operative Fever and Wound Infection",
+        "5. Day Care Surgery",
+        "6. Surgical Nutrition",
+        "7. Shock"
+      ]
+    },
+    {
+      "unit": "Unit B. Breast",
+      "chapters": [
+        "8. Breast"
+      ]
+    },
+    {
+      "unit": "Unit C. Endocrine Surgery",
+      "chapters": [
+        "9. Thyroid",
+        "10. Parathyroid",
+        "11. Adrenal Glands and Neuroendocrine Tumors"
+      ]
+    },
+    {
+      "unit": "Unit D. GI Surgery",
+      "chapters": [
+        "12. Esophagus",
+        "13. Stomach",
+        "14. Upper GI Hemorrhage",
+        "15. Bariatric Surgery",
+        "16. Bowel Obstruction",
+        "17. Benign Conditions of Small and Large Bowel",
+        "18. Appendix",
+        "19. Colorectal Polyps and Cancer",
+        "20. Rectum and Anal Canal",
+        "21. Liver",
+        "22. Spleen",
+        "23. Gallbladder and Bile Duct",
+        "24. Benign Pancreatic Conditions",
+        "25. Pancreatic Tumor"
+      ]
+    },
+    {
+      "unit": "Unit E. Urology",
+      "chapters": [
+        "26. Testicular Disorders",
+        "27. Urethral and Penile Disorders",
+        "28. Kidney",
+        "29. Bladder",
+        "30. Prostate"
+      ]
+    },
+    {
+      "unit": "Unit F. Specialty Surgery",
+      "chapters": [
+        "31. Minimally Invasive Surgery",
+        "32. Transplant Surgery",
+        "33. Plastic Surgery",
+        "34. Neurosurgery"
+      ]
+    },
+    {
+      "unit": "Unit G. Trauma",
+      "chapters": [
+        "35. Basics of Trauma Management",
+        "36. Abdominal Trauma",
+        "37. Thoracic Trauma",
+        "38. Head Trauma",
+        "39. Thermal Injuries"
+      ]
+    },
+    {
+      "unit": "Unit H. Hernia",
+      "chapters": [
+        "40. Hernia"
+      ]
+    },
+    {
+      "unit": "Unit I. Vascular Surgery",
+      "chapters": [
+        "41. Venous Thrombosis",
+        "42. Varicose Veins",
+        "43. Arterial System",
+        "44. Lymphatic System"
+      ]
+    },
+    {
+      "unit": "Unit J. Faciomaxillary Surgery",
+      "chapters": [
+        "45. Oral Cancers",
+        "46. Salivary Glands"
+      ]
+    },
+    {
+      "unit": "Unit K. Miscellaneous",
+      "chapters": [
+        "47. Skin and Soft Tissue Sarcomas",
+        "48. Thorax and Mediastinum",
+        "49. Common Surgical Swellings",
+        "50. Common Ulcers",
+        "51. Surgical Instruments"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"T1","type":"Theory","stem":"Define <strong>Shock</strong>. Classify it. Discuss the pathophysiology and management of Hypovolemic Shock in a trauma patient. (1+2+3+4=10 Marks)","ans_key":"","chapter":"7. Shock","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T2","type":"Theory","stem":"A 45-year-old female presents with a lump in the breast. Discuss the <strong>Triple Assessment</strong>. Outline the management of Early Breast Cancer (T1N0M0). (4+6=10 Marks)","ans_key":"","chapter":"8. Breast","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T3","type":"Theory","stem":"Classify <strong>Thyroid Malignancies</strong>. Describe the clinical features and management of Papillary Carcinoma of Thyroid. (3+3+4=10 Marks)","ans_key":"","chapter":"9. Thyroid","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T4","type":"Theory","stem":"Discuss the pathophysiology, clinical features, and management of <strong>Acute Appendicitis</strong>. Mention the Alvarado Score. (3+2+3+2=10 Marks)","ans_key":"","chapter":"18. Appendix","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T5","type":"Theory","stem":"Define <strong>Burns</strong>. Discuss the calculation of fluid requirement (Parkland Formula) and management of a patient with 40% TBSA thermal burns. (2+3+5=10 Marks)","ans_key":"","chapter":"39. Thermal Injuries","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T6","type":"Theory","stem":"Write short notes on: <strong>Inguinal Hernia</strong> - Anatomy of inguinal canal and difference between Direct and Indirect Hernia. (5 Marks)","ans_key":"","chapter":"40. Hernia","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T7","type":"Theory","stem":"Management of a patient with <strong>Obstructive Jaundice</strong> due to CBD stones. (5 Marks)","ans_key":"","chapter":"23. Gallbladder and Bile Duct","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T8","type":"Theory","stem":"Discuss the <strong>FAST (Focused Assessment with Sonography for Trauma)</strong> scan indications and views. (5 Marks)","ans_key":"","chapter":"36. Abdominal Trauma","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T9","type":"Theory","stem":"Clinical features and management of <strong>Benign Prostatic Hyperplasia (BPH)</strong>. (2+3=5 Marks)","ans_key":"","chapter":"30. Prostate","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T10","type":"Theory","stem":"Differential diagnosis and management of a <strong>Solitary Thyroid Nodule</strong>. (5 Marks)","ans_key":"","chapter":"9. Thyroid","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M1","type":"MCQ","stem":"<strong>Charcot's Triad</strong> for ascending cholangitis includes all EXCEPT:","ans_key":"D","options":["Fever","Jaundice","Right Upper Quadrant Pain","Hypotension"],"chapter":"23. Gallbladder and Bile Duct","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M2","type":"MCQ","stem":"The most common site for <strong>Carcinoma of the Breast</strong> is:","ans_key":"A","options":["Upper Outer Quadrant","Upper Inner Quadrant","Lower Outer Quadrant","Central (Nipple-Areola)"],"chapter":"8. Breast","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M3","type":"MCQ","stem":"<strong>Rovsing's Sign</strong> is elicited in:","ans_key":"B","options":["Acute Cholecystitis","Acute Appendicitis","Acute Pancreatitis","Intestinal Obstruction"],"chapter":"18. Appendix","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M4","type":"MCQ","stem":"Which of the following is an <strong>Absorbable Suture</strong>?","ans_key":"C","options":["Silk","Prolene (Polypropylene)","Vicryl (Polyglactin)","Nylon"],"chapter":"3. Surgical Drains, Knots and Sutures","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M5","type":"MCQ","stem":"<strong>Rule of Nines</strong> is used for assessment of:","ans_key":"A","options":["Burn Surface Area","Coma Scale","Trauma Severity","Dehydration"],"chapter":"39. Thermal Injuries","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M6","type":"MCQ","stem":"<strong>Triangle of Calot</strong> is an important landmark during:","ans_key":"B","options":["Appendectomy","Cholecystectomy","Thyroidectomy","Hernioplasty"],"chapter":"23. Gallbladder and Bile Duct","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M7","type":"MCQ","stem":"The most common type of <strong>Renal Cell Carcinoma</strong> is:","ans_key":"A","options":["Clear Cell Carcinoma","Papillary Carcinoma","Chromophobe Carcinoma","Collecting Duct Carcinoma"],"chapter":"28. Kidney","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M8","type":"MCQ","stem":"<strong>Ebb Phase</strong> of metabolic response to injury is characterized by:","ans_key":"C","options":["Hypermetabolism","Increased Cardiac Output","Hypometabolism and Shock","Protein Catabolism"],"chapter":"7. Shock","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M9","type":"MCQ","stem":"<strong>Trendelenburg operation</strong> is done for:","ans_key":"B","options":["Deep Vein Thrombosis","Varicose Veins","Arterial Occlusion","Lymphatic Obstruction"],"chapter":"42. Varicose Veins","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M10","type":"MCQ","stem":"<strong>Glasgow Coma Scale (GCS)</strong> score of a dead person is:","ans_key":"D","options":["0","1","15","3"],"chapter":"38. Head Trauma","examBatch":"2022 Batch Prof Exam"}
+  ]
+}
+

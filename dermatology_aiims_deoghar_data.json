@@ -1,0 +1,89 @@
+{
+  "collegeName": "AIIMS DEOGHAR",
+  "curriculumData": [
+    {
+      "unit": "Unit A. Basics & Approach",
+      "chapters": [
+        "1. How to Approach Dermatology",
+        "2. Basics in Dermatology: Part 1",
+        "3. Basics in Dermatology: Part 2"
+      ]
+    },
+    {
+      "unit": "Unit B. Papulosquamous & Appendages",
+      "chapters": [
+        "4. Papulosquamous Diseases: Part 1",
+        "5. Papulosquamous Diseases: Part 2",
+        "6. Appendages and Disorders: Part 1",
+        "7. Appendages and Disorders: Part 2"
+      ]
+    },
+    {
+      "unit": "Unit C. Bullous Disorders",
+      "chapters": [
+        "8. Bullous Disorders: Part 1",
+        "9. Bullous Disorders: Part 2"
+      ]
+    },
+    {
+      "unit": "Unit D. Infections (Non-STI)",
+      "chapters": [
+        "10. Bacterial Infections of Skin",
+        "11. Mycobacterial Infections of Skin",
+        "12. Viral Infections of Skin",
+        "13. Fungal Infections of Skin",
+        "14. Parasitic Infections of Skin"
+      ]
+    },
+    {
+      "unit": "Unit E. STIs & Leprosy",
+      "chapters": [
+        "15. Sexually Transmitted Infections: Part 1",
+        "16. Sexually Transmitted Infections: Part 2",
+        "17. Hansen's Disease: Part 1",
+        "18. Hansen's Disease: Part 2"
+      ]
+    },
+    {
+      "unit": "Unit F. Pigmentary, Eczema & Genetics",
+      "chapters": [
+        "19. Pigmentary Diseases",
+        "20. Eczema",
+        "21. Genodermatoses"
+      ]
+    },
+    {
+      "unit": "Unit G. Allergy, Systemic & Misc",
+      "chapters": [
+        "22. Histamine Related Disorders",
+        "23. Cutaneous Drug Reactions",
+        "24. Skin In Rheumatology and Immunology",
+        "25. Skin and Systems",
+        "26. Short Topics in Dermatology"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"T1","type":"Theory","stem":"Describe the clinical features, diagnosis, and management of <strong>Psoriasis Vulgaris</strong>. Mention the specific nail changes seen. (3+3+2+2=10 Marks)","ans_key":"","chapter":"4. Papulosquamous Diseases: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T2","type":"Theory","stem":"Classify <strong>Leprosy</strong> based on Ridley-Jopling classification. Discuss the clinical features and management of Borderline Tuberculoid (BT) Leprosy. (3+4+3=10 Marks)","ans_key":"","chapter":"17. Hansen's Disease: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T3","type":"Theory","stem":"Discuss the etiopathogenesis and management of <strong>Acne Vulgaris</strong>. Classify acne based on severity. (4+4+2=10 Marks)","ans_key":"","chapter":"6. Appendages and Disorders: Part 1","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T4","type":"Theory","stem":"Differentiate between <strong>Pemphigus Vulgaris</strong> and <strong>Bullous Pemphigoid</strong> based on clinical features, histopathology, and immunofluorescence. (10 Marks)","ans_key":"","chapter":"8. Bullous Disorders: Part 1","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T5","type":"Theory","stem":"Describe the syndromic management of <strong>Urethral Discharge</strong> in males. (5 Marks)","ans_key":"","chapter":"15. Sexually Transmitted Infections: Part 1","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T6","type":"Theory","stem":"Write short notes on: <strong>Scabies</strong> - Clinical features, burrows, and treatment guidelines. (5 Marks)","ans_key":"","chapter":"14. Parasitic Infections of Skin","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T7","type":"Theory","stem":"Diagnosis and management of <strong>Vitiligo</strong>. Mention the theories of pathogenesis briefly. (5 Marks)","ans_key":"","chapter":"19. Pigmentary Diseases","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T8","type":"Theory","stem":"Clinical features and management of <strong>Stevens-Johnson Syndrome (SJS)</strong> / Toxic Epidermal Necrolysis (TEN). (5 Marks)","ans_key":"","chapter":"23. Cutaneous Drug Reactions","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T9","type":"Theory","stem":"Discuss the types and management of <strong>Tinea Capitis</strong>. (5 Marks)","ans_key":"","chapter":"13. Fungal Infections of Skin","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T10","type":"Theory","stem":"Approach to a patient with <strong>Generalized Pruritus</strong> without skin lesions. (5 Marks)","ans_key":"","chapter":"1. How to Approach Dermatology","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M1","type":"MCQ","stem":"<strong>Auspitz sign</strong> is characteristically seen in:","ans_key":"B","options":["Lichen Planus","Psoriasis","Pityriasis Rosea","Secondary Syphilis"],"chapter":"4. Papulosquamous Diseases: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M2","type":"MCQ","stem":"<strong>Tzanck Smear</strong> showing multinucleated giant cells is useful for diagnosis of:","ans_key":"C","options":["Pemphigus","Impetigo","Herpes Simplex","Candida"],"chapter":"12. Viral Infections of Skin","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M3","type":"MCQ","stem":"<strong>Wickham's Striae</strong> are seen in:","ans_key":"A","options":["Lichen Planus","Psoriasis","Lupus Erythematosus","Dermatomyositis"],"chapter":"4. Papulosquamous Diseases: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M4","type":"MCQ","stem":"The causative agent of <strong>Chancre</strong> (Primary Syphilis) is:","ans_key":"D","options":["Haemophilus ducreyi","Chlamydia trachomatis","Klebsiella granulomatis","Treponema pallidum"],"chapter":"15. Sexually Transmitted Infections: Part 1","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M5","type":"MCQ","stem":"<strong>Target lesions</strong> are characteristic of:","ans_key":"B","options":["Urticaria","Erythema Multiforme","Psoriasis","Eczema"],"chapter":"23. Cutaneous Drug Reactions","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M6","type":"MCQ","stem":"<strong>Wood's Lamp</strong> examination of Tinea Versicolor shows which fluorescence?","ans_key":"A","options":["Yellow-gold","Coral red","Green","Blue"],"chapter":"13. Fungal Infections of Skin","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M7","type":"MCQ","stem":"<strong>Nerve thickening</strong> is a cardinal sign of:","ans_key":"C","options":["Neurofibromatosis","Amyloidosis","Leprosy","Sarcoidosis"],"chapter":"17. Hansen's Disease: Part 1","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M8","type":"MCQ","stem":"<strong>Herald Patch</strong> is seen in:","ans_key":"B","options":["Psoriasis","Pityriasis Rosea","Tinea Corporis","Seborrheic Dermatitis"],"chapter":"5. Papulosquamous Diseases: Part 2","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M9","type":"MCQ","stem":"Which of the following is an autoimmune blistering disorder affecting the <strong>Desmosomes</strong>?","ans_key":"A","options":["Pemphigus Vulgaris","Bullous Pemphigoid","Dermatitis Herpetiformis","Epidermolysis Bullosa"],"chapter":"8. Bullous Disorders: Part 1","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M10","type":"MCQ","stem":"<strong>Comedones</strong> are the hallmark lesion of:","ans_key":"D","options":["Rosacea","Folliculitis","Milia","Acne Vulgaris"],"chapter":"6. Appendages and Disorders: Part 1","examBatch":"2022 Batch Prof Exam"}
+  ]
+}
+

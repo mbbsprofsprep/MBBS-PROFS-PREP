@@ -1,0 +1,288 @@
+{
+  "collegeName": "AIIMS DEOGHAR",
+  "curriculumData": [
+    {
+      "unit": "Unit A. Neonatology",
+      "chapters": [
+        "1. How to approach pediatrics",
+        "2. Normal Newborn",
+        "3. Neonatal Resuscitation",
+        "4. Necrotizing Enterocolitis and Neonatal Sepsis",
+        "5. Respiratory Distress in Newborn",
+        "6. Neonatal Jaundice",
+        "7. Neonatal Hypothermia and Neonatal Hypoglycemia",
+        "8. Neonatal Reflexes, HIE and Neonatal Seizures"
+      ]
+    },
+    {
+      "unit": "Unit B. Growth and Development",
+      "chapters": [
+        "9. Normal Growth",
+        "10. Abnormalities of Head Size and Shape",
+        "11. Abnormalities of Stature",
+        "12. Normal development",
+        "13. Disorders of development",
+        "14. Behavioural Disorders in Children"
+      ]
+    },
+    {
+      "unit": "Unit C. Nutrition",
+      "chapters": [
+        "15. Breastfeeding",
+        "16. Malnutrition",
+        "17. Obesity",
+        "18. Rickets and Scurvy"
+      ]
+    },
+    {
+      "unit": "Unit D. Genetic Disorders",
+      "chapters": [
+        "19. Genetic Disorders"
+      ]
+    },
+    {
+      "unit": "Unit E. Childhood Infections",
+      "chapters": [
+        "20. Childhood Infections",
+        "21. TORCH infections",
+        "22. COVID-19 in children"
+      ]
+    },
+    {
+      "unit": "Unit F. GI System",
+      "chapters": [
+        "23. Disorders of Esophagus in Children",
+        "24. Diarrheal Disorders in Children",
+        "25. Disorders of Liver in Children",
+        "26. Surgical GI Disorders in Children"
+      ]
+    },
+    {
+      "unit": "Unit G. Respiratory System",
+      "chapters": [
+        "27. Airway Malformations and Foreign Bodies",
+        "28. Asthma",
+        "29. Respiratory Infections",
+        "30. Cystic Fibrosis"
+      ]
+    },
+    {
+      "unit": "Unit H. Cardiovascular System",
+      "chapters": [
+        "31. Fetal Circulation and Introduction to Congenital Heart Disease",
+        "32. Acyanotic Congenital Heart Defects",
+        "33. Cyanotic Congenital Heart Defects",
+        "34. Acute Rheumatic Fever"
+      ]
+    },
+    {
+      "unit": "Unit I. Genito-Urinary System",
+      "chapters": [
+        "35. Congenital Anomalies of Kidney and Urinary Tract",
+        "36. Nephrotic and Nephritic Syndrome",
+        "37. Inherited Tubular Disorders",
+        "38. Acute Kidney Injury and Chronic Kidney Disease",
+        "39. VUR and UTI Management guidelines"
+      ]
+    },
+    {
+      "unit": "Unit J. Nervous System",
+      "chapters": [
+        "40. Congenital Anomalies and Hydrocephalus",
+        "41. Seizure Disorders",
+        "42. Cerebral Palsy and CNS Infection",
+        "43. Neuromuscular Disorders"
+      ]
+    },
+    {
+      "unit": "Unit K. Endocrine System",
+      "chapters": [
+        "44. Growth Hormone Deficiency and Hypothyroidism",
+        "45. Adrenal Disorders in Children",
+        "46. Pubertal Disorders",
+        "47. Diabetic Ketoacidosis"
+      ]
+    },
+    {
+      "unit": "Unit L. Childhood Malignancies",
+      "chapters": [
+        "48. Hematological Malignancies",
+        "49. Solid Tumors in Children"
+      ]
+    },
+    {
+      "unit": "Unit M. Paediatric Rheumatology",
+      "chapters": [
+        "50. Rheumatic Diseases of Childhood"
+      ]
+    },
+    {
+      "unit": "Unit N. Hematology",
+      "chapters": [
+        "51. Approach to Anemia in Children and Nutritional Anemia",
+        "52. Congenital Hemolytic Anemia",
+        "53. Bleeding Disorders"
+      ]
+    },
+    {
+      "unit": "Unit O. Miscellaneous",
+      "chapters": [
+        "54. Pediatric Resuscitation",
+        "55. Shock"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"DGT1","type":"Theory","stem":"Rupesh, 8 years old child presented in ER of Paediatrics Department with complaint of abrupt onset of fever for 4 days, severe headache, vomiting, photophobia. There is <strong>Neck stiffness and Kernig&#8217;s sign positive</strong> on clinical examination.<br>a) What is the clinical diagnosis of Rupesh?<br>b) How will you investigate Rupesh?<br>c) Write treatment plan for Rupesh.<br>d) Write complications of the disease. (1+2+2+2=7)","ans_key":"","chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT2","type":"Theory","stem":"SAQ. Enumerate <strong>Modified Jones Criteria</strong>. (5)","ans_key":"","chapter":"34. Acute Rheumatic Fever","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT3","type":"Theory","stem":"SAQ. <strong>Laws of Growth</strong>. (5)","ans_key":"","chapter":"9. Normal Growth","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT4","type":"Theory","stem":"SAQ. <strong>Vitamin D deficiency Rickets</strong> - clinical features and management. (5)","ans_key":"","chapter":"18. Rickets and Scurvy","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT5","type":"Theory","stem":"SAQ. Write treatment plan of <strong>some dehydration</strong> & composition of <strong>ORS</strong>. (5)","ans_key":"","chapter":"24. Diarrheal Disorders in Children","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT6","type":"Theory","stem":"A 6 years old Rishi presents with generalized edema and hematuria in ER of Paediatrics Department. There was history of <strong>skin infection 3 weeks back</strong>. Child's B.P. was 140/90 mm Hg & healed pyoderma scars were present.<br>a) What is the most Probable diagnosis?<br>b) Write differential diagnosis for this condition.<br>c) Plan investigations for Rishi.<br>d) How will you manage Rishi? (1+2+3+2=8)","ans_key":"","chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT7","type":"Theory","stem":"Ravi, 12 years old male presented with sudden appearance of <strong>bruises, epistaxis, mucosal bleeds, petechiae</strong> in paediatrics OPD. Ravi had one episode of febrile illness few days back. On presentation child is afebrile.<br>a) What is the diagnosis of Ravi?<br>b) What are the differential diagnoses of this disease?<br>c) How will you investigate Ravi?<br>d) Write treatment plan for Ravi. (1+2+2+2=7)","ans_key":"","chapter":"53. Bleeding Disorders","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT8","type":"Theory","stem":"SAQ. <strong>Complications of enteric fever</strong>. (5)","ans_key":"","chapter":"20. Childhood Infections","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT9","type":"Theory","stem":"SAQ. <strong>Breath holding spells</strong>. (5)","ans_key":"","chapter":"14. Behavioural Disorders in Children","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT10","type":"Theory","stem":"SAQ. <strong>Advantages of Breast milk</strong>. (5)","ans_key":"","chapter":"15. Breastfeeding","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT11","type":"Theory","stem":"SAQ. Management of <strong>Acute Severe Asthma</strong>. (5)","ans_key":"","chapter":"28. Asthma","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT12","type":"Theory","stem":"Suman, 7 months old child was brought in ER of Paediatrics Department with breathing difficulty. Mother complaint that child is <strong>unable to suck properly and excessive sweating is seen over forehead while sucking</strong>. There are similar 2 episodes previously for which she was treated locally. On clinical examination weight is 4 Kg, RR=54/mt, HR=180/mt, Murmur is heard over left parasternal region and tender hepatomegaly.<br>a) Write clinical Diagnosis of Suman.<br>b) Write investigation plan for Suman.<br>c) Write the treatment plan.<br>d) How the disease severity is assessed? (1+2+3+2=8)","ans_key":"","chapter":"32. Acyanotic Congenital Heart Defects","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGT13","type":"Theory","stem":"A 2 years old boy visited to AIIMS pediatrics emergency with complaints of fever, headache, vomiting and multiple episodes of seizure for last 2 days. On examination child was in <strong>altered sensorium, neck stiffness present</strong> & no organomegaly.<br>a) What is the most probable diagnosis?<br>b) How will you confirm your diagnosis?<br>c) Management.<br>d) Complications. (1+2+3+2=8)","ans_key":"","chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT14","type":"Theory","stem":"10 Year female child came to AIIMS OPD with complaint of fever for 3 weeks, <strong>migratory pain and swelling in large joint</strong> for 2 weeks, palpitation & breathlessness for 5 days, swelling over both feet and diminished urine output for 2 days.<br>a) Write your provisional diagnosis?<br>b) Management.<br>c) Prevention strategy. (1+4+2=7)","ans_key":"","chapter":"34. Acute Rheumatic Fever","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT15","type":"Theory","stem":"SAQ. <strong>Composition of WHO low osmolarity ORS</strong> and its rationality for use. (5)","ans_key":"","chapter":"24. Diarrheal Disorders in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT16","type":"Theory","stem":"SAQ. <strong>Kawasaki Disease</strong>. (5)","ans_key":"","chapter":"50. Rheumatic Diseases of Childhood","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT17","type":"Theory","stem":"SAQ. <strong>Scorpion sting</strong> - clinical feature & management. (5)","ans_key":"","chapter":"54. Pediatric Resuscitation","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT18","type":"Theory","stem":"SAQ. <strong>UTI</strong> - management & complication. (5)","ans_key":"","chapter":"39. VUR and UTI Management guidelines","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT19","type":"Theory","stem":"A 2 years old male child presented to OPD with complaints of pallor and past history of <strong>monthly blood transfusion since 6 months of age</strong>. On examination child was found to have severe pallor and hepatosplenomegaly.<br>a) What is the most probable diagnosis?<br>b) Which investigation you will order in this child and mention the findings of each investigations pertaining to diagnosis?<br>c) Write 2 important complications of this disease.<br>d) What will be your management plan? (1+3+1+3=8)","ans_key":"","chapter":"52. Congenital Hemolytic Anemia","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT20","type":"Theory","stem":"A 8 years boy visited to pediatric emergency with complaints of cough for 2 days and fast breathing since last 6 hours. Child had <strong>similar episode twice in last 1 year needing nebulization</strong> for relief of symptom on examination PR=120 bpm, spO2 - 91 % Room air chest- bilateral wheeze + .<br>a) What is your diagnosis?<br>b) What will be the investigation findings in these conditions?<br>c) Management of this child. (1+2+4=7)","ans_key":"","chapter":"28. Asthma","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT21","type":"Theory","stem":"SAQ. Explain phases/stages of <strong>classical pertussis</strong>. (5)","ans_key":"","chapter":"29. Respiratory Infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT22","type":"Theory","stem":"SAQ. What is <strong>development</strong>? Rules of development. (5)","ans_key":"","chapter":"12. Normal development","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT23","type":"Theory","stem":"SAQ. Difference between <strong>Nephrotic & Nephritic Syndrome</strong>. (5)","ans_key":"","chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT24","type":"Theory","stem":"SAQ. Clinical Approach to a case of <strong>Rickets</strong>. (5)","ans_key":"","chapter":"18. Rickets and Scurvy","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGT25","type":"Theory","stem":"A 6 months old boy with weight- 3.5 kg presented to AIIMS OPD with poor feeding, breathing difficulty for last 2 months. On examination, RR-62/min, no cyanosis, PR- 150/MIN, SPO2- 96 % RA. Per abdomen liver span-8 cm, <strong>CVS- pansystolic murmur heard in the left parasternal area</strong>. What is your most probable diagnosis? Describe briefly about the hemodynamics, complication & management of this condition. (1+3+1+3=8)","ans_key":"","chapter":"32. Acyanotic Congenital Heart Defects","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT26","type":"Theory","stem":"A 3 Year old girl came to emergency with complaints of fever on & off for 1 months, vomiting, lethargy for 15 days & abnormal movement of limbs with <strong>uprolling of eyeball</strong> for 3 days. On examination child was stuporous, <strong>neck rigidity present</strong>. What is you most common provisional diagnosis? Write down the clinical features (stages), investigation & treatment. (1+2+2+2=7)","ans_key":"","chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT27","type":"Theory","stem":"SAQ. Classification of <strong>dehydration</strong> & management of severe dehydration. (2.5+2.5)","ans_key":"","chapter":"24. Diarrheal Disorders in Children","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT28","type":"Theory","stem":"SAQ. Clinical features & complication of <strong>measles</strong>. (2.5+2.5)","ans_key":"","chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT29","type":"Theory","stem":"SAQ. <strong>UTI</strong> - management & complication. (2+3)","ans_key":"","chapter":"39. VUR and UTI Management guidelines","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT30","type":"Theory","stem":"SAQ. <strong>Down syndrome</strong> clinical feature, investigation & management. (2+1+2)","ans_key":"","chapter":"19. Genetic Disorders","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT31","type":"Theory","stem":"A 1 year 6 months child presented to emergency with fever & cough for 5 days, difficulty in breathing for last 2 days. On examination, child is drowsy, RR- 60/min, SPO 2 =90% in room air, RS Examination <strong>chest retraction, B/L chest crepitation are present</strong>. What is your provisional diagnosis? Write briefly the management, complications & role of vaccines in prevention. (1+3+2+1=7)","ans_key":"","chapter":"29. Respiratory Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT32","type":"Theory","stem":"A 4 Years female child born out of a consanguineous marriage, brought to pediatric OPD with complaint of fever & multiple <strong>Joint pain of both upper & lower limbs</strong> for last 5 days with a history of similar episodes in the past. On examination child had severe pallor, mild icterus, on systemic examination mild hepatosplenomegaly was present. What is your most likely diagnosis? Write investigation findings & treatment. (1+3+4=8)","ans_key":"","chapter":"52. Congenital Hemolytic Anemia","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT33","type":"Theory","stem":"SAQ. A 5-year-old boy came to OPD with the complaint of oedema for 5 days. On examination, the patient had <strong>high BP and cola color urine</strong>. What is your provisional diagnosis? Briefly describe the management of the disease. (2+3)","ans_key":"","chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT34","type":"Theory","stem":"SAQ. <strong>Physiology of lactation</strong>. (5)","ans_key":"","chapter":"15. Breastfeeding","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT35","type":"Theory","stem":"SAQ. <strong>Pathological Jaundice</strong>- characteristics & differential diagnosis. (2+3)","ans_key":"","chapter":"6. Neonatal Jaundice","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT36","type":"Theory","stem":"SAQ. <strong>Rashtriya Bal swasthya karyakram (RBSK)</strong>. (5)","ans_key":"","chapter":"1. How to approach pediatrics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGT37","type":"Theory","stem":"A 13-year-old boy is brought by his parents due to concerns about his short height compared to peers. He is otherwise healthy, with no history of chronic illness, poor appetite, or developmental delay. His academic performance is good, and he actively participates in sports. The father mentions that he had a similar pattern of late growth and puberty, eventually attaining normal adult height. Anthropometric Measurements: Height: 135 cm (below 3rd percentile for age), Weight: 32 kg (10th percentile), Mid-parental height: 174 cm (target height range: 169-179 cm), Upper segment: Lower segment ratio: Normal for age, Arm span: 134 cm (normal), Height velocity: 4.5 cm/year (within normal range for age), Bone age (X-ray left wrist): 10 years (delayed by ~3 years), Pubertal status: Prepubertal (Tanner stage I)<br>a) Diagnosis with reasoning (1)<br>b) Describe the clinical approach (2)<br>c) Outline the investigations to differentiate various causes of the clinical scenario (3)<br>d) Management of this clinical condition (2)","ans_key":"","chapter":"11. Abnormalities of Stature","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT38","type":"Theory","stem":"A 2-year-old boy presented to the OPD with complaints of difficulty walking. On examination, the child had a broad-based gait with bow legs and thickened wrists. What is your provisional diagnosis? How will you investigate to confirm the diagnosis? What is your management Plan? (1+3+3)","ans_key":"","chapter":"18. Rickets and Scurvy","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT39","type":"Theory","stem":"SAQ. A 9-month-old infant is brought to the pediatric clinic with concerns of poor weight gain since 4 months of age. The child was born full-term with a birth weight of 3.2 kg. Exclusive breastfeeding was continued till 6 months, and weaning was started thereafter. The mother reports that the child is not interested in solid foods and frequently vomits after feeds. Developmental milestones are mildly delayed. On examination, the infant appears undernourished with reduced subcutaneous fat and muscle mass. Weight is 5.8 kg (below the 3rd percentile), length is 66 cm (between 5th-10th percentile), and head circumference is 43 cm (10th percentile).<br>a) Diagnosis (1)<br>b) List the possible causes in this child (2)<br>c) Outline the approach to evaluate this case (2)","ans_key":"","chapter":"16. Malnutrition","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT40","type":"Theory","stem":"SAQ. Breath holding Spell (5)","ans_key":"","chapter":"14. Behavioural Disorders in Children","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT41","type":"Theory","stem":"SAQ. A 7-year-old boy is brought to the pediatric outpatient clinic by his parents with complaints of bedwetting at night for the past 1 year. He has no history of daytime urinary symptoms, urinary tract infection or developmental delay. Physical examination and urinalysis are normal. His parents are concerned about the possible causes and treatment options. What is your diagnosis and how will you manage this patient? (1+4)","ans_key":"","chapter":"14. Behavioural Disorders in Children","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT42","type":"Theory","stem":"SAQ. A 3-year-old child is brought by his parents with concerns about delayed speech, lack of eye contact, and poor response to name. The parents also report that the child prefers to play alone and exhibits repetitive hand flapping movements. There is no history of hearing loss or significant perinatal issues. Developmental milestones have been otherwise normal. What is your diagnosis, and write about the disease's diagnostic criteria? (1+4)","ans_key":"","chapter":"14. Behavioural Disorders in Children","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT43","type":"Theory","stem":"A 2-year-old girl was brought to the Pediatrics OPD with complaints of swelling of the feet, irritability, poor appetite, and frequent infections. On examination, the child has bilateral pedal edema & wt/ht < -3SD (WHO).<br>a) What is the most likely diagnosis? (1)<br>b) Management (5)<br>c) Discharge indication & following plan (2)","ans_key":"","chapter":"16. Malnutrition","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT44","type":"Theory","stem":"A 2-year-old male child is brought by his mother with concerns that he is not able to speak any meaningful words and cannot walk without support. He was born at term by vaginal delivery, but had delayed crying at birth and required NICU admission for 10 days and having history of seizure during the course in NICU. On examination, he has increased tone in both lower limbs and a scissoring gait. His milestones are significantly delayed in all domains.<br>a) What is the likely diagnosis in this child? (1)<br>b) Discuss the differential diagnosis, clinical evaluation, and investigations in this case. (4)<br>c) Outline the principles of management (2)","ans_key":"","chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT45","type":"Theory","stem":"SAQ. A 5-year-old girl is brought to the Pediatrics department with complaints of eating mud, soap and chalk for the past several months. The child appears pale on examination.<br>a) What is the most likely diagnosis? (1)<br>b) Discuss the complications and outline the management. (4)","ans_key":"","chapter":"51. Approach to Anemia in Children and Nutritional Anemia","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT46","type":"Theory","stem":"SAQ. A 28-year-old primigravida mother complains of difficulty in breastfeeding her 4-day-old baby. The child is irritable and not feeding well.<br>a) What are the common causes of difficulties during breastfeeding in early lactation? (1.5)<br>b) Discuss the benefits of exclusive breastfeeding for both the newborn and the mother. (2.5)<br>c) What advice would you give this mother to promote successful lactation? (1)","ans_key":"","chapter":"15. Breastfeeding","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT47","type":"Theory","stem":"SAQ. WHO Classification of Xerophthalmia (5)","ans_key":"","chapter":"16. Malnutrition","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT48","type":"Theory","stem":"SAQ. A 10-year-old boy with chronic kidney disease presents with fatigue and muscle weakness. His ECG shows tall, peaked T waves and a widened QRS complex.<br>a) What is the cause? (1)<br>b) What are the treatment modalities for this presentation? (4)","ans_key":"","chapter":"38. Acute Kidney Injury and Chronic Kidney Disease","examBatch":"2022 Batch 6th Sem Exam"},
+    {"q":"DGT49","type":"Theory","stem":"A 2-year-old child presents with progressive pallor, poor weight gain, and increasing abdominal distension since infancy. The child has required repeated hospital admissions for severe anaemia. There is no history of bleeding. On examination, the child has marked pallor, mild icterus, frontal prominence, and hepatosplenomegaly. Hemogram shows haemoglobin 6 g/dL with reduced MCV and MCH. Peripheral smear reveals aniso-poikilocytosis with occasional nucleated red blood cells.<br>a) What is the most likely diagnosis? [1]<br>b) What specific investigation would you order to confirm the diagnosis? Describe the expected findings. [2]<br>c) Enumerate the important long-term complications of this disorder. [1.5]<br>d) Outline the principles of management and follow-up. [3]","ans_key":"","chapter":"52. Congenital Hemolytic Anemia","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT50","type":"Theory","stem":"A 7-year-old child presents with high-grade fever for 3 days. On examination, the child has a diffuse erythematous rash with a sandpaper-like texture, predominantly involving the flexor surfaces of the limbs. The tongue appears bright red with prominent papillae (strawberry tongue). There is associated sore throat. What is the most likely diagnosis and enumerate etiological agent? What is the management of the disease? Also, mention the complications of the disease? [2+3.5+2]","ans_key":"","chapter":"20. Childhood Infections","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT51","type":"Theory","stem":"SAQ. Write a short note on Anaemia Mukt Bharat (AMB) program. [5]","ans_key":"","chapter":"51. Approach to Anemia in Children and Nutritional Anemia","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT52","type":"Theory","stem":"SAQ. A 6-year-old previously healthy child presents with sudden onset of petechiae and ecchymoses following a viral illness. There is no history of fever, bone pain, or weight loss. Examination reveals multiple petechiae over the limbs with no hepatosplenomegaly. Complete blood count shows 20,000 platelets with normal haemoglobin and white blood cell counts.<br>a) What is the most likely diagnosis? [1]<br>b) Mention two important differential diagnoses. [2]<br>c) How will you manage this child. [2]","ans_key":"","chapter":"53. Bleeding Disorders","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT53","type":"Theory","stem":"SAQ. Describe the FAB classification of Acute Lymphoblastic Leukemia (ALL) and enumerate prognostic factors for ALL? [2.5+2.5]","ans_key":"","chapter":"48. Hematological Malignancies","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT54","type":"Theory","stem":"SAQ. A 2-year-old child weighing 12kg with diarrhea is prescribed WHO-ORS. The mother asks why ORS works even though it does not reduce stool frequency.<br>a) Explain the physiological basis of WHO-ORS action. [3]<br>b) Calculate the fluid for the child assuming some dehydration? [2]","ans_key":"","chapter":"24. Diarrheal Disorders in Children","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT55","type":"Theory","stem":"7-year-old male child presents to the Pediatric emergency department with a 5-day history of progressive jaundice, fever, vomiting, and altered sensorium. On examination, he is deeply comatosed (Glasgow Coma Scale 6/15), with hyperreflexia, upgoing plantars, and decerebrate posturing. There is clinical evidence of acute liver failure including hepatomegaly, ascites, and coagulopathy (INR 4.2). Laboratory investigations reveal total bilirubin 18 mg/dL, ALT 2800 IU/L, AST 3200 IU/L, ammonia 250 µg/dL, and normal platelet count with no evidence of fresh gastrointestinal bleeding. What is the probable diagnosis. Write the etiology, management and prognosis of this clinical scenario [1+2+3+1.5]","ans_key":"","chapter":"25. Disorders of Liver in Children","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT56","type":"Theory","stem":"A 2 years boy with weight 6 kg and height 76 cm (Wt/Ht <-3SD) and bipedal edema presented to emergency with complaints of loose motion for 3 days with low grade fever. On examination child was lethargic with poor appetite and low BP. What is your provisional diagnosis? What are the complications encountered in these children? What will be your management strategy for this child. [1+ 3+3.5]","ans_key":"","chapter":"16. Malnutrition","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT57","type":"Theory","stem":"SAQ. A mother of a 13-year-old boy asks whether HPV vaccination is needed for males.<br>a) What are the indications of HPV vaccination in boys? [1.5]<br>b) What diseases are prevented by HPV vaccine and what is dosing schedule? [3.5]","ans_key":"","chapter":"20. Childhood Infections","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT58","type":"Theory","stem":"SAQ. A 4-year-old child is found to be unimmunized and has no past history of jaundice.<br>a) What Hepatitis B vaccination schedule should be followed? [2]<br>b) Is pre-vaccination serological testing required? [1]<br>c) What is schedule of Hepatis-B vaccine in National immunization schedule (NIS)? [2]","ans_key":"","chapter":"20. Childhood Infections","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT59","type":"Theory","stem":"SAQ. Childhood Obesity definition, investigations, management [1+ 1+3]","ans_key":"","chapter":"17. Obesity","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGT60","type":"Theory","stem":"SAQ. Pathophysiology and Complications of Portal Hypertension [3+2]","ans_key":"","chapter":"25. Disorders of Liver in Children","examBatch":"2022 Batch 7th Sem Exam"},
+    {"q":"DGM1","type":"MCQ","stem":"In a 28 week baby with suspected <strong>Respiratory Distress Syndrome</strong>, which of the following occurs?","ans_key":"B","options":["Surface tension &#8593;, Compliance &#8593;","Surface tension &#8593;, Compliance &#8595;","Surface tension &#8595;, Compliance &#8593;","Surface tension &#8595;, Compliance &#8595;"],"chapter":"5. Respiratory Distress in Newborn","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM2","type":"MCQ","stem":"<strong>Sweat chloride levels</strong> is used to identify which disease?","ans_key":"C","options":["Rancher&#8217;s disease","Niemann pick disease","Cystic fibrosis","α1 antitrypsin deficiency"],"chapter":"30. Cystic Fibrosis","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM3","type":"MCQ","stem":"Child develops fever with rash. Paediatrician noticed <strong>Kopliks spots</strong> in mouth. Likely diagnosis is?","ans_key":"B","options":["CMV","Measles","Mumps","Chicken pox"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM4","type":"MCQ","stem":"True about <strong>constitutional growth delay</strong>?","ans_key":"B","options":["Bone age > Chronological age","Bone age < Chronological age","Bone age < Height age","Bone age = Chronological age"],"chapter":"11. Abnormalities of Stature","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM5","type":"MCQ","stem":"<strong>Microcephaly</strong> is seen in all of the following except?","ans_key":"B","options":["William syndrome","Fragile X syndrome","Cornelia de Lange","Cri-du-chat"],"chapter":"10. Abnormalities of Head Size and Shape","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM6","type":"MCQ","stem":"Likely diagnosis of a new born with cleft palate, prominent occiput, small jaw, <strong>clenched fists with overlapping of fingers</strong> and rocker bottom feet?","ans_key":"D","options":["Down syndrome","Noonan syndrome","Patau syndrome","Edward syndrome"],"chapter":"19. Genetic Disorders","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM7","type":"MCQ","stem":"Decrease in <strong>US:LS ratio</strong> is seen in?","ans_key":"D","options":["Rickets","Spondyloepiphyseal dysplasia","Untreated congenital hypothyroidism","Achondroplasia"],"chapter":"11. Abnormalities of Stature","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM8","type":"MCQ","stem":"Who described the <strong>stages of development of ossification centre</strong>?","ans_key":"B","options":["Denver","Tanner and white house","Pramila Pathak","Nancy Bayley"],"chapter":"9. Normal Growth","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM9","type":"MCQ","stem":"An E. coli colony count of 2000/mm&#179; is a <strong>definite evidence of urinary tract infection</strong> if sampled urine?","ans_key":"D","options":["Has a specific gravity of 1.008","Is the first morning sample","Is form a clean catch urine in 8 years old boy","Urine is form a suprapubic tap"],"chapter":"39. VUR and UTI Management guidelines","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM10","type":"MCQ","stem":"Length of an <strong>18 month old infant</strong> is measured by?","ans_key":"B","options":["Bean scale","Infantometer","Stadiometer","None of the above"],"chapter":"9. Normal Growth","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM11","type":"MCQ","stem":"All are true about <strong>Tetralogy of Fallot</strong> except?","ans_key":"A","options":["Left Ventricular hypertrophy","Pulmonary stenosis","VSD","Right ventricular hypertrophy"],"chapter":"33. Cyanotic Congenital Heart Defects","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM12","type":"MCQ","stem":"Triad of <strong>West syndrome</strong> except?","ans_key":"D","options":["Epileptic Spasm","Hypsarrhythmic EEG discharges","Psychomotor retardation","3-Hertz spike and wave discharges"],"chapter":"41. Seizure Disorders","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM13","type":"MCQ","stem":"<strong>High reticulocyte count</strong> is seen in all except?","ans_key":"C","options":["Hemorrhage","Splenic sequestration","Parvovirus B19 infection","Recovery from Iron deficiency"],"chapter":"52. Congenital Hemolytic Anemia","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM14","type":"MCQ","stem":"Following are features of <strong>minimal change nephrotic syndrome</strong> except?","ans_key":"C","options":["Edema","Serum Albumin low","Blood Cholestrol low","Proteinuria"],"chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM15","type":"MCQ","stem":"<strong>Egg on side appearance</strong> in chest X-ray is characteristics of?","ans_key":"D","options":["Tetralogy of Fallot","Total Anomalous Pulmonary Connection","Aortic Stenosis","Transposition of great vessels"],"chapter":"33. Cyanotic Congenital Heart Defects","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM16","type":"MCQ","stem":"All <strong>Neonatal reflexes disappear by 6 months</strong> of age except?","ans_key":"D","options":["Moros reflex","Tonic neck response","Palmar grasp reflex","Parachute reflex"],"chapter":"8. Neonatal Reflexes, HIE and Neonatal Seizures","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM17","type":"MCQ","stem":"Following drugs are <strong>Iron chelators</strong> except?","ans_key":"B","options":["Desferrioxamine","Hydroxyurea","Deferiprone","Deferasirox"],"chapter":"52. Congenital Hemolytic Anemia","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM18","type":"MCQ","stem":"Most common cause of <strong>portal Hypertension in India</strong> is?","ans_key":"C","options":["Liver cirrhosis","Congenital hepatic fibrosis","Extrahepatic portal venous obstruction","Budd-Chiari syndrome"],"chapter":"25. Disorders of Liver in Children","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM19","type":"MCQ","stem":"Following are the features of <strong>Hypothyroidism</strong> except?","ans_key":"C","options":["Short stature","Cold intolerance","Early dentition","Constipation"],"chapter":"44. Growth Hormone Deficiency and Hypothyroidism","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM20","type":"MCQ","stem":"Following are true about <strong>Iron deficiency Anemia</strong> except?","ans_key":"D","options":["Red cells are microcytic and hypochromic","RDW is increased","Total Iron binding capacity is increased","Red cell number is increased"],"chapter":"51. Approach to Anemia in Children and Nutritional Anemia","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM21","type":"MCQ","stem":"<strong>Slapped cheek appearance</strong> is characteristic of?","ans_key":"B","options":["Roseola Infantum","Erythema Infectiosum","Rubeola","Infectious mononucleosis"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM22","type":"MCQ","stem":"Following are <strong>live attenuated vaccines</strong> except?","ans_key":"B","options":["BCG","DPT","OPV","Rotavirus vaccine"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM23","type":"MCQ","stem":"Most common cause of <strong>chronic diarrhoea in North India</strong> in young children is?","ans_key":"A","options":["Celiac disease","Cow milk protein allergy","Toddler diarrhea","Cystic fibrosis"],"chapter":"24. Diarrheal Disorders in Children","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM24","type":"MCQ","stem":"What is the most common <strong>neurobehavioral disorder</strong> of childhood?","ans_key":"B","options":["Autism spectrum disorder","Attention Deficit Hyperactivity disorder","Specific learning Disability","Tics"],"chapter":"14. Behavioural Disorders in Children","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM25","type":"MCQ","stem":"Commonest cause of <strong>gross Hematuria</strong> in children is?","ans_key":"C","options":["Renal Calculi","Bladder malignancy","Post infectious glomerulonephritis","Urinary tract infection"],"chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM26","type":"MCQ","stem":"<strong>Birth weight quadruples</strong> by?","ans_key":"B","options":["1 year","2 years","3 years","4 years"],"chapter":"9. Normal Growth","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM27","type":"MCQ","stem":"<strong>1st permanent teeth</strong> to appear is?","ans_key":"A","options":["Molar","Premolar","Incisor","Canine"],"chapter":"9. Normal Growth","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM28","type":"MCQ","stem":"Most common type of <strong>cerebral palsy</strong> in India is?","ans_key":"B","options":["Dyskinetic or extrapyramidal palsy","Spastic diplegia","Spastic quadriplegia","Spastic hemiplegia palsy"],"chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM29","type":"MCQ","stem":"<strong>Upper motor neuron lesions</strong> are characterized by following lesions except?","ans_key":"D","options":["Increased tone","Brisk reflexes","Extensor Plantar","Fasciculations"],"chapter":"43. Neuromuscular Disorders","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM30","type":"MCQ","stem":"<strong>Hyperkalemia</strong> is seen in all except?","ans_key":"A","options":["Malnutrition","Renal Failure","Drugs like ACE inhibitors","Addison disease"],"chapter":"38. Acute Kidney Injury and Chronic Kidney Disease","examBatch":"2019 Batch Prof Exam"},
+    {"q":"DGM31","type":"MCQ","stem":"Which hormone does not play an important role in the <strong>growth of foetus</strong>?","ans_key":"A","options":["Growth hormone","Insulin","Thyroxin","Glucocorticoid"],"chapter":"44. Growth Hormone Deficiency and Hypothyroidism","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM32","type":"MCQ","stem":"At what age child knows his <strong>full name and gender</strong>?","ans_key":"C","options":["8 months","2 yrs","3 yrs","4 yrs"],"chapter":"12. Normal development","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM33","type":"MCQ","stem":"All of the following are causes of <strong>metabolic alkalosis</strong> except:","ans_key":"A","options":["Diarrhoea","Hyperaldosteronism","Barter syndrome","Gitelman syndrome"],"chapter":"24. Diarrheal Disorders in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM34","type":"MCQ","stem":"Which of the following is a cause of <strong>high anion gap metabolic acidosis</strong>?","ans_key":"D","options":["Renal tubular acidosis","Ammonium chloride ingestion","Parenteral alimentation","Diabetic ketoacidosis"],"chapter":"47. Diabetic Ketoacidosis","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM35","type":"MCQ","stem":"<strong>Hemorrhagic disease of newborn</strong> is caused by deficiency of:","ans_key":"D","options":["Selenium","PUFA","oligosachharide","Vitamin K"],"chapter":"53. Bleeding Disorders","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM36","type":"MCQ","stem":"Indication of <strong>Bag and mask ventilation</strong> in a newborn resuscitation except","ans_key":"C","options":["apneic","Gasping","cyanosis","HR <100/min"],"chapter":"3. Neonatal Resuscitation","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM37","type":"MCQ","stem":"All of the following complications are more commonly seen in <strong>preterm babies</strong> except:","ans_key":"B","options":["Respiratory distress syndrome","Meconium aspiration syndrome","Apnea of prematurity","Intraventricular hemorrhage"],"chapter":"5. Respiratory Distress in Newborn","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM38","type":"MCQ","stem":"Excessive drooling of saliva, regurgitation of milk, cyanosis and choking in a newborn is characteristics of:","ans_key":"D","options":["Duodenal atresia","Laryngeal web","Bronchopulmonary dysplasia","Esophageal atresia with TEF"],"chapter":"23. Disorders of Esophagus in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM39","type":"MCQ","stem":"<strong>Vaccine derived polio virus (VDPV)</strong> is caused by:","ans_key":"B","options":["OPV 1","OPV2","OPV3","IPV"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM40","type":"MCQ","stem":"<strong>Slapped cheek rash</strong> is seen in:","ans_key":"C","options":["Measles","Babesiosis","Parvovirus B19","Enterovirus"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM41","type":"MCQ","stem":"Which of the following drug is administered to baby born to <strong>HIV positive mother</strong> as prophylaxis.","ans_key":"D","options":["Lamivudine","Raltegravir","Entecavir","Nevirapine"],"chapter":"21. TORCH infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM42","type":"MCQ","stem":"All of the following are causes of <strong>unconjugated hyperbilirubinemia</strong> except:","ans_key":"A","options":["Dubin Johnson syndrome","CrigglerNajar Syndrome type I","CrigglerNajr syndrome type II","Gilbert syndrome"],"chapter":"25. Disorders of Liver in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM43","type":"MCQ","stem":"Gene for <strong>Wilson disease</strong> is found in chromosome:","ans_key":"C","options":["9","11","13","17"],"chapter":"25. Disorders of Liver in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM44","type":"MCQ","stem":"Which of the following drug is used for <strong>VOC in Sickle cell disease</strong>?","ans_key":"D","options":["Hydroxyurea","Glutamine","Crizanlizumab","All of the above"],"chapter":"52. Congenital Hemolytic Anemia","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM45","type":"MCQ","stem":"All of the following causes <strong>cyanotic spell</strong> except:","ans_key":"D","options":["Tetrology of Fallot","Ebstein anomaly","Single ventricle with PS","Patent ductus arteriosus"],"chapter":"33. Cyanotic Congenital Heart Defects","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM46","type":"MCQ","stem":"Drug of choice for <strong>croup</strong> is","ans_key":"A","options":["Dexamethasone","penicillin","tacrolimus","Nystatin"],"chapter":"29. Respiratory Infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM47","type":"MCQ","stem":"Which of the following is seen in <strong>minimal change nephrotic syndrome</strong>?","ans_key":"B","options":["Renal dysfunction","proteinuria","persistent hematuria","Hypertension"],"chapter":"36. Nephrotic and Nephritic Syndrome","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM48","type":"MCQ","stem":"Most common cause of <strong>congenital hypothyroidism</strong> is:","ans_key":"D","options":["Iodine deficiency","organification defect","athyroglobulinemia","Thyroid dysgenesis"],"chapter":"44. Growth Hormone Deficiency and Hypothyroidism","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM49","type":"MCQ","stem":"Drug of choice for <strong>absence seizure</strong> is:","ans_key":"C","options":["Phenytoin","Phenobarbitone","Sodium valproate","Levetiracetam"],"chapter":"41. Seizure Disorders","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM50","type":"MCQ","stem":"<strong>Basal exudates</strong> on neuroimaging are found in:","ans_key":"D","options":["Japanese encephalitis","Herpes encephalitis","Meningococcal meningitis","TB meningitis"],"chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM51","type":"MCQ","stem":"Constipation since birth with delayed passage of meconium in a 1year child warrants which investigation","ans_key":"D","options":["UGI endoscopy","USG abdomen","Stool routine and microscopy","Barium enema"],"chapter":"26. Surgical GI Disorders in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM52","type":"MCQ","stem":"<strong>Anti LKM Antibody</strong> is positive in","ans_key":"C","options":["Drug induced hepatitis","Wilson Disease","Autoimmune hepatitis","SLE"],"chapter":"25. Disorders of Liver in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM53","type":"MCQ","stem":"Hepatomegaly, cataract and increase predisposition to E. Coli sepsis is characteristic of:","ans_key":"D","options":["Tyrosinemia","Celiac Disease","antitrypsin deficiency","Galactosemia"],"chapter":"19. Genetic Disorders","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM54","type":"MCQ","stem":"Drug of choice in <strong>neurocysticercosis</strong> in children.","ans_key":"B","options":["Fluconazole","Albendazole","Ivermectin","Acyclovir"],"chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM55","type":"MCQ","stem":"At which age <strong>maximum growth spurt</strong> occur for boys?","ans_key":"D","options":["9-10 yrs","10-11 yrs","12-13 yrs","14-15 yrs"],"chapter":"46. Pubertal Disorders","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM56","type":"MCQ","stem":"True about <strong>Narcolepsy</strong> are all except:","ans_key":"B","options":["Cataplexy is considered pathogenesis for narcolepsy","Typically presents in pre-school children","Chronic lifelong disorder","90% patient with narcolepsy with cataplexy are HLA- DQB10602 positive"],"chapter":"14. Behavioural Disorders in Children","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM57","type":"MCQ","stem":"<strong>Steeple sign</strong> In x-ray seen in:","ans_key":"B","options":["Epoglotitis","Laryngo-tracheo-bronchitis","Retropharyngeal abscess","Segmental Pneumonia"],"chapter":"27. Airway Malformations and Foreign Bodies","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM58","type":"MCQ","stem":"<strong>Parotid gland enlargement</strong> in a HIV infected child is seen in ________stage of AIDS According to WHO.","ans_key":"C","options":["1","2","3","4"],"chapter":"21. TORCH infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM59","type":"MCQ","stem":"<strong>Mission indradhanush</strong> includes all the vaccine except:","ans_key":"C","options":["BCG","Polio","Varicella","Measles"],"chapter":"20. Childhood Infections","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM60","type":"MCQ","stem":"<strong>Precocious puberty</strong> refers to onset of secondary sexual character by what age:","ans_key":"A","options":["8 yr in female & 9 yr In male","8 yr In male & 9 yr In female","8 yr in female & 7 yr in male","7 yr In female & 8 yr In male"],"chapter":"46. Pubertal Disorders","examBatch":"2019 Batch Supplementary Exam"},
+    {"q":"DGM61","type":"MCQ","stem":"A 1 month 15 days baby is bought to OPD with history of cough and coryza for 14 days, <strong>paroxysms of cough followed by posttussive vomiting</strong>. Child had no history of fever, myalgia and examination of respiratory system did not reveal any significant findings. What is the recommended treatment for this child?","ans_key":"A","options":["Azithromycin","Doxcycycline","Amoxycilin","Linezolid"],"chapter":"29. Respiratory Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM62","type":"MCQ","stem":"A 6 years child was brought to emergency with history of fall 2 hours back with a grossly contaminated open wound in the left leg. Parents are more apprehensive about the risk of tetanus. <strong>Child has received all the routine vaccinations till 5 years of age</strong>. What advice you will give to their parents regarding tetanus prophylaxis?","ans_key":"A","options":["Administer Tetanus toxoid single dose","Administer Tetanus toxoid single dose + Tetanus Immunoglobulin","No Tetanus toxoid is required","Observe and start tetanus toxoid if signs and symptoms appear"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM63","type":"MCQ","stem":"Which is the commonest cause of <strong>non-hereditary sensorineural hearing loss</strong>?","ans_key":"A","options":["CMV infection","Toxoplasma infection","Rubella infection","Choronic otitis media"],"chapter":"21. TORCH infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM64","type":"MCQ","stem":"Treatment of choice in <strong>mild Idiopathic thrombocytopenic purpura</strong>.","ans_key":"D","options":["MG","Corticosteroid","Platelet transfusion","No treatment"],"chapter":"53. Bleeding Disorders","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM65","type":"MCQ","stem":"Which influenza strain is not present in current vaccines available in India:","ans_key":"D","options":["H3N2","H1N1","Influenza B","Influenza C"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM66","type":"MCQ","stem":"Which protein is most commonly associated with <strong>hereditary spherocytosis</strong>:","ans_key":"B","options":["Spectrum","ankyrin","Protein 3","protein 4.2"],"chapter":"52. Congenital Hemolytic Anemia","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM67","type":"MCQ","stem":"Which drug is used as <strong>gametocidal in patient with malaria</strong> infection:","ans_key":"D","options":["artesunate","Qunine","doxycycline","Primaquine"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM68","type":"MCQ","stem":"<strong>Incubation period of Pertussis</strong> in days is?","ans_key":"B","options":["1-7","7-14","14-21","21-28"],"chapter":"29. Respiratory Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM69","type":"MCQ","stem":"Marker of <strong>Infectivity in Hepatitis B Virus</strong> Infection is?","ans_key":"C","options":["HBcAg","HBV DNA","HBeAg","HBsAg"],"chapter":"25. Disorders of Liver in Children","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM70","type":"MCQ","stem":"<strong>Gianotti-Crosti syndrome</strong> is due to infection of:","ans_key":"B","options":["HAV","HBV","HCV","HEV"],"chapter":"25. Disorders of Liver in Children","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM71","type":"MCQ","stem":"What is the <strong>risk of chronic Infection of HBV</strong> in children younger than 1 year?","ans_key":"C","options":["30%","60%","90%","100%"],"chapter":"25. Disorders of Liver in Children","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM72","type":"MCQ","stem":"<strong>Widal test</strong> is use for which infection?","ans_key":"B","options":["Brucellosis","Typhoid","Hepatitis","Diphtheria"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM73","type":"MCQ","stem":"<strong>Chest compression during Cardio-pulmonary resuscitation</strong> is done over:","ans_key":"B","options":["upper part of the sternum","mid-sternum","xiphoid process","abdomen"],"chapter":"54. Pediatric Resuscitation","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM74","type":"MCQ","stem":"<strong>Fever</strong> is defined as rectal temperature of:","ans_key":"C","options":[">37.5&#176; c","&#8805;38.5&#176; c",">38&#176; c","&#8805;38.1&#176; c"],"chapter":"1. How to approach pediatrics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM75","type":"MCQ","stem":"<strong>Intrauterine mumps infection</strong> have been associated with:","ans_key":"D","options":["Glaucoma","limb agenesis","pulmonary stenosis","no fetal malformation"],"chapter":"21. TORCH infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM76","type":"MCQ","stem":"<strong>Herpes whitlow</strong> is HSV infection of:","ans_key":"C","options":["eye","mouth","finger","ear"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM77","type":"MCQ","stem":"<strong>Vaccine Associated paralytic poliomyelitis</strong> is caused by:","ans_key":"C","options":["IPV","OPV 1","OPV 2","OPV 3"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM78","type":"MCQ","stem":"<strong>Acrodermatitis enteropathica</strong> is caused by deficiency of:","ans_key":"D","options":["copper","iron","cobalt","Zinc"],"chapter":"16. Malnutrition","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM79","type":"MCQ","stem":"Which level is <strong>elevated in SAM</strong>:","ans_key":"C","options":["Glucose","Insulin","cortisol","somatomedin"],"chapter":"16. Malnutrition","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM80","type":"MCQ","stem":"<strong>Fluid of choice in burn</strong>:","ans_key":"D","options":["DNS","D5","D10","RL"],"chapter":"55. Shock","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM81","type":"MCQ","stem":"Which micronutrient deficiency causes <strong>cardiomyopathy</strong>:","ans_key":"B","options":["Zinc","Selenium","Iodine","Iron"],"chapter":"16. Malnutrition","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM82","type":"MCQ","stem":"<strong>Insulin Causes</strong>:","ans_key":"D","options":["Hyponatremia","Hypernatremia","Hyperkalemia","Hypokalemia"],"chapter":"47. Diabetic Ketoacidosis","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM83","type":"MCQ","stem":"<strong>Anti LKM Antibody</strong> is positive in:","ans_key":"C","options":["Drug induced hepatitis","Wilson Disease","Autoimmune hepatitis","viral hepatitis"],"chapter":"25. Disorders of Liver in Children","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM84","type":"MCQ","stem":"Drug of choice in <strong>neurocysticercosis</strong> in children:","ans_key":"B","options":["Fluconazole","Albendazole","Ivermectin","Acyclovir"],"chapter":"42. Cerebral Palsy and CNS Infection","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM85","type":"MCQ","stem":"<strong>Iron store in the body</strong> is best indicated by:","ans_key":"A","options":["S. ferritin","S. Iron","S. Transferrin","TIBC"],"chapter":"51. Approach to Anemia in Children and Nutritional Anemia","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM86","type":"MCQ","stem":"<strong>6th day disease</strong> in:","ans_key":"A","options":["Exanthema Infectiosum","Exanthema subitum","Exanthema marginatum","Erythem nodosum"],"chapter":"20. Childhood Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM87","type":"MCQ","stem":"<strong>Embroynic period</strong> is up to:","ans_key":"A","options":["8 week","10 week","12 week","6 week"],"chapter":"1. How to approach pediatrics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM88","type":"MCQ","stem":"<strong>WHO defines adolescent age</strong> between.","ans_key":"A","options":["10-19 Years","10-14 Years","10-25 Years","09-14 Years"],"chapter":"1. How to approach pediatrics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM89","type":"MCQ","stem":"<strong>Breast milk storage in a refrigerator</strong> is up to:","ans_key":"D","options":["4 Hour","8 Hour","12 Hour","24 Hour"],"chapter":"15. Breastfeeding","examBatch":"2020 Batch Prof Exam"},
+    {"q":"DGM90","type":"MCQ","stem":"Child knows his/her <strong>sex by what age</strong>:","ans_key":"C","options":["12 months","24 Months","36 Months","30 Months"],"chapter":"12. Normal development","examBatch":"2020 Batch Prof Exam"}
+  ]
+}
+

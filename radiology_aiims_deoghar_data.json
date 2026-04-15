@@ -1,0 +1,84 @@
+{
+  "collegeName": "AIIMS DEOGHAR",
+  "curriculumData": [
+    {
+      "unit": "Unit A. Fundamentals of Radiology",
+      "chapters": [
+        "1. How to Approach Radiology",
+        "2. X-Ray Fundamentals: Part 1",
+        "3. X-Ray Fundamentals: Part 2",
+        "4. X-Ray Production and Interactions",
+        "5. CT Basics",
+        "6. USG Basics",
+        "7. MRI Basics",
+        "8. Contrast Media",
+        "9. USG Interpretation",
+        "10. CT Interpretation"
+      ]
+    },
+    {
+      "unit": "Unit B. Radiotherapy and Nuclear Medicine",
+      "chapters": [
+        "11. Radionuclide Imaging: Basics",
+        "12. PET Scan",
+        "13. Systemic Radionuclide Imaging: Part 1",
+        "14. Systemic Radionuclide Imaging: Part 2",
+        "15. Radiotherapy"
+      ]
+    },
+    {
+      "unit": "Unit C. Systemic Radiology",
+      "chapters": [
+        "16. CXR Interpretation: Part 1",
+        "17. CXR Interpretation: Part 2",
+        "18. Silhouette Sign: Basics",
+        "19. Silhouette Sign: Applications",
+        "20. Pleural Abnormalities",
+        "21. Mediastinum and Lung Tumours",
+        "22. Congenital Heart Disease",
+        "23. Acquired Cardiac Disease",
+        "24. Structural Anatomy of Brain",
+        "25. Basics of Neuroimaging",
+        "26. Stroke Imaging",
+        "27. Head Trauma Imaging",
+        "28. Brain Tumors",
+        "29. CNS Infections and Miscellaneous",
+        "30. Conventional Procedures in GUT",
+        "31. GUT Imaging",
+        "32. Renal Papillary Necrosis Imaging",
+        "33. Conventional Procedures in GIT",
+        "34. GIT Imaging",
+        "35. Hydatid Cyst Imaging",
+        "36. Hepatobiliary Imaging",
+        "37. Obstetrics and Gynaecology Imaging",
+        "38. Breast Imaging",
+        "39. Arthritis and Bone Infections",
+        "40. Systemic Bone Disorders",
+        "41. Bone Tumours",
+        "42. Musculoskeletal Trauma Imaging"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"T1","type":"Theory","stem":"Describe the radiological features of <strong>Extradural Hematoma (EDH)</strong> vs <strong>Subdural Hematoma (SDH)</strong> on a Non-Contrast CT Head. (5+5=10 Marks)","ans_key":"","chapter":"27. Head Trauma Imaging","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T2","type":"Theory","stem":"Discuss the indications, contraindications, and types of <strong>Intravenous Contrast Media</strong> used in CT scans. Describe the management of a moderate contrast reaction. (3+3+4=10 Marks)","ans_key":"","chapter":"8. Contrast Media","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T3","type":"Theory","stem":"What is the <strong>Silhouette Sign</strong>? How does it help in the localization of lung pathologies? Illustrate with examples involving the right heart border and left heart border. (2+4+4=10 Marks)","ans_key":"","chapter":"18. Silhouette Sign: Basics","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T4","type":"Theory","stem":"Classify <strong>Bone Tumors</strong>. Describe the specific radiological features (Sunburst appearance, Codman's triangle) seen in Osteosarcoma. (4+6=10 Marks)","ans_key":"","chapter":"41. Bone Tumours","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T5","type":"Theory","stem":"Discuss the role of <strong>FAST (Focused Assessment with Sonography for Trauma)</strong> in abdominal trauma. What are the four standard views? (2+8=10 Marks)","ans_key":"","chapter":"9. USG Interpretation","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T6","type":"Theory","stem":"Write short notes on: <strong>Pneumothorax</strong> - Chest X-ray findings in erect and supine positions. (5 Marks)","ans_key":"","chapter":"20. Pleural Abnormalities","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T7","type":"Theory","stem":"Radiological evaluation of a patient with <strong>Stroke</strong>. Role of Diffusion-Weighted Imaging (DWI) in MRI. (5 Marks)","ans_key":"","chapter":"26. Stroke Imaging","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T8","type":"Theory","stem":"Diagnostic features of <strong>Intestinal Obstruction</strong> on a plain abdominal radiograph. (5 Marks)","ans_key":"","chapter":"34. GIT Imaging","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T9","type":"Theory","stem":"Imaging features of <strong>Pulmonary Tuberculosis</strong> on Chest X-ray. (5 Marks)","ans_key":"","chapter":"16. CXR Interpretation: Part 1","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T10","type":"Theory","stem":"Role of <strong>Mammography</strong> and USG in Breast Imaging. BIRADS classification basics. (5 Marks)","ans_key":"","chapter":"38. Breast Imaging","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M1","type":"MCQ","stem":"<strong>Water</strong> appears hyperintense (bright) on which MRI sequence?","ans_key":"B","options":["T1 Weighted","T2 Weighted","FLAIR","Diffusion Weighted"],"chapter":"7. MRI Basics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M2","type":"MCQ","stem":"<strong>Bamboo Spine</strong> appearance is characteristic of:","ans_key":"C","options":["Rheumatoid Arthritis","Osteoarthritis","Ankylosing Spondylitis","Psoriatic Arthritis"],"chapter":"39. Arthritis and Bone Infections","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M3","type":"MCQ","stem":"<strong>Bird Beak</strong> appearance on Barium Swallow is seen in:","ans_key":"A","options":["Achalasia Cardia","Carcinoma Esophagus","Diffuse Esophageal Spasm","GERD"],"chapter":"33. Conventional Procedures in GIT","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M4","type":"MCQ","stem":"Which of the following is a feature of <strong>Left Atrial Enlargement</strong> on Chest X-ray?","ans_key":"D","options":["Straightening of left heart border","Double density sign","Widening of carinal angle","All of the above"],"chapter":"23. Acquired Cardiac Disease","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M5","type":"MCQ","stem":"The investigation of choice for <strong>Acute Subarachnoid Hemorrhage</strong> is:","ans_key":"A","options":["NCCT Head","MRI Brain","Lumbar Puncture","Angiography"],"chapter":"25. Basics of Neuroimaging","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M6","type":"MCQ","stem":"<strong>Coffee Bean Sign</strong> on abdominal X-ray suggests:","ans_key":"B","options":["Small Bowel Obstruction","Sigmoid Volvulus","Cecal Volvulus","Intussusception"],"chapter":"34. GIT Imaging","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M7","type":"MCQ","stem":"<strong>Snowstorm appearance</strong> on USG is seen in:","ans_key":"C","options":["Ectopic Pregnancy","Fibroid Uterus","Hydatidiform Mole","Polycystic Ovaries"],"chapter":"37. Obstetrics and Gynaecology Imaging","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M8","type":"MCQ","stem":"The half-life of <strong>Technetium-99m</strong> is:","ans_key":"B","options":["24 hours","6 hours","12 hours","60 days"],"chapter":"11. Radionuclide Imaging: Basics","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M9","type":"MCQ","stem":"<strong>Ring enhancing lesions</strong> in the brain are seen in:","ans_key":"D","options":["Neurocysticercosis","Tuberculoma","Brain Abscess","All of the above"],"chapter":"29. CNS Infections and Miscellaneous","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M10","type":"MCQ","stem":"<strong>Water Lily Sign</strong> is seen in:","ans_key":"A","options":["Hydatid Cyst","Liver Abscess","Simple Renal Cyst","Hemangioma"],"chapter":"35. Hydatid Cyst Imaging","examBatch":"2022 Batch Prof Exam"}
+  ]
+}

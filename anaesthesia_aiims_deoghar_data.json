@@ -1,0 +1,86 @@
+{
+  "collegeName": "AIIMS DEOGHAR",
+  "curriculumData": [
+    {
+      "unit": "Unit A. Basics & Pre-operative",
+      "chapters": [
+        "1. How to Approach Anaesthesia",
+        "2. Introduction and History",
+        "3. Pre Anaesthetic Checkup: Part 1",
+        "4. Pre Anaesthetic Checkup: Part 2",
+        "5. Pre-operative Preparation"
+      ]
+    },
+    {
+      "unit": "Unit B. Equipment & Monitoring",
+      "chapters": [
+        "6. Monitoring Under Anaesthesia: Part 1",
+        "7. Monitoring Under Anaesthesia: Part 2",
+        "8. Anaesthesia Workstation",
+        "9. Breathing Systems",
+        "24. Anaesthesia Equipment"
+      ]
+    },
+    {
+      "unit": "Unit C. Pharmacology",
+      "chapters": [
+        "13. Intravenous Anaesthetics",
+        "14. Inhalational Anaesthetics: Part 1",
+        "15. Inhalational Anaesthetics: Part 2",
+        "16. Local Anaesthetics",
+        "17. Muscle Relaxants: Part 1",
+        "18. Muscle Relaxants: Part 2"
+      ]
+    },
+    {
+      "unit": "Unit D. Regional Anesthesia",
+      "chapters": [
+        "10. Regional Anaesthesia",
+        "11. Epidural Anaesthesia",
+        "12. Peripheral Nerve Blocks"
+      ]
+    },
+    {
+      "unit": "Unit E. Airway & Clinical Management",
+      "chapters": [
+        "19. Anaesthesia for Coexisting Diseases",
+        "20. Subspecialty Management",
+        "21. Malignant Hyperthermia",
+        "22. Day Care Anaesthesia",
+        "23. Airway Management"
+      ]
+    },
+    {
+      "unit": "Unit F. Critical Care & Emergency",
+      "chapters": [
+        "25. Basics of Critical Care",
+        "26. Mechanical Ventilation: Part 1",
+        "27. Mechanical Ventilation: Part 2",
+        "28. Cardiopulmonary Resuscitation"
+      ]
+    }
+  ],
+  "qnaData": [
+    {"q":"T1","type":"Theory","stem":"Discuss the <strong>ASA (American Society of Anesthesiologists) Physical Status Classification</strong>. Describe the Pre-Anaesthetic Checkup (PAC) protocol for a 60-year-old hypertensive patient undergoing Laparoscopic Cholecystectomy. (4+6=10 Marks)","ans_key":"","chapter":"3. Pre Anaesthetic Checkup: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T2","type":"Theory","stem":"Describe the anatomy of the <strong>Epidural Space</strong>. Discuss the procedure, indications, and complications of Epidural Anaesthesia. (2+4+4=10 Marks)","ans_key":"","chapter":"11. Epidural Anaesthesia","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T3","type":"Theory","stem":"What is a <strong>Difficult Airway</strong>? Discuss the ASA Difficult Airway Algorithm. Mention the predictors of difficult intubation (LEMON law). (2+5+3=10 Marks)","ans_key":"","chapter":"23. Airway Management","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T4","type":"Theory","stem":"Classify <strong>Muscle Relaxants</strong>. Discuss the mechanism of action, clinical uses, and side effects of Succinylcholine. (3+2+2+3=10 Marks)","ans_key":"","chapter":"17. Muscle Relaxants: Part 1","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T5","type":"Theory","stem":"Discuss the 2020 AHA guidelines for <strong>Adult Basic Life Support (BLS)</strong> and Advanced Cardiac Life Support (ACLS). (5+5=10 Marks)","ans_key":"","chapter":"28. Cardiopulmonary Resuscitation","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T6","type":"Theory","stem":"Write short notes on: <strong>Capnography</strong> - Phases of a normal capnogram and its clinical applications. (5 Marks)","ans_key":"","chapter":"6. Monitoring Under Anaesthesia: Part 1","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T7","type":"Theory","stem":"Pathophysiology and management of <strong>Local Anaesthetic Systemic Toxicity (LAST)</strong>. (5 Marks)","ans_key":"","chapter":"16. Local Anaesthetics","examBatch":"2020 Batch Prof Exam"},
+    {"q":"T8","type":"Theory","stem":"Components and safety features of the <strong>Anaesthesia Workstation</strong> (Boyle's Machine). (5 Marks)","ans_key":"","chapter":"8. Anaesthesia Workstation","examBatch":"2021 Batch Prof Exam"},
+    {"q":"T9","type":"Theory","stem":"<strong>Day Care Anaesthesia</strong>: Patient selection criteria and discharge criteria (PADSS). (5 Marks)","ans_key":"","chapter":"22. Day Care Anaesthesia","examBatch":"2022 Batch Prof Exam"},
+    {"q":"T10","type":"Theory","stem":"Pharmacology of <strong>Propofol</strong>: Induction dose, advantages, and 'Propofol Infusion Syndrome'. (5 Marks)","ans_key":"","chapter":"13. Intravenous Anaesthetics","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M1","type":"MCQ","stem":"The color coding for <strong>Oxygen</strong> cylinder in India is:","ans_key":"B","options":["Blue body with white shoulder","Black body with white shoulder","Grey body","Blue body"],"chapter":"8. Anaesthesia Workstation","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M2","type":"MCQ","stem":"Which of the following is a <strong>Depolarizing</strong> muscle relaxant?","ans_key":"A","options":["Succinylcholine","Rocuronium","Vecuronium","Atracurium"],"chapter":"17. Muscle Relaxants: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M3","type":"MCQ","stem":"<strong>Mallampati Class III</strong> visualization includes:","ans_key":"C","options":["Soft palate, fauces, uvula, pillars","Soft palate, fauces, uvula","Soft palate and base of uvula","Hard palate only"],"chapter":"3. Pre Anaesthetic Checkup: Part 1","examBatch":"2020 Batch Prof Exam"},
+    {"q":"M4","type":"MCQ","stem":"The local anaesthetic with the highest risk of <strong>Cardiotoxicity</strong> is:","ans_key":"B","options":["Lignocaine","Bupivacaine","Ropivacaine","Chloroprocaine"],"chapter":"16. Local Anaesthetics","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M5","type":"MCQ","stem":"<strong>Malignant Hyperthermia</strong> is triggered by:","ans_key":"D","options":["Thiopentone","Midazolam","Fentanyl","Halothane"],"chapter":"21. Malignant Hyperthermia","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M6","type":"MCQ","stem":"An imaginary line connecting the superior iliac crests (Tuffier's line) corresponds to which vertebral level?","ans_key":"A","options":["L4","L2","T10","L5"],"chapter":"10. Regional Anaesthesia","examBatch":"2021 Batch Prof Exam"},
+    {"q":"M7","type":"MCQ","stem":"Which breathing system is most efficient for <strong>Spontaneous Ventilation</strong>?","ans_key":"A","options":["Mapleson A","Mapleson D","Bain's Circuit","Circle System"],"chapter":"9. Breathing Systems","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M8","type":"MCQ","stem":"The antidote for <strong>Benzodiazepine</strong> overdose is:","ans_key":"C","options":["Naloxone","Neostigmine","Flumazenil","Atropine"],"chapter":"13. Intravenous Anaesthetics","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M9","type":"MCQ","stem":"<strong>Dissociative Anaesthesia</strong> is produced by:","ans_key":"B","options":["Propofol","Ketamine","Etomidate","Thiopentone"],"chapter":"13. Intravenous Anaesthetics","examBatch":"2022 Batch Prof Exam"},
+    {"q":"M10","type":"MCQ","stem":"During CPR, the ratio of chest compressions to breaths in an adult with a single rescuer is:","ans_key":"D","options":["15:2","5:1","50:2","30:2"],"chapter":"28. Cardiopulmonary Resuscitation","examBatch":"2022 Batch Prof Exam"}
+  ]
+}
+

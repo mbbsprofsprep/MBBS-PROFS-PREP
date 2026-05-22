@@ -315,36 +315,49 @@
 
         // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
-            const tableBody = document.getElementById('tableBody');
-            if(tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading ${window.COLLEGE_NAME} Question Bank...</p></td></tr>`;
+    const tableBody = document.getElementById('tableBody');
+    if(tableBody) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading ${window.COLLEGE_NAME} Question Bank...</p></td></tr>`;
+    }
+
+    try {
+        // Dynamically load the correct JSON based on SUBJECT and COLLEGE
+        const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+        const response = await fetch(fileName);
+        
+        if (!response.ok) throw new Error("Failed to load JSON file");
+        
+        const data = await response.json();
+        
+        window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME; 
+        window.curriculumData = data.curriculumData || [];
+        
+        // --- DATA NORMALIZATION FIX ---
+        // Converts strings like "Chapter A / Chapter B" into ["Chapter A", "Chapter B"]
+        let rawQnaData = data.qnaData || [];
+        rawQnaData.forEach(q => {
+            if (typeof q.chapter === 'string' && q.chapter.includes('/')) {
+                q.chapter = q.chapter.split('/').map(c => c.trim());
+            } else if (typeof q.chapter === 'string') {
+                q.chapter = [q.chapter.trim()];
             }
+        });
+        window.qnaData = rawQnaData;
+        // ------------------------------
+        
+        window.isDataLoaded = true;
 
-            try {
-                // Dynamically load the correct JSON based on SUBJECT and COLLEGE
-                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
-                const response = await fetch(fileName);
-                
-                if (!response.ok) throw new Error("Failed to load JSON file");
-                
-                const data = await response.json();
-                
-                window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME; 
-                window.curriculumData = data.curriculumData || [];
-                window.qnaData = data.qnaData || [];
-                window.isDataLoaded = true;
+        document.getElementById('dynamic-page-title').innerText = `MedPYQ - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
+        const headerEl = document.getElementById('dynamic-college-header');
+        if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
 
-                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
-                const headerEl = document.getElementById('dynamic-college-header');
-                if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                if(tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json</b> is uploaded to your server.</p></td></tr>`;
-                }
-            }
-        };
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        if(tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json</b> is uploaded to your server.</p></td></tr>`;
+        }
+    }
+};
 
         window.getUnitForChapter = function(chapterName) {
             if (!window.curriculumData) return window.SUBJECT_CODE;

@@ -1,359 +1,290 @@
-<!DOCTYPE html>
-<html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBBS Profs Prep - Premium Checkout</title>
+// ==========================================
+// app-shell.js - Centralized UI Component
+// ==========================================
 
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 400:'#3395ff', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' },
-                        dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
-                    },
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body { background-color: #f0f9ff; color: #0f172a; transition: all 0.3s ease; }
-        html.dark body { background-color: #020617; color: #f8fafc; }
-        
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid #e0f2fe; box-shadow: 0 4px 25px -5px rgba(14, 165, 233, 0.1); border-radius: 24px; }
-        html.dark .glass-card { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; box-shadow: 0 4px 30px -5px rgba(0, 0, 0, 0.5); }
-        
-        .plan-card { border: 2px solid #e2e8f0; transition: all 0.2s; cursor: pointer; }
-        html.dark .plan-card { border-color: #1e293b; background: #0f172a; }
-        .plan-card:hover { border-color: #94a3b8; transform: translateY(-2px); }
-        .plan-card.active { border-color: #0ea5e9; background: #f0f9ff; }
-        html.dark .plan-card.active { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.1); }
-        
-        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
-        html.dark .info-row { border-bottom-color: #1e293b; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .info-value { color: #0f172a; font-size: 0.85rem; font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
-        html.dark .info-value { color: #f8fafc; }
-    </style>
-</head>
-<body class="antialiased min-h-screen flex flex-col relative">
-
-    <nav class="w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md">
+// 1. INJECT THE NAVBAR & SIDEBAR HTML
+const appShellHTML = `
+    <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
-            <a href="index.html" class="flex items-center gap-3">
-                <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-yellow-500/20 object-cover ring-2 ring-offset-2 ring-brand-400" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
-                <div class="leading-tight">
-                    <h1 class="font-bold text-lg text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Secure Checkout</p>
-                </div>
-            </a>
-            <button onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');" class="text-xl w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 transition-all">
-                <span>🌙</span>
-            </button>
+            <div class="flex items-center gap-3 md:gap-4">
+                <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-brand-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <a href="index.html" class="flex items-center gap-3 group cursor-pointer">
+                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg shadow-accent-yellow/20 object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg" alt="Logo">
+                    <div class="leading-tight">
+                        <h1 class="font-bold text-base md:text-lg tracking-tight text-slate-900 dark:text-white">MBBS <span class="text-brand-400">Profs Prep</span></h1>
+                        <p class="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">Central Portal</p>
+                    </div>
+                </a>
+            </div>
+            <div class="hidden md:block flex-1 max-w-md mx-8">
+                <input class="w-full px-4 py-2 bg-brand-50 dark:bg-dark-surface border border-brand-100 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-brand-400 outline-none transition-all text-sm text-slate-900 dark:text-white placeholder-slate-400" id="globalSearch" placeholder="Search Institute..." type="text"/>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-brand-50 dark:hover:bg-white/10 text-xl transition-all text-accent-yellow" onclick="window.toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:py-12">
-        <div id="loading-state" class="text-center py-20">
-            <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Connecting to Secure Server...</h2>
-            <p class="text-slate-500 dark:text-slate-400 font-medium" id="loading-text">Fetching your global profile.</p>
+    <aside class="fixed top-0 left-0 h-full z-[10005] bg-white dark:bg-dark-surface shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-brand-100 dark:border-slate-800 w-full sm:w-[350px] lg:w-[400px]" id="user-panel-drawer">
+        <div class="px-4 py-4 border-b border-brand-100 dark:border-slate-800 flex justify-between items-center bg-brand-50 dark:bg-dark-bg shrink-0">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white tracking-tight">My Account</h2>
+            <button onclick="window.userPanelApp.close()" class="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50 dark:bg-dark-bg" id="user-panel-body"></div>
+        <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer"></div>
+    </aside>
+    <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
+`;
 
-        <div id="checkout-interface" class="hidden grid grid-cols-1 md:grid-cols-12 gap-8">
-            <div class="md:col-span-7 space-y-6">
-                <div>
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Select a Plan</h2>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Pricing automatically adjusted for <span id="display-country" class="font-bold text-brand-500">Your Country</span>.</p>
-                </div>
-                <div class="space-y-4" id="plans-container"></div>
-            </div>
+// Insert the HTML directly into the page exactly at the start of the <body>
+document.body.insertAdjacentHTML('afterbegin', appShellHTML);
 
-            <div class="md:col-span-5">
-                <div class="glass-card p-6 md:p-8 sticky top-24">
-                    <div class="mb-6">
-                        <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Billing Profile</h3>
-                        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700/50 shadow-inner">
-                            <div class="info-row"><span class="info-label">Name</span><span class="info-value" id="summary-name">Loading...</span></div>
-                            <div class="info-row"><span class="info-label">Email</span><span class="info-value text-brand-500" id="summary-email">loading...</span></div>
-                            <div class="info-row"><span class="info-label">Join Year</span><span class="info-value" id="summary-join-year">--</span></div>
-                            <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="summary-phone">--</span></div>
-                            <div class="info-row"><span class="info-label">College</span><span class="info-value" id="summary-college">--</span></div>
-                            <div class="info-row"><span class="info-label">Location</span><span class="info-value" id="summary-location">--</span></div>
-                        </div>
-                    </div>
 
-                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Order Summary</h3>
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-slate-600 dark:text-slate-300 font-bold" id="summary-plan-name">Select a plan...</span>
-                        <span class="font-black text-lg text-slate-900 dark:text-white" id="summary-plan-price">--</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
-                        <span class="text-slate-500 text-sm font-medium">Platform Fee</span>
-                        <span class="text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded uppercase">Free</span>
-                    </div>
+// 2. GLOBALS & UI STATE
+const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
-                    <div class="flex justify-between items-end mb-8">
-                        <span class="text-lg font-bold text-slate-900 dark:text-white">Total Amount</span>
-                        <span class="text-4xl font-black text-brand-500 tracking-tight" id="summary-total">--</span>
-                    </div>
+window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };
 
-                    <button onclick="window.initiateRazorpay()" id="pay-btn" class="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-extrabold text-lg shadow-xl shadow-slate-900/20 dark:shadow-white/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        Pay Securely
-                    </button>
-                    <div class="mt-5 flex justify-center gap-4 text-slate-400 opacity-60">
-                        <i class="fa-brands fa-cc-visa fa-lg"></i>
-                        <i class="fa-brands fa-cc-mastercard fa-lg"></i>
-                        <i class="fa-brands fa-google-pay fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+window.togglePassword = function() {
+    const input = document.getElementById('login-pass') || document.getElementById('reg-pass');
+    const icon = document.getElementById('eye-icon');
+    if (!input) return;
+    if (input.type === "password") {
+        input.type = "text";
+        if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.059 10.059 0 011.591-2.714M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1.5 1.5l22.5 22.5" />`;
+    } else {
+        input.type = "password";
+        if(icon) icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+    }
+};
+
+window.showAuthError = function(msg) {
+    const errDiv = document.getElementById('auth-error-msg');
+    if(errDiv) { errDiv.innerText = msg; errDiv.classList.remove('hidden'); setTimeout(() => errDiv.classList.add('hidden'), 5000); } 
+    else { alert(msg); }
+};
+
+window.toggleTheme = function() {
+    const d = document.documentElement.classList.toggle('dark'); 
+    localStorage.setItem('theme', d?'dark':'light');
+    const icon = document.getElementById('theme-icon'); 
+    if(icon) icon.innerText = d?'☀️':'🌙'; 
+    if(window.update3D) window.update3D();
+}
+
+// 3. THE MULTI-VIEW USER PANEL APP
+window.userPanelApp = {
+    isOpen: false, authMode: 'login', viewMode: 'menu', 
+    
+    els: function() { 
+        return { drawer: document.getElementById('user-panel-drawer'), backdrop: document.getElementById('user-panel-backdrop'), body: document.getElementById('user-panel-body'), footer: document.getElementById('user-panel-footer') }
+    },
+    
+    toggle: function() { this.isOpen ? this.close() : this.open(); },
+    
+    open: function() { 
+        this.isOpen = true; this.viewMode = 'menu'; this.renderState(); 
+        const e = this.els();
+        if(e.drawer) e.drawer.classList.remove('-translate-x-full'); 
+        if(e.backdrop) e.backdrop.classList.remove('opacity-0', 'pointer-events-none'); 
+    },
+    
+    close: function() { 
+        this.isOpen = false; 
+        const e = this.els();
+        if(e.drawer) e.drawer.classList.add('-translate-x-full'); 
+        if(e.backdrop) e.backdrop.classList.add('opacity-0', 'pointer-events-none'); 
+    },
+    
+    setView: function(view) { this.viewMode = view; this.renderState(); },
+    
+    renderState: function() {
+        const user = window.currentUserObj; const pData = window.currentUserProfileData || {};
+        const els = this.els(); if(!els.body || !els.footer) return;
         
-        <div id="success-state" class="hidden text-center py-16 max-w-lg mx-auto">
-            <div class="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-6 shadow-inner border border-green-200">✅</div>
-            <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Payment Successful!</h2>
-            <p class="text-slate-500 dark:text-slate-400 mb-2 font-medium">Razorpay ID: <span id="success-pay-id" class="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300"></span></p>
-            
-            <div class="bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800 rounded-xl p-6 mt-6">
-                <p class="text-brand-700 dark:text-brand-300 font-extrabold text-lg mb-2">Your account is now upgraded! 🚀</p>
-                <p class="text-brand-600 dark:text-brand-400 text-sm font-medium">Please close this browser tab, return to the MBBS Profs Prep app, and refresh the page to access your premium content.</p>
-            </div>
-        </div>
-        </main>
+        const legalFooterHtml = `
+    <div class="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-full px-2 mb-2 mt-4">
+        <a href="legal.html?page=about" class="hover:text-brand-500 transition-colors">About Us</a> • 
+        <a href="legal.html?page=contact" class="hover:text-brand-500 transition-colors">Contact</a> • 
+        <a href="legal.html?page=terms" class="hover:text-brand-500 transition-colors">Terms</a> • 
+        <a href="legal.html?page=privacy" class="hover:text-brand-500 transition-colors">Privacy</a> • 
+        <a href="legal.html?page=refunds" class="hover:text-brand-500 transition-colors">Refunds</a>
+    </div>`;
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
-        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
-            <div class="flex gap-4 md:gap-6 font-medium flex-wrap justify-center">
-                <a href="#" class="hover:text-brand-500 transition-colors">About Us</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Contact</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Terms</a>
-                <a href="#" class="hover:text-brand-500 transition-colors">Privacy Policy</a>
-            </div>
-        </div>
-    </footer>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
-            authDomain: "mbbs-profs-prep48c.firebaseapp.com",
-            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
-            projectId: "mbbs-profs-prep48c",
-            storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
-            messagingSenderId: "378639777472",
-            appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
-        };
-        const fbApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fbApp);
-        const db = getDatabase(fbApp);
-
-        const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
-
-        const plansIndia = [
-            { id: 'in_1m', name: '1 Month Access', desc: 'Quick Revision', price: 49, display: '₹49', currency: 'INR', badge: '', months: 1 },
-            { id: 'in_3m', name: '3 Months Access', desc: 'Exam Prep', price: 129, display: '₹129', currency: 'INR', badge: 'POPULAR', months: 3 },
-            { id: 'in_1y', name: '1 Year Access', desc: 'Full Access', price: 399, display: '₹399', currency: 'INR', badge: 'BEST VALUE', months: 12 }
-        ];
-        const plansGlobal = [
-            { id: 'gl_3m', name: '3 Months Access', desc: 'Quarterly Pass', price: 2, display: '$2.00', currency: 'USD', badge: '', months: 3 },
-            { id: 'gl_1y', name: '1 Year Access', desc: 'Annual Pass', price: 5, display: '$5.00', currency: 'USD', badge: 'SAVE 50%', months: 12 }
-        ];
-
-        let userProfile = {}; let selectedPlan = null; let isIndia = true; window.currentUserObj = null;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                window.currentUserObj = user;
-                try {
-                    const snapshot = await get(ref(db, 'users/' + user.uid + '/profile'));
-                    if (snapshot.exists()) {
-                        userProfile = snapshot.val();
-                    } else {
-                        userProfile = { fullName: user.displayName || user.email.split('@')[0], email: user.email, joinYear: "Not specified", phone: "Not provided", college: "Global", city: "Not specified", country: "India" };
-                    }
-                    
-                    userProfile.uid = user.uid;
-                    isIndia = (userProfile.country && userProfile.country.toLowerCase() === "india");
-                    document.getElementById('display-country').innerText = userProfile.country || "Global";
-                    
-                    document.getElementById('summary-name').innerText = userProfile.fullName;
-                    document.getElementById('summary-email').innerText = userProfile.email;
-                    document.getElementById('summary-join-year').innerText = userProfile.joinYear || "--";
-                    document.getElementById('summary-phone').innerText = userProfile.phone || "--";
-                    document.getElementById('summary-college').innerText = userProfile.college || "--";
-                    document.getElementById('summary-location').innerText = `${userProfile.city || ''}, ${userProfile.country || ''}`;
-
-                    renderPlans();
-                    document.getElementById('loading-state').classList.add('hidden');
-                    document.getElementById('checkout-interface').classList.remove('hidden');
-                } catch (error) {
-                    console.error("Database Error:", error);
-                    document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error. Please refresh.</span>";
-                }
-            } else {
-                alert("You must be logged in to purchase a subscription.");
-                window.location.href = "index.html";
-            }
-        });
-
-        function renderPlans() {
-            const container = document.getElementById('plans-container'); container.innerHTML = "";
-            const plans = isIndia ? plansIndia : plansGlobal;
-
-            plans.forEach((plan, index) => {
-                const isSelected = index === (plans.length - 1);
-                if(isSelected) updateSummaryUI(plan);
-
-                const card = document.createElement('div');
-                card.className = `plan-card rounded-2xl p-5 flex items-center justify-between mb-4 ${isSelected ? 'active' : ''}`;
-                card.onclick = () => { document.querySelectorAll('.plan-card').forEach(el => el.classList.remove('active')); card.classList.add('active'); updateSummaryUI(plan); };
-
-                card.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="w-6 h-6 rounded-full border-2 ${isSelected ? 'border-brand-500' : 'border-slate-300 dark:border-slate-600'} flex items-center justify-center pointer-indicator">
-                            <div class="w-3 h-3 bg-brand-500 rounded-full select-indicator ${isSelected ? '' : 'hidden'}"></div>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2"><h3 class="font-bold text-lg dark:text-white">${plan.name}</h3>${plan.badge ? `<span class="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide">${plan.badge}</span>` : ''}</div>
-                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">${plan.desc}</p>
-                        </div>
-                    </div>
-                    <div class="text-right"><span class="text-2xl font-black text-slate-900 dark:text-white">${plan.display}</span></div>`;
-                container.appendChild(card);
-            });
-        }
-
-        function updateSummaryUI(plan) {
-            selectedPlan = plan;
-            document.getElementById('summary-plan-name').innerText = plan.name;
-            document.getElementById('summary-plan-price').innerText = plan.display;
-            document.getElementById('summary-total').innerText = plan.display;
-
-            document.querySelectorAll('.plan-card').forEach(card => {
-                const indicator = card.querySelector('.pointer-indicator'); const dot = card.querySelector('.select-indicator');
-                if (card.classList.contains('active')) {
-                    indicator.classList.replace('border-slate-300', 'border-brand-500'); indicator.classList.replace('dark:border-slate-600', 'border-brand-500'); dot.classList.remove('hidden');
+        if (user) {
+            if (this.viewMode === 'menu') {
+                let badgeHtml = ''; let daysHtml = '';
+                if (window.globalUserStatus.isVIP) {
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP ACCESS</span>`;
+                    const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US');
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center"><span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span><span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span></div>`;
+                } else if (window.globalUserStatus.expired) {
+                    const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">EXPIRED</span>`;
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended ${daysAgo} days ago.</span><a href="https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html" target="_blank" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg shadow-sm">Renew Now</a></div>`;
                 } else {
-                    indicator.classList.replace('border-brand-500', 'border-slate-300'); dot.classList.add('hidden');
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">FREE PLAN</span>`;
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span><a href="https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html" target="_blank" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-brand-600">Unlock QBank</a></div>`;
                 }
-            });
-        }
 
-        window.initiateRazorpay = function() {
-            if (!selectedPlan || !window.currentUserObj) return;
-            const btn = document.getElementById('pay-btn');
-            btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`; btn.disabled = true;
+                const nameToDisplay = user.displayName || pData.fullName || "User";
+                const initial = user.email.charAt(0).toUpperCase();
 
-            var options = {
-                "key": RZP_KEY_ID, "amount": Math.round(selectedPlan.price * 100), "currency": selectedPlan.currency,
-                "name": "MBBS Profs Prep", "description": selectedPlan.name,
-                "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg",
-                "prefill": { "name": userProfile.fullName, "email": userProfile.email, "contact": userProfile.phone },
-                "theme": { "color": "#0ea5e9" },
-                "handler": function (response) { window.handlePaymentSuccess(response.razorpay_payment_id); },
-                "modal": {
-                    "ondismiss": function() {
-                        btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
-                        btn.disabled = false;
-                    }
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm">
+                        <div class="w-20 h-20 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">${initial}</div>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
+                        <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${user.email}</p>
+                        ${badgeHtml}
+                        ${daysHtml}
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-500 text-xl group-hover:scale-110 transition-transform">👤</span> My Profile</div><span class="text-slate-400 text-xs">❯</span></a>
+                        <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-yellow/50 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-accent-yellow/10 dark:bg-slate-800 flex items-center justify-center text-accent-yellow text-xl group-hover:scale-110 transition-transform">🔖</span> Bookmarks & Saved</div><span class="text-slate-400 text-xs">❯</span></a>
+                        <a href="https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html" target="_blank" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-slate-800 flex items-center justify-center text-purple-500 text-xl group-hover:scale-110 transition-transform">💳</span> Subscription & Billing</div><span class="text-slate-400 text-xs">❯</span></a>
+                    </div>`;
+                els.footer.innerHTML = `${legalFooterHtml}<button onclick="window.firebaseSignOut()" class="w-full py-3.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2 mt-2 border border-red-200 dark:border-red-800 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout</button>`;
+
+            } else if (this.viewMode === 'bookmarks') {
+                const bookmarks = Object.values(window.userBookmarks || {}).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                let bookmarksHtml = '';
+                
+                if (bookmarks.length === 0) {
+                    bookmarksHtml = `<div class="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4"><span class="text-5xl mb-4 opacity-70">🔖</span><h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4><p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p><button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2.5 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-lg font-bold text-sm hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors border border-brand-200 dark:border-brand-800">Go Back</button></div>`;
+                } else {
+                    bookmarksHtml = `<div class="space-y-5 mt-4 pb-10">`;
+                    bookmarks.forEach((bm) => {
+                        let formattedText = (bm.text || 'Saved Question').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        let optionsHtml = '';
+                        if (bm.type === 'MCQ' && bm.options) {
+                            optionsHtml = `<div class="mt-4 space-y-2.5">`;
+                            bm.options.forEach((opt, idx) => {
+                                const letter = String.fromCharCode(65 + idx); const isCorrect = bm.ans_key === letter;
+                                let btnClass = "w-full text-left p-3.5 rounded-xl border transition-colors flex items-start gap-3 shadow-sm";
+                                if (isCorrect) btnClass += " bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold";
+                                else btnClass += " bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
+                                let formattedOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                const letterBadgeClass = isCorrect ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700" : "bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600";
+                                const letterBadge = `<span class="flex-shrink-0 w-7 h-7 rounded-lg ${letterBadgeClass} text-xs font-bold flex items-center justify-center border">${letter}</span>`;
+                                optionsHtml += `<div class="${btnClass}">${letterBadge}<span class="pt-0.5 text-sm font-medium leading-snug">${formattedOpt}</span></div>`;
+                            });
+                            optionsHtml += `</div>`;
+                        }
+
+                        bookmarksHtml += `
+                            <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 relative group transition-all shadow-sm hover:shadow-md">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800">${bm.subject || 'QBank'}</div>
+                                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">${new Date(bm.timestamp).toLocaleDateString()}</span>
+                                </div>
+                                <div class="text-base font-bold text-slate-900 dark:text-white mb-2 leading-relaxed">${formattedText}</div>
+                                ${optionsHtml}
+                                <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                    <button onclick="window.deleteBookmark('${bm.q}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1.5 uppercase tracking-wide">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Remove
+                                    </button>
+                                    <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 px-4 py-2.5 rounded-xl transition-colors border border-brand-200 dark:border-brand-800 flex items-center gap-1.5 shadow-sm">
+                                        Review <span class="text-lg leading-none">➝</span>
+                                    </a>
+                                </div>
+                            </div>`;
+                    });
+                    bookmarksHtml += `</div>`;
                 }
-            };
-            var rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response){ alert("Payment Failed: " + response.error.description); btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`; btn.disabled = false; });
-            rzp.open();
-        };
 
-        window.handlePaymentSuccess = async function(paymentId) {
-            document.getElementById('checkout-interface').classList.add('hidden');
-            
-            // Subscription Stacking Logic
-            let baseDate = new Date();
-            try {
-                const subSnap = await get(ref(db, `users/${window.currentUserObj.uid}/subscription`));
-                if (subSnap.exists()) {
-                    const subData = subSnap.val();
-                    if (subData.status === "active" && subData.validUntil) {
-                        const currentExpiry = new Date(subData.validUntil);
-                        if (currentExpiry > baseDate) { baseDate = currentExpiry; }
-                    }
-                }
-            } catch (e) { console.error("Stacking error", e); }
+                els.body.innerHTML = `
+                    <div class="mb-2">
+                        <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                            <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Saved Items</h3>
+                        <p class="text-xs text-slate-500 font-medium">Quickly access your difficult questions synced from the cloud.</p>
+                        ${bookmarksHtml}
+                    </div>`;
+                els.footer.innerHTML = ``; 
 
-            baseDate.setMonth(baseDate.getMonth() + selectedPlan.months);
-            const expiryString = baseDate.toISOString().split('T')[0];
-
-            // Submit to Google Sheet API
-            silentGoogleFormSubmit(
-                userProfile.fullName || "Not Provided",
-                userProfile.email || window.currentUserObj.email || "Not Provided",
-                userProfile.joinYear || "Not Provided",
-                userProfile.city || "Not Provided",
-                userProfile.phone || "0000000000",
-                userProfile.country || "Not Provided",
-                selectedPlan.name,
-                paymentId
-            );
-
-            // UPDATED JAVASCRIPT: No redirects, just show the manual instructions
-            try {
-                await update(ref(db, `users/${window.currentUserObj.uid}/subscription`), { 
-                    status: "active", planName: selectedPlan.name, validUntil: expiryString, paymentId: paymentId, purchaseDate: new Date().toISOString() 
-                });
-                document.getElementById('success-pay-id').innerText = paymentId;
-                document.getElementById('success-state').classList.remove('hidden');
-            } catch (error) {
-                console.error("Firebase update failed", error);
-                alert("Payment successful! Your profile will update shortly. ID: " + paymentId);
-                document.getElementById('success-pay-id').innerText = paymentId; 
-                document.getElementById('success-state').classList.remove('hidden');
+            } else if (this.viewMode === 'edit_profile') {
+                const currentYear = pData.joinYear || ''; const isS = (v, t) => (v === t) ? 'selected' : '';
+                els.body.innerHTML = `
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                            <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-6">Edit Profile</h3>
+                        <div class="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Full Name</label><input type="text" id="edit-name" value="${pData.fullName || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">College Name</label><input type="text" id="edit-college" value="${pData.college || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Join Year / Batch</label><select id="edit-join-year" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"><option value="">Select</option><option value="2025 Batch" ${isS(currentYear, '2025 Batch')}>2025 Batch</option><option value="2024 Batch" ${isS(currentYear, '2024 Batch')}>2024 Batch</option><option value="2023 Batch" ${isS(currentYear, '2023 Batch')}>2023 Batch</option><option value="2022 Batch" ${isS(currentYear, '2022 Batch')}>2022 Batch</option><option value="2021 Batch" ${isS(currentYear, '2021 Batch')}>2021 Batch (Intern)</option><option value="Post-Grad / JR" ${isS(currentYear, 'Post-Grad / JR')}>Post-Grad / JR</option></select></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">City</label><input type="text" id="edit-city" value="${pData.city || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone</label><input type="tel" id="edit-phone" value="${pData.phone || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            </div>
+                            <button onclick="window.saveEditedProfile(this)" class="w-full py-4 mt-6 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all">Save Changes</button>
+                        </div>
+                    </div>`;
+                els.footer.innerHTML = ``;
             }
-        };
-
-        // --- BULLETPROOF APPS SCRIPT API ---
-        function silentGoogleFormSubmit(name, email, joinYear, city, phone, country, plan, payId) {
-            
-            // 🚨 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW 🚨
-            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqRH0poMoImh_8FfXondrpcITooWGfhkcYSfSoe5fk_FARMf3RSQuVnsjracfEU6P1/exec";
-            
-            const payload = {
-                name: name,
-                email: email,
-                joinYear: joinYear,
-                city: city,
-                phone: phone,
-                country: country,
-                plan: plan,
-                payId: payId
-            };
-
-            fetch(APPS_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-            })
-            .then(res => console.log("Saved to Sheet"))
-            .catch(err => console.error("Sheet API Error", err));
+        } else {
+            if (this.authMode === 'login') {
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
+                        <img src="${APP_LOGO_URL}" class="w-20 h-20 rounded-2xl shadow-xl ring-4 ring-offset-4 ring-brand-400/30 mb-6 object-cover" alt="Logo">
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Welcome Back</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Log in to sync your progress.</p>
+                        <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                        <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <div class="relative w-full">
+                                <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                                <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                            </div>
+                            <div class="text-right w-full pt-1"><button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 uppercase tracking-wider hover:text-brand-600 transition-colors">Forgot Password?</button></div>
+                        </div>
+                        <button onclick="window.handleEmailLogin(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all hover:bg-brand-600">Sign In</button>
+                        <div class="text-center mt-6"><span class="text-sm text-slate-500">Don't have an account?</span> <button onclick="window.toggleAuthMode('register')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Create One</button></div>
+                    </div>`;
+            } else {
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-start min-h-[calc(100vh-250px)] pb-4">
+                        <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400/50 mb-4 object-cover mt-2" alt="Logo">
+                        <h3 class="text-xl font-black text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
+                        <p class="text-sm text-slate-500 mb-6">Join the community.</p>
+                        <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                        <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <select id="reg-country" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-shadow font-medium"><option value="">Select Country</option><option value="India" selected>India</option></select>
+                            <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="password" id="reg-pass" placeholder="Create Password (Min 6)" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <div class="grid grid-cols-2 gap-3">
+                                <select id="reg-join-year" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none font-medium focus:ring-2 focus:ring-brand-500 transition-shadow"><option value="">Batch</option><option value="2025 Batch">2025 Batch</option><option value="2024 Batch">2024 Batch</option><option value="2023 Batch">2023 Batch</option><option value="2022 Batch">2022 Batch</option><option value="Intern">Intern</option><option value="JR/SR">JR / SR</option></select>
+                                <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            </div>
+                            <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                        </div>
+                        <button onclick="window.handleEmailSignUp(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700">Create Account</button>
+                        <div class="text-center mt-6"><span class="text-sm text-slate-500">Already have an account?</span><button onclick="window.toggleAuthMode('login')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Sign In</button></div>
+                    </div>`;
+            }
+            els.footer.innerHTML = legalFooterHtml;
         }
-
-        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
-    </script>
-</body>
-</html>
+    }
+};
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((registration) => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch((error) => {
+                console.log('ServiceWorker registration failed: ', error);
+            });
+    });
+}

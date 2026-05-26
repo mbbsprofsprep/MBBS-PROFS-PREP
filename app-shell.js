@@ -2,7 +2,7 @@
 // app-shell.js - Centralized UI Component
 // ==========================================
 
-// 1. INJECT THE NAVBAR & SIDEBAR HTML
+// 1. INJECT THE NAVBAR, SIDEBAR, & BROWSER CHOOSER HTML
 const appShellHTML = `
     <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
@@ -40,6 +40,32 @@ const appShellHTML = `
         <div class="p-4 border-t border-brand-100 dark:border-slate-800 bg-brand-50 dark:bg-dark-bg shrink-0" id="user-panel-footer"></div>
     </aside>
     <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
+
+    <div id="browser-chooser-modal" class="fixed inset-0 z-[20000] bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-slate-200 dark:border-slate-700" id="browser-chooser-card">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Secure Checkout</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">UPI and Razorpay require a secure external browser. Please select your preferred browser to continue:</p>
+            
+            <div class="space-y-3">
+                <button onclick="window.launchSpecificBrowser('chrome')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
+                    <span class="font-bold text-slate-700 dark:text-slate-200">Google Chrome</span>
+                </button>
+                
+                <button onclick="window.launchSpecificBrowser('samsung')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Samsung_Internet_logo.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
+                    <span class="font-bold text-slate-700 dark:text-slate-200">Samsung Internet</span>
+                </button>
+                
+                <button onclick="window.launchSpecificBrowser('other')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-left group">
+                    <div class="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-lg group-hover:scale-110 transition-transform">🌐</div>
+                    <span class="font-bold text-slate-700 dark:text-slate-200">Other Browser</span>
+                </button>
+            </div>
+            
+            <button onclick="window.closeBrowserChooser()" class="w-full mt-6 p-2 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Cancel</button>
+        </div>
+    </div>
 `;
 
 // Insert the HTML directly into the page exactly at the start of the <body>
@@ -50,20 +76,61 @@ document.body.insertAdjacentHTML('afterbegin', appShellHTML);
 const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
 // ====================================================
-// NEW: ANDROID INTENT / BROWSER ESCAPE HATCH
+// NEW: CUSTOM BROWSER SELECTOR LOGIC
 // ====================================================
 window.openSecureCheckout = function(e) {
     if (e) e.preventDefault();
-    
-    const rawUrl = "mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html";
     const isAndroid = /android/i.test(navigator.userAgent);
 
     if (isAndroid) {
-        window.location.href = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;end;";
+        // Show the custom modal on Android
+        const modal = document.getElementById('browser-chooser-modal');
+        const card = document.getElementById('browser-chooser-card');
+        modal.classList.remove('hidden');
+        
+        // Small delay to allow CSS transition to play
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            card.classList.remove('scale-95');
+        }, 10);
     } else {
-        window.open("https://" + rawUrl, "_blank");
+        // On iOS or desktop web, open normally (Apple handles secure context via Safari automatically)
+        window.open("https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html", "_blank");
     }
 };
+
+window.closeBrowserChooser = function() {
+    const modal = document.getElementById('browser-chooser-modal');
+    const card = document.getElementById('browser-chooser-card');
+    
+    modal.classList.add('opacity-0');
+    card.classList.add('scale-95');
+    
+    // Hide completely after transition finishes
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
+
+window.launchSpecificBrowser = function(browserType) {
+    const rawUrl = "mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html";
+    let intentString = "";
+
+    // Force exact package names so it CANNOT open in random built-in browsers
+    if (browserType === 'chrome') {
+        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;package=com.android.chrome;end;";
+    } else if (browserType === 'samsung') {
+        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;package=com.sec.android.app.sbrowser;end;";
+    } else {
+        // Generic fallback for users who use Firefox, Edge, etc.
+        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;end;";
+    }
+
+    // Launch intent and close modal
+    window.location.href = intentString;
+    window.closeBrowserChooser();
+};
+// ====================================================
 
 window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };
 

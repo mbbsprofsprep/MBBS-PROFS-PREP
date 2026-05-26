@@ -48,12 +48,12 @@ const appShellHTML = `
             
             <div class="space-y-3">
                 <button onclick="window.launchSpecificBrowser('chrome')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
+                    <img src="https://api.iconify.design/logos:chrome.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
                     <span class="font-bold text-slate-700 dark:text-slate-200">Google Chrome</span>
                 </button>
                 
                 <button onclick="window.launchSpecificBrowser('samsung')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Samsung_Internet_logo.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
+                    <img src="https://api.iconify.design/logos:samsung-internet.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
                     <span class="font-bold text-slate-700 dark:text-slate-200">Samsung Internet</span>
                 </button>
                 
@@ -76,7 +76,7 @@ document.body.insertAdjacentHTML('afterbegin', appShellHTML);
 const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
 
 // ====================================================
-// NEW: CUSTOM BROWSER SELECTOR LOGIC
+// CUSTOM BROWSER SELECTOR LOGIC
 // ====================================================
 window.openSecureCheckout = function(e) {
     if (e) e.preventDefault();
@@ -94,7 +94,7 @@ window.openSecureCheckout = function(e) {
             card.classList.remove('scale-95');
         }, 10);
     } else {
-        // On iOS or desktop web, open normally (Apple handles secure context via Safari automatically)
+        // On iOS or desktop web, open normally 
         window.open("https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html", "_blank");
     }
 };

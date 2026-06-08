@@ -277,14 +277,45 @@
                 this.updateBreadcrumbs();
             },
             
-            renderResources: function(inst, year, sub, links) {
-                this.toggleView('resources');
-                document.getElementById('selected-resource-subject').innerText = `${sub.name} (${inst.name})`;
-                document.getElementById('resources-grid').innerHTML = links.map(link => {
-                    return `<a href="${link.url}" class="glass-card p-6 rounded-xl flex items-center justify-between group"><span class="font-bold text-lg text-slate-900 dark:text-white transition-colors group-hover:text-brand-400">${link.label}</span><span class="text-slate-300 dark:text-slate-600 group-hover:text-brand-400 font-bold text-xl">↗</span></a>`;
-                }).join('');
-                this.updateBreadcrumbs();
-            },
+            renderSubjects: function(inst, year) {
+    this.toggleView('subjects');
+    document.getElementById('selected-year-name').innerText = year.name;
+    document.getElementById('selected-inst-sub-name').innerText = inst.name;
+
+    // Get the base list of subjects
+    let subjectList = [...window.DATA.subjects[year.id]];
+
+    // LOGIC: Inject the specific Ed8 option ONLY for AIIMS Deoghar in the 2nd Prof (id: '2')
+    if (inst.id === 'deoghar' && year.id === '2') {
+        const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
+        if (microIndex !== -1) {
+            // Replace the standard one with a multi-option one
+            subjectList[microIndex] = { 
+                name: 'Microbiology', 
+                icon: '🦠', 
+                id: 'microbiology', 
+                isMultiOption: true, 
+                options: [
+                    { label: 'Standard Chapterwise PYQ', id: 'microbiology_std' },
+                    { label: 'Chapterwise PYQ (Marrow Ed 8)', id: 'microbiology_ed8' }
+                ]
+            };
+        }
+    }
+
+    document.getElementById('subjects-grid').innerHTML = subjectList.map(sub => {
+        // ... (Keep your existing mapping code here)
+        return `<div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}', isMultiOption: ${!!sub.isMultiOption}, options: ${JSON.stringify(sub.options || [])}})" 
+                class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all">
+                <div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p>
+                </div>
+            </div>`;
+    }).join('');
+    this.updateBreadcrumbs();
+},
             
             toggleView: function(viewId) {
                 ['institutes', 'years', 'subjects', 'resources'].forEach(v => {

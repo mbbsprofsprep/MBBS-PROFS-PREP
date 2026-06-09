@@ -163,12 +163,17 @@
             ],
             subjects: {
                 '1': [ { name: 'Anatomy', icon: '🦴', id: 'anatomy' }, { name: 'Physiology', icon: '🧠', id: 'physiology' }, { name: 'Biochemistry', icon: '🧪', id: 'biochemistry' } ],
-                '2': [ { name: 'Pathology', icon: '🔬', id: 'pathology' }, { name: 'Pharmacology', icon: '💊', id: 'pharmacology' }, { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } ],
+                '2': [ 
+                    { name: 'Pathology', icon: '🔬', id: 'pathology' }, 
+                    { name: 'Pharmacology', icon: '💊', id: 'pharmacology' },   
+                    { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, 
+                    { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } 
+                ],
                 '3': [ { name: 'ENT', icon: '👂', id: 'ent' }, { name: 'Ophthalmology', icon: '👁️', id: 'ophthalmology' }, { name: 'Community Medicine', icon: '🏘️', id: 'psm' }, { name: 'Psychiatry', icon: '🧠', id: 'psychiatry' }, { name: 'Orthopaedics', icon: '🦴', id: 'orthopaedics' } ],
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Paediatrics', icon: '🧸', id: 'paediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anaesthesia', icon: '💉', id: 'anaesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-                'deoghar_pathoogy': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
         };
 
@@ -200,6 +205,25 @@
             },
             
             handleSubjectClick: function(sub, push = true) {
+                // NEW LOGIC FOR MULTI-OPTION SUBJECTS (Like Deoghar Microbiology)
+                if (sub.isMultiOption) {
+                    const bodyHtml = sub.options.map(opt => `
+                        <button onclick="window.location.href='${opt.url || '#'}'" 
+                                class="w-full p-4 mb-3 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 hover:border-brand-500 transition-colors shadow-sm">
+                            ${opt.label}
+                        </button>
+                    `).join('');
+                    
+                    window.showModal(
+                        "Select Version", 
+                        bodyHtml, 
+                        `<button onclick="window.closeModal()" class="w-full bg-slate-200 dark:bg-slate-700 dark:text-white py-3 rounded-xl font-bold transition-colors hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>`, 
+                        "📚"
+                    );
+                    return; // Stop here, don't execute regular routing
+                }
+
+                // EXISTING LOGIC FOR STANDARD SUBJECTS
                 const key = `${this.state.inst.id}_${sub.id}`;
                 let links = window.DATA.overrides[key];
                 
@@ -211,19 +235,19 @@
                         'biochemistry': 'biochemistry-review.html',
                         'pharmacology': 'pharmacology-review.html',
                         'microbiology' : 'microbiology-review.html',
-                          'fmt': 'fmt-review.html',
+                        'fmt': 'fmt-review.html',
                         'orthopaedics': 'orthopaedics-review.html',
                         'ent': 'ent-review.html',
                         'psychiatry': 'psychiatry-review.html',
                         'psm': 'cfm-review.html',
                         'ophthalmology': 'ophthal-review.html',
-                      'medicine': 'medicine-review.html',
+                        'medicine': 'medicine-review.html',
                         'surgery': 'surgery-review.html',
                         'paediatrics': 'paediatrics-review.html',
                         'obg': 'obg-review.html',
                         'radiology': 'radiology-review.html',
                         'dermatology': 'dermatology-review.html',
-                    'anaesthesia': 'anaesthesia-review.html',
+                        'anaesthesia': 'anaesthesia-review.html',
                     };
                     
                     if (routeMap[sub.id]) {
@@ -271,51 +295,45 @@
                 this.toggleView('subjects');
                 document.getElementById('selected-year-name').innerText = year.name;
                 document.getElementById('selected-inst-sub-name').innerText = inst.name;
-                document.getElementById('subjects-grid').innerHTML = window.DATA.subjects[year.id].map(sub => {
-                    return `<div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}'})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all"><div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div><div><h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3><p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p></div></div>`;
+
+                // Create a deep copy of the subject list so we don't accidentally modify the global object for other colleges
+                let subjectList = JSON.parse(JSON.stringify(window.DATA.subjects[year.id]));
+
+                // INJECT SPECIFIC LOGIC FOR DEOGHAR MICROBIOLOGY
+                if (inst.id === 'deoghar' && year.id === '2') {
+                    const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
+                    if (microIndex !== -1) {
+                        subjectList[microIndex].isMultiOption = true;
+                        subjectList[microIndex].options = [
+                            { label: 'Standard Chapterwise PYQ', url: `microbiology-review.html?college=${inst.id}` },
+                            { label: 'Chapterwise PYQ (Marrow Ed 8)', url: `microbiology-review.html?college=${inst.id}&version=ed8` }
+                        ];
+                    }
+                }
+
+                document.getElementById('subjects-grid').innerHTML = subjectList.map(sub => {
+                    // Properly escape the JSON to pass it into the onclick handler
+                    const subDataStr = JSON.stringify(sub).replace(/"/g, '&quot;');
+                    
+                    return `<div onclick="window.app.handleSubjectClick(${subDataStr})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all">
+                                <div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3>
+                                    <p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p>
+                                </div>
+                            </div>`;
                 }).join('');
                 this.updateBreadcrumbs();
             },
             
-            renderSubjects: function(inst, year) {
-    this.toggleView('subjects');
-    document.getElementById('selected-year-name').innerText = year.name;
-    document.getElementById('selected-inst-sub-name').innerText = inst.name;
-
-    // Get the base list of subjects
-    let subjectList = [...window.DATA.subjects[year.id]];
-
-    // LOGIC: Inject the specific Ed8 option ONLY for AIIMS Deoghar in the 2nd Prof (id: '2')
-    if (inst.id === 'deoghar' && year.id === '2') {
-        const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
-        if (microIndex !== -1) {
-            // Replace the standard one with a multi-option one
-            subjectList[microIndex] = { 
-                name: 'Microbiology', 
-                icon: '🦠', 
-                id: 'microbiology', 
-                isMultiOption: true, 
-                options: [
-                    { label: 'Standard Chapterwise PYQ', id: 'microbiology_std' },
-                    { label: 'Chapterwise PYQ (Marrow Ed 8)', id: 'microbiology_ed8' }
-                ]
-            };
-        }
-    }
-
-    document.getElementById('subjects-grid').innerHTML = subjectList.map(sub => {
-        // ... (Keep your existing mapping code here)
-        return `<div onclick="window.app.handleSubjectClick({id:'${sub.id}', name:'${sub.name}', isMultiOption: ${!!sub.isMultiOption}, options: ${JSON.stringify(sub.options || [])}})" 
-                class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all">
-                <div class="text-4xl group-hover:scale-110 transition-transform">${sub.icon}</div>
-                <div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white transition-colors group-hover:text-accent-yellow">${sub.name}</h3>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Open ➝</p>
-                </div>
-            </div>`;
-    }).join('');
-    this.updateBreadcrumbs();
-},
+            renderResources: function(inst, year, sub, links) {
+                this.toggleView('resources');
+                document.getElementById('selected-resource-subject').innerText = `${sub.name} (${inst.name})`;
+                document.getElementById('resources-grid').innerHTML = links.map(link => {
+                    return `<a href="${link.url}" class="glass-card p-6 rounded-xl flex items-center justify-between group"><span class="font-bold text-lg text-slate-900 dark:text-white transition-colors group-hover:text-brand-400">${link.label}</span><span class="text-slate-300 dark:text-slate-600 group-hover:text-brand-400 font-bold text-xl">↗</span></a>`;
+                }).join('');
+                this.updateBreadcrumbs();
+            },
             
             toggleView: function(viewId) {
                 ['institutes', 'years', 'subjects', 'resources'].forEach(v => {

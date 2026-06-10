@@ -123,6 +123,14 @@
     </aside>
     <div class="fixed inset-0 z-[9995] bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" id="pdf-smart-backdrop" onclick="window.pdfSmartApp.close()"></div>
 
+    <div id="subjectVersionModal" class="fixed inset-0 z-[20000] bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-slate-200 dark:border-slate-700" id="subjectVersionCard">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2">📚 Select Version</h3>
+            <div id="subjectVersionOptions" class="space-y-3"></div>
+            <button onclick="window.closeSubjectVersionModal()" class="w-full mt-4 p-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+        </div>
+    </div>
+
     <script>
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
@@ -163,18 +171,43 @@
             ],
             subjects: {
                 '1': [ { name: 'Anatomy', icon: '🦴', id: 'anatomy' }, { name: 'Physiology', icon: '🧠', id: 'physiology' }, { name: 'Biochemistry', icon: '🧪', id: 'biochemistry' } ],
-                '2': [ 
-                    { name: 'Pathology', icon: '🔬', id: 'pathology' }, 
-                    { name: 'Pharmacology', icon: '💊', id: 'pharmacology' },   
-                    { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, 
-                    { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } 
-                ],
+                '2': [ { name: 'Pathology', icon: '🔬', id: 'pathology' }, { name: 'Pharmacology', icon: '💊', id: 'pharmacology' }, { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } ],
                 '3': [ { name: 'ENT', icon: '👂', id: 'ent' }, { name: 'Ophthalmology', icon: '👁️', id: 'ophthalmology' }, { name: 'Community Medicine', icon: '🏘️', id: 'psm' }, { name: 'Psychiatry', icon: '🧠', id: 'psychiatry' }, { name: 'Orthopaedics', icon: '🦴', id: 'orthopaedics' } ],
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Paediatrics', icon: '🧸', id: 'paediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anaesthesia', icon: '💉', id: 'anaesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
                 'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
+        };
+
+        // Modal Functions for Subject Versioning
+        window.openSubjectVersionModal = function(options) {
+            const modal = document.getElementById('subjectVersionModal');
+            const card = document.getElementById('subjectVersionCard');
+            const optsContainer = document.getElementById('subjectVersionOptions');
+            
+            optsContainer.innerHTML = options.map(opt => `
+                <button onclick="window.location.href='${opt.url}'" 
+                        class="w-full p-4 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 hover:border-brand-500 transition-colors shadow-sm">
+                    ${opt.label}
+                </button>
+            `).join('');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        };
+        
+        window.closeSubjectVersionModal = function() {
+            const modal = document.getElementById('subjectVersionModal');
+            const card = document.getElementById('subjectVersionCard');
+            modal.classList.add('opacity-0');
+            card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
         };
 
         window.app = {
@@ -205,25 +238,12 @@
             },
             
             handleSubjectClick: function(sub, push = true) {
-                // NEW LOGIC FOR MULTI-OPTION SUBJECTS (Like Deoghar Microbiology)
+                // Intercept dynamic execution mapping for multi-option version routing modules
                 if (sub.isMultiOption) {
-                    const bodyHtml = sub.options.map(opt => `
-                        <button onclick="window.location.href='${opt.url || '#'}'" 
-                                class="w-full p-4 mb-3 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 hover:border-brand-500 transition-colors shadow-sm">
-                            ${opt.label}
-                        </button>
-                    `).join('');
-                    
-                    window.showModal(
-                        "Select Version", 
-                        bodyHtml, 
-                        `<button onclick="window.closeModal()" class="w-full bg-slate-200 dark:bg-slate-700 dark:text-white py-3 rounded-xl font-bold transition-colors hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>`, 
-                        "📚"
-                    );
-                    return; // Stop here, don't execute regular routing
+                    window.openSubjectVersionModal(sub.options);
+                    return;
                 }
 
-                // EXISTING LOGIC FOR STANDARD SUBJECTS
                 const key = `${this.state.inst.id}_${sub.id}`;
                 let links = window.DATA.overrides[key];
                 
@@ -296,10 +316,10 @@
                 document.getElementById('selected-year-name').innerText = year.name;
                 document.getElementById('selected-inst-sub-name').innerText = inst.name;
 
-                // Create a deep copy of the subject list so we don't accidentally modify the global object for other colleges
+                // Deep copy pristine data arrays to isolate custom properties for specific campus codes
                 let subjectList = JSON.parse(JSON.stringify(window.DATA.subjects[year.id]));
 
-                // INJECT SPECIFIC LOGIC FOR DEOGHAR MICROBIOLOGY
+                // Apply logic safely inside runtime rendering block exclusively for AIIMS Deoghar Microbiology
                 if (inst.id === 'deoghar' && year.id === '2') {
                     const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
                     if (microIndex !== -1) {
@@ -312,7 +332,6 @@
                 }
 
                 document.getElementById('subjects-grid').innerHTML = subjectList.map(sub => {
-                    // Properly escape the JSON to pass it into the onclick handler
                     const subDataStr = JSON.stringify(sub).replace(/"/g, '&quot;');
                     
                     return `<div onclick="window.app.handleSubjectClick(${subDataStr})" class="glass-card p-6 rounded-xl cursor-pointer group flex items-center gap-4 hover:border-accent-yellow transition-all">
@@ -443,7 +462,7 @@
         const db = getDatabase(fbApp);
         window.db = db;
 
-        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "pankajkumarmahto1009@gmail.com"];
+        const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
         window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
             try {

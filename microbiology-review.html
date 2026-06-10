@@ -314,15 +314,14 @@
         };
 
         // --- FETCH DYNAMIC JSON LOGIC ---
-        window.fetchQuestions = async function() {
+        window.fetchQuestions = async function(fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`) {
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
                 tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading ${window.COLLEGE_NAME} Question Bank...</p></td></tr>`;
             }
 
             try {
-                // Dynamically load the correct JSON based on SUBJECT and COLLEGE
-                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+                // Dynamically load the correct JSON based on the fileName parameter
                 const response = await fetch(fileName);
                 
                 if (!response.ok) throw new Error("Failed to load JSON file");
@@ -341,7 +340,7 @@
             } catch (error) {
                 console.error("Error fetching data:", error);
                 if(tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json</b> is uploaded to your server.</p></td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${fileName}</b> is uploaded to your server.</p></td></tr>`;
                 }
             }
         };
@@ -1147,7 +1146,14 @@
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
-            await window.fetchQuestions();
+            const urlParams = new URLSearchParams(window.location.search);
+            const version = urlParams.get('version');
+            let fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+            if (version === 'ed8') {
+                fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_marrow_ed8_index.json`;
+            }
+            
+            await window.fetchQuestions(fileName);
             window.initDeckView(); 
         };
     </script>
@@ -1256,39 +1262,52 @@
             }).catch(err => window.showAuthError(err.message));
         };
 
-        window.firebaseSignOut = () => signOut(auth).then(() => window.location.reload());
+        window.firebaseSignOut = () => {
+            localStorage.removeItem('my_session_token');
+            signOut(auth).then(() => window.location.reload());
+        };
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             window.currentUserObj = user;
-            
-            const coffeeBtn = document.getElementById('summaryButton');
-
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 
-                // ADMIN CHECK: Show the Coffee Button ONLY for admins
-                if (coffeeBtn) {
-                    if (email === 'educateindiainstitute@gmail.com' || email === 'pankajmahto109@gmail.com') {
-                        coffeeBtn.style.display = 'inline-block';
-                    } else {
-                        coffeeBtn.style.display = 'none';
+                // --- MULTI-DEVICE LOGIN PROTECTOR START ---
+                if (!allowedVIPs.includes(email)) {
+                    try {
+                        const sessionRef = ref(db, 'users/' + user.uid + '/current_session');
+                        const myToken = localStorage.getItem('my_session_token') || Math.random().toString(36).substring(2, 15);
+                        
+                        if (!localStorage.getItem('my_session_token')) { 
+                            localStorage.setItem('my_session_token', myToken); 
+                            await set(sessionRef, myToken); 
+                        }
+                        
+                        onValue(sessionRef, (snap) => { 
+                            const cloudToken = snap.val();
+                            if (cloudToken && cloudToken !== myToken) { 
+                                localStorage.removeItem('my_session_token');
+                                alert("Security Alert: Your account was logged into from another device. You are being signed out of this session.");
+                                window.firebaseSignOut();
+                            } 
+                        });
+                    } catch(e) { 
+                        console.error("Session sync error:", e); 
                     }
                 }
+                // --- MULTI-DEVICE LOGIN PROTECTOR END ---
 
-                // Profile Listener
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); 
                 });
                 
-                // Bookmarks Listener
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
                     if(typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
-                // Permissions Listener
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
@@ -1311,6 +1330,7 @@
                 }
             } else { 
                 // Hide the Coffee Button if logged out
+                const coffeeBtn = document.getElementById('summaryButton');
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
 
                 window.currentUserProfileData = {}; 

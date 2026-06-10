@@ -171,12 +171,18 @@
             ],
             subjects: {
                 '1': [ { name: 'Anatomy', icon: '🦴', id: 'anatomy' }, { name: 'Physiology', icon: '🧠', id: 'physiology' }, { name: 'Biochemistry', icon: '🧪', id: 'biochemistry' } ],
-                '2': [ { name: 'Pathology', icon: '🔬', id: 'pathology' }, { name: 'Pharmacology', icon: '💊', id: 'pharmacology' }, { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } ],
+                '2': [ 
+                    { name: 'Pathology', icon: '🔬', id: 'pathology' }, 
+                    { name: 'Pharmacology', icon: '💊', id: 'pharmacology' },   
+                    { name: 'Microbiology', icon: '🦠', id: 'microbiology' }, 
+                    { name: 'Forensic Medicine', icon: '⚖️', id: 'fmt' } 
+                ],
                 '3': [ { name: 'ENT', icon: '👂', id: 'ent' }, { name: 'Ophthalmology', icon: '👁️', id: 'ophthalmology' }, { name: 'Community Medicine', icon: '🏘️', id: 'psm' }, { name: 'Psychiatry', icon: '🧠', id: 'psychiatry' }, { name: 'Orthopaedics', icon: '🦴', id: 'orthopaedics' } ],
                 '4': [ { name: 'Medicine', icon: '🩺', id: 'medicine' }, { name: 'Surgery', icon: '🔪', id: 'surgery' }, { name: 'Obs & Gynae', icon: '👶', id: 'obg' }, { name: 'Paediatrics', icon: '🧸', id: 'paediatrics' }, { name: 'Dermatology', icon: '🧴', id: 'dermatology' }, { name: 'Anaesthesia', icon: '💉', id: 'anaesthesia' }, { name: 'Radiology', icon: '🩻', id: 'radiology' } ]
             },
             overrides: {
-                'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
+                // COMMENTED OUT OVERRIDE: This restores the normal JSON routing for Deoghar Pathology
+                // 'deoghar_pathology': [{ label: 'Pathology Database', url: 'https://drive.google.com/file/d/1QROuWBHkNNGVsSlBBrWuW0BuKW87m79Y/preview' }]
             }
         };
 
@@ -464,9 +470,9 @@
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
-        window.executeBookmarkToggle = async function(qId, bookmarkData, isSaved) {
+        window.executeBookmarkToggle = async function(uniqueId, bookmarkData, isSaved) {
             try {
-                const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${qId}`);
+                const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${uniqueId}`);
                 if (isSaved) {
                     await remove(dbRef);
                     if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
@@ -598,7 +604,6 @@
                     window.accessLevel = 'premium';
                     if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                    if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
                         let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -612,14 +617,20 @@
                         window.accessLevel = sub.isVIP ? 'premium' : 'free';
                         if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
-                        if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
                     });
                 }
             } else { 
-                window.currentUserProfileData = {}; window.userBookmarks = {}; window.globalUserStatus = { isVIP: false, daysLeft: 0 }; window.accessLevel = 'guest';
+                // Hide the Coffee Button if logged out
+                const coffeeBtn = document.getElementById('summaryButton');
+                if (coffeeBtn) coffeeBtn.style.display = 'none';
+
+                window.currentUserProfileData = {}; 
+                window.userBookmarks = {}; 
+                window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
+                window.accessLevel = 'guest';
+                
                 if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
-                if(window.pdfSmartApp) window.pdfSmartApp.checkVisibility();
             }
         });
     </script>

@@ -313,8 +313,7 @@ window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperC
                 }
             }
         };
-
-        // --- FETCH DYNAMIC JSON LOGIC ---
+// --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
@@ -322,15 +321,15 @@ window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperC
             }
 
             try {
-    // Dynamically load the correct JSON based on SUBJECT, COLLEGE, and VERSION
-    let fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
-    
-    // Switch to the Edition 8 file if the parameter is present
-    if (window.VERSION_CODE === 'ed8') {
-        fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_marrow_ed8_index.json`;
-    }
-    
-    const response = await fetch(fileName);
+                // Dynamically load the correct JSON based on SUBJECT, COLLEGE, and VERSION
+                let fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+                
+                // Switch to the Edition 8 file if the parameter is present
+                if (window.VERSION_CODE === 'ed8') {
+                    fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_marrow_ed8_index.json`;
+                }
+                
+                const response = await fetch(fileName);
                 
                 if (!response.ok) throw new Error("Failed to load JSON file");
                 
@@ -345,6 +344,11 @@ window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperC
                 const headerEl = document.getElementById('dynamic-college-header');
                 if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
 
+                // 🟢 FIX: Force the UI to process and display the newly loaded dataset
+                if (typeof window.processDataForAccess === 'function') {
+                    window.processDataForAccess();
+                }
+
             } catch (error) {
                 console.error("Error fetching data:", error);
                 if(tableBody) {
@@ -352,7 +356,6 @@ window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperC
                 }
             }
         };
-
         window.getUnitForChapter = function(chapterName) {
             if (!window.curriculumData) return window.SUBJECT_CODE;
             for (const section of window.curriculumData) {

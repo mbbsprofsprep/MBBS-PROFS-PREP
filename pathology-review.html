@@ -190,12 +190,13 @@
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
 
-        // ====================================================================
-        // 🔴 MASTER ROUTING CONTROLS
-        // ====================================================================
-        const urlParams = new URLSearchParams(window.location.search);
-        window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
-        window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
+      // ====================================================================
+// 🔴 MASTER ROUTING CONTROLS
+// ====================================================================
+const urlParams = new URLSearchParams(window.location.search);
+window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
+window.VERSION_CODE = urlParams.get('version'); // <-- Added this line to catch the version
+window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
         // 🟢 CHANGE THIS STRING FOR EACH NEW SUBJECT FILE (e.g. "PATHOLOGY", "SURGERY", "MEDICINE")
         window.SUBJECT_CODE = "PATHOLOGY"; 
@@ -321,9 +322,15 @@
             }
 
             try {
-                // Dynamically load the correct JSON based on SUBJECT and COLLEGE
-                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
-                const response = await fetch(fileName);
+    // Dynamically load the correct JSON based on SUBJECT, COLLEGE, and VERSION
+    let fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+    
+    // Switch to the Edition 8 file if the parameter is present
+    if (window.VERSION_CODE === 'ed8') {
+        fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_ed8_data.json`;
+    }
+    
+    const response = await fetch(fileName);
                 
                 if (!response.ok) throw new Error("Failed to load JSON file");
                 

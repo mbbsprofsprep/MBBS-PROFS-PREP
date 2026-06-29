@@ -324,17 +324,28 @@
                 // Deep copy pristine data arrays to isolate custom properties for specific campus codes
                 let subjectList = JSON.parse(JSON.stringify(window.DATA.subjects[year.id]));
 
-                // Apply logic safely inside runtime rendering block exclusively for AIIMS Deoghar Microbiology
-                if (inst.id === 'deoghar' && year.id === '2') {
-                    const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
-                    if (microIndex !== -1) {
-                        subjectList[microIndex].isMultiOption = true;
-                        subjectList[microIndex].options = [
-                            { label: 'Standard Chapterwise PYQ', url: `microbiology-review.html?college=${inst.id}` },
-                            { label: 'Chapterwise PYQ (Marrow Ed 8)', url: `microbiology-review.html?college=${inst.id}&version=ed8` }
-                        ];
-                    }
-                }
+               // Apply logic safely inside runtime rendering block exclusively for AIIMS Deoghar
+if (inst.id === 'deoghar' && year.id === '2') {
+    // Microbiology Multi-Option Mapping
+    const microIndex = subjectList.findIndex(s => s.id === 'microbiology');
+    if (microIndex !== -1) {
+        subjectList[microIndex].isMultiOption = true;
+        subjectList[microIndex].options = [
+            { label: 'Standard Chapterwise PYQ', url: `microbiology-review.html?college=${inst.id}` },
+            { label: 'Chapterwise PYQ (Marrow Ed 8)', url: `microbiology-review.html?college=${inst.id}&version=ed8` }
+        ];
+    }
+
+    // Pathology Multi-Option Mapping
+    const pathoIndex = subjectList.findIndex(s => s.id === 'pathology');
+    if (pathoIndex !== -1) {
+        subjectList[pathoIndex].isMultiOption = true;
+        subjectList[pathoIndex].options = [
+            { label: 'Standard Chapterwise PYQ', url: `pathology-review.html?college=${inst.id}` },
+            { label: 'Chapterwise PYQ (Marrow Ed 8)', url: `pathology-review.html?college=${inst.id}&version=ed8` }
+        ];
+    }
+}
 
                 document.getElementById('subjects-grid').innerHTML = subjectList.map(sub => {
                     const subDataStr = JSON.stringify(sub).replace(/"/g, '&quot;');

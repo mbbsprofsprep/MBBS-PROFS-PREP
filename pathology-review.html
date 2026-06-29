@@ -327,7 +327,7 @@ window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperC
     
     // Switch to the Edition 8 file if the parameter is present
     if (window.VERSION_CODE === 'ed8') {
-        fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_ed8_data.json`;
+        fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_marrow_ed8_index.json`;
     }
     
     const response = await fetch(fileName);

@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#0ea5e9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg">
+<link rel="apple-touch-icon" href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBBS Profs Prep - Central Portal</title>
@@ -573,30 +573,51 @@ if (inst.id === 'deoghar' && year.id === '2') {
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 
-                // --- MULTI-DEVICE LOGIN PROTECTOR START ---
+              // --- 2-DEVICE LOGIN PROTECTOR START ---
                 if (!allowedVIPs.includes(email)) {
                     try {
-                        const sessionRef = ref(db, 'users/' + user.uid + '/current_session');
+                        const sessionsRef = ref(db, 'users/' + user.uid + '/active_sessions');
                         const myToken = localStorage.getItem('my_session_token') || Math.random().toString(36).substring(2, 15);
                         
-                        if (!localStorage.getItem('my_session_token')) { 
-                            localStorage.setItem('my_session_token', myToken); 
-                            await set(sessionRef, myToken); 
-                        }
+                        // 1. Ensure this device has a token saved locally
+                        localStorage.setItem('my_session_token', myToken);
                         
-                        onValue(sessionRef, (snap) => { 
-                            const cloudToken = snap.val();
-                            if (cloudToken && cloudToken !== myToken) { 
+                        // 2. Register this session with the current timestamp in the cloud
+                        await update(ref(db, 'users/' + user.uid), {
+                            ['active_sessions/' + myToken]: Date.now()
+                        });
+                        
+                        // 3. Listen for changes to enforce the 2-device limit
+                        onValue(sessionsRef, (snap) => { 
+                            const sessions = snap.val() || {};
+                            const sessionKeys = Object.keys(sessions);
+                            
+                            // A. If my token was deleted from the cloud, I was kicked out by a 3rd device
+                            if (sessionKeys.length > 0 && !sessions[myToken]) { 
                                 localStorage.removeItem('my_session_token');
-                                alert("Security Alert: Your account was logged into from another device. You are being signed out of this session.");
+                                alert("Security Alert: You logged in on a 3rd device. This older session has been signed out to maintain the 2-device limit.");
                                 window.firebaseSignOut();
-                            } 
+                                return;
+                            }
+                            
+                            // B. If there are more than 2 sessions, automatically clean up the oldest one
+                            if (sessionKeys.length > 2) {
+                                // Sort keys by timestamp (oldest first)
+                                sessionKeys.sort((a, b) => sessions[a] - sessions[b]);
+                                
+                                // Identify the oldest keys to remove
+                                const keysToRemove = sessionKeys.slice(0, sessionKeys.length - 2);
+                                
+                                keysToRemove.forEach(key => {
+                                    remove(ref(db, 'users/' + user.uid + '/active_sessions/' + key));
+                                });
+                            }
                         });
                     } catch(e) { 
                         console.error("Session sync error:", e); 
                     }
                 }
-                // --- MULTI-DEVICE LOGIN PROTECTOR END ---
+                // --- 2-DEVICE LOGIN PROTECTOR END ---
 
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 

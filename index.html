@@ -558,9 +558,23 @@ if (inst.id === 'deoghar' && year.id === '2') {
         window.handleForgotPass = () => {
             const e = document.getElementById('login-email').value;
             if(!e) return window.showAuthError("Enter email first");
-            sendPasswordResetEmail(auth, e).then(() => {
-                const errDiv = document.getElementById('auth-error-msg'); errDiv.innerText = "Reset link sent! Check your inbox."; errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
-            }).catch(err => window.showAuthError(err.message));
+            
+            sendPasswordResetEmail(auth, e)
+            .then(() => {
+                const errDiv = document.getElementById('auth-error-msg'); 
+                errDiv.innerText = "Reset link sent! Check your inbox."; 
+                errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200'); 
+                errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+            })
+            .catch(err => { 
+                // Check if the error specifically means the user doesn't exist
+                if (err.code === 'auth/user-not-found') {
+                    window.showAuthError("Your email is not registered with us, please register.");
+                } else {
+                    // For any other errors (like invalid email format)
+                    window.showAuthError(err.message);
+                }
+            });
         };
 
         window.firebaseSignOut = () => {

@@ -41,31 +41,7 @@ const appShellHTML = `
     </aside>
     <div class="fixed inset-0 z-[10004] bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="user-panel-backdrop" onclick="window.userPanelApp.close()"></div>
 
-    <div id="browser-chooser-modal" class="fixed inset-0 z-[20000] bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-slate-200 dark:border-slate-700" id="browser-chooser-card">
-            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Secure Checkout</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">UPI and Razorpay require a secure external browser. Please select your preferred browser to continue:</p>
-            
-            <div class="space-y-3">
-                <button onclick="window.launchSpecificBrowser('chrome')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
-                    <img src="https://api.iconify.design/logos:chrome.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
-                    <span class="font-bold text-slate-700 dark:text-slate-200">Google Chrome</span>
-                </button>
-                
-                <button onclick="window.launchSpecificBrowser('samsung')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:border-brand-300 transition-all text-left group">
-                    <img src="https://api.iconify.design/logos:samsung-internet.svg" class="w-7 h-7 drop-shadow-sm group-hover:scale-110 transition-transform">
-                    <span class="font-bold text-slate-700 dark:text-slate-200">Samsung Internet</span>
-                </button>
-                
-                <button onclick="window.launchSpecificBrowser('other')" class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-left group">
-                    <div class="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-lg group-hover:scale-110 transition-transform">🌐</div>
-                    <span class="font-bold text-slate-700 dark:text-slate-200">Other Browser</span>
-                </button>
-            </div>
-            
-            <button onclick="window.closeBrowserChooser()" class="w-full mt-6 p-2 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Cancel</button>
-        </div>
-    </div>
+
 `;
 
 // Insert the HTML directly into the page exactly at the start of the <body>
@@ -80,56 +56,44 @@ const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXs
 // ====================================================
 window.openSecureCheckout = function(e) {
     if (e) e.preventDefault();
-    const isAndroid = /android/i.test(navigator.userAgent);
+    
+    // 1. Create and inject a full-screen loading overlay
+    const loader = document.createElement('div');
+    loader.id = 'secure-checkout-loader';
+    loader.className = 'fixed inset-0 z-[30000] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300 text-center px-4';
+    loader.innerHTML = `
+        <div class="w-12 h-12 border-4 border-slate-700 border-t-brand-500 rounded-full animate-spin mb-6 mx-auto"></div>
+        <h2 class="text-xl md:text-2xl font-black text-white mb-2">Preparing Checkout</h2>
+        <p class="text-slate-300 text-sm font-medium animate-pulse">Opening secure browser for secure payment...</p>
+    `;
+    document.body.appendChild(loader);
 
-    if (isAndroid) {
-        // Show the custom modal on Android
-        const modal = document.getElementById('browser-chooser-modal');
-        const card = document.getElementById('browser-chooser-card');
-        modal.classList.remove('hidden');
-        
-        // Small delay to allow CSS transition to play
+    // 2. Open the URL immediately
+    const checkoutUrl = "https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html";
+    const checkoutWindow = window.open(checkoutUrl, "_blank");
+
+    // 3. Handle success or adblocker/popup blocker failure
+    if (!checkoutWindow) {
+        // If checkoutWindow is null, an adblocker or popup blocker intervened
+        loader.innerHTML = `
+            <div class="w-12 h-12 bg-red-500/20 text-red-500 border border-red-500/50 rounded-full flex items-center justify-center text-xl mb-6 mx-auto shadow-[0_0_15px_rgba(239,68,68,0.3)]">🛡️</div>
+            <h2 class="text-xl font-black text-white mb-2">Adblocker Detected</h2>
+            <p class="text-slate-300 text-sm font-medium mb-6 leading-relaxed max-w-sm mx-auto">Your browser or adblocker prevented the secure checkout from opening.<br><br><span class="text-brand-400 font-bold">Please disable your adblocker or popup blocker for this site and try again.</span></p>
+            <div class="flex flex-col gap-3 w-full max-w-xs mx-auto">
+                <button onclick="document.getElementById('secure-checkout-loader').remove(); window.openSecureCheckout();" class="w-full px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors shadow-lg">Try Again</button>
+                <button onclick="document.getElementById('secure-checkout-loader').remove()" class="w-full px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors">Cancel</button>
+            </div>
+        `;
+    } else {
+        // Success! Remove the overlay from the original tab after 2.5 seconds
         setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            card.classList.remove('scale-95');
-        }, 10);
-    } else {
-        // On iOS or desktop web, open normally 
-        window.open("https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html", "_blank");
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.remove(), 300);
+        }, 2500);
     }
 };
 
-window.closeBrowserChooser = function() {
-    const modal = document.getElementById('browser-chooser-modal');
-    const card = document.getElementById('browser-chooser-card');
-    
-    modal.classList.add('opacity-0');
-    card.classList.add('scale-95');
-    
-    // Hide completely after transition finishes
-    setTimeout(() => {
-        modal.classList.add('hidden');
-    }, 300);
-};
 
-window.launchSpecificBrowser = function(browserType) {
-    const rawUrl = "mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html";
-    let intentString = "";
-
-    // Force exact package names so it CANNOT open in random built-in browsers
-    if (browserType === 'chrome') {
-        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;package=com.android.chrome;end;";
-    } else if (browserType === 'samsung') {
-        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;package=com.sec.android.app.sbrowser;end;";
-    } else {
-        // Generic fallback for users who use Firefox, Edge, etc.
-        intentString = "intent://" + rawUrl + "#Intent;scheme=https;action=android.intent.action.VIEW;end;";
-    }
-
-    // Launch intent and close modal
-    window.location.href = intentString;
-    window.closeBrowserChooser();
-};
 // ====================================================
 
 window.toggleAuthMode = function(mode) { window.userPanelApp.authMode = mode; window.userPanelApp.renderState(); };

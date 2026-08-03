@@ -69,6 +69,22 @@
             <p class="text-slate-500 dark:text-slate-400 font-medium" id="loading-text">Fetching your global profile.</p>
         </div>
 
+        <!-- NEW LOGIN STATE -->
+        <div id="login-state" class="hidden max-w-md mx-auto py-12 animate-fade-in">
+            <div class="glass-card p-8">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white">Sign In to Continue</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Log in to your account to complete the secure checkout.</p>
+                </div>
+                <div id="checkout-auth-error" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                <div class="space-y-4">
+                    <input type="email" id="checkout-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow">
+                    <input type="password" id="checkout-pass" placeholder="Password" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow">
+                    <button onclick="window.handleCheckoutLogin(this)" class="w-full py-4 mt-2 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all hover:bg-brand-600">Secure Log In</button>
+                </div>
+            </div>
+        </div>
+
         <div id="checkout-interface" class="hidden grid grid-cols-1 md:grid-cols-12 gap-8">
             <div class="md:col-span-7 space-y-6">
                 <div>
@@ -146,7 +162,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -161,6 +177,29 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getDatabase(fbApp);
+
+        window.handleCheckoutLogin = (btn) => {
+            const e = document.getElementById('checkout-email').value;
+            const p = document.getElementById('checkout-pass').value;
+            const errDiv = document.getElementById('checkout-auth-error');
+            
+            if(!e || !p) {
+                errDiv.innerText = "Please enter both email and password.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+            
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Verifying...`;
+            
+            signInWithEmailAndPassword(auth, e, p).catch(err => {
+                btn.disabled = false;
+                btn.innerText = originalText;
+                errDiv.innerText = err.message;
+                errDiv.classList.remove('hidden');
+            });
+        };
 
         const RZP_KEY_ID = "rzp_live_SDVpg3TnFNQeS5"; 
 
@@ -200,14 +239,17 @@
 
                     renderPlans();
                     document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('login-state').classList.add('hidden'); // Hide login if successful
                     document.getElementById('checkout-interface').classList.remove('hidden');
                 } catch (error) {
                     console.error("Database Error:", error);
                     document.getElementById('loading-text').innerHTML = "<span class='text-red-500 font-bold'>Database Error. Please refresh.</span>";
                 }
             } else {
-                alert("You must be logged in to purchase a subscription.");
-                window.location.href = "index.html";
+                // User is NOT logged in. Show the login screen instead of redirecting!
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('checkout-interface').classList.add('hidden');
+                document.getElementById('login-state').classList.remove('hidden');
             }
         });
 

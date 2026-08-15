@@ -7,6 +7,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
     <script>
         tailwind.config = { 
             darkMode: 'class', 
@@ -100,6 +101,55 @@
         .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
+
+        /* --- ADMIN FLASHCARD 3D FLIP ANIMATION (ANDROID OPTIMIZED) --- */
+        #deck-card-container { display: flex; flex-direction: column; }
+        
+        .flashcard-container { 
+            perspective: 1500px; 
+            -webkit-perspective: 1500px; 
+            flex: 1; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .flashcard-inner { 
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); 
+            transform-style: preserve-3d; 
+            -webkit-transform-style: preserve-3d; 
+            position: relative; 
+            width: 100%; 
+            flex: 1; 
+        }
+        
+        .flashcard-inner.is-flipped { 
+            transform: rotateY(180deg); 
+            -webkit-transform: rotateY(180deg); 
+        }
+        
+        .flashcard-front, .flashcard-back { 
+            backface-visibility: hidden; 
+            -webkit-backface-visibility: hidden; 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            -webkit-transform: translate3d(0,0,0);
+        }
+        
+        .flashcard-front { 
+            transform: rotateY(0deg) translate3d(0,0,0); 
+            -webkit-transform: rotateY(0deg) translate3d(0,0,0); 
+            z-index: 2; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .flashcard-back { 
+            transform: rotateY(180deg) translate3d(0,0,0); 
+            -webkit-transform: rotateY(180deg) translate3d(0,0,0); 
+        }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -112,7 +162,7 @@
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
         <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2">CFM Exam Review</h1>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">CFM Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300" id="dynamic-college-header">MBBS PROFS PREP</h2>
             <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions.</p>
         </header>
@@ -140,7 +190,7 @@
                             <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-16">Q No.</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase min-w-[350px]">Question Content</th>
                             <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase min-w-[100px]">Type</th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[200px]">Chapter</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[200px]">Unit & Chapter</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[150px]">Exam Batch</th>
                             <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-24">Action</th>
                         </tr>
@@ -178,7 +228,7 @@
     <script>
         // --- CONSTANTS & GLOBALS ---
         window.SECRET_CODE = "777pankaj";
-        window.optionLetters = ['A', 'B', 'C', 'D'];
+        window.optionLetters = ['A', 'B', 'C', 'D', 'E'];
         window.motivationalMessages = ["Hi [Name]! You are bringing life to your studies!", "Hey [Name], every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!"];
 
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
@@ -190,7 +240,31 @@
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
 
-        // --- REPORT CONFIG & SUBJECT CONFIG ---
+        // ====================================================================
+        // 🔴 MASTER ROUTING CONTROLS
+        // ====================================================================
+        const urlParams = new URLSearchParams(window.location.search);
+        window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
+        window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
+        
+        window.SUBJECT_CODE = "CFM"; 
+        
+        window.curriculumData = [];
+        window.qnaData = [];
+        window.displayData = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const titleEl = document.getElementById('dynamic-page-title');
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} (${window.COLLEGE_NAME})`;
+            
+            const mainTitleEl = document.getElementById('dynamic-subject-title');
+            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Exam Review`;
+
+            const headerEl = document.getElementById('dynamic-college-header');
+            if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
+        });
+
+        // --- GOOGLE FORM REPORT CONFIG ---
         window.REPORT_CONFIG = { 
             formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", 
             entryID_QID: "entry.1044663891", 
@@ -198,12 +272,6 @@
             entryID_Desc: "entry.621177596" 
         };
         window.selectedReportType = "Other";
-
-        window.COLLEGE_NAME = "AIIMS";
-        window.SUBJECT_CODE = "CFM"; // CFM Subject initialized
-        window.curriculumData = [];
-        window.qnaData = [];
-        window.displayData = [];
 
         // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
@@ -221,8 +289,10 @@
         window.submitReportToForm = function(qid, btn) {
             const desc = document.getElementById('report-desc').value;
             btn.innerText = "Sending..."; btn.disabled = true;
+
             const currentUrl = window.location.href;
             const combinedID = `${qid} | ${currentUrl}`;
+
             const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?` +
                         `${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(combinedID)}&` +
                         `${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&` +
@@ -234,7 +304,12 @@
             document.body.appendChild(iframe);
 
             setTimeout(() => {
-                document.getElementById('modal-body-content').innerHTML = `<div class="text-center py-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p></div>`;
+                document.getElementById('modal-body-content').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p>
+                    </div>`;
                 document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
                 setTimeout(() => iframe.remove(), 2000);
             }, 1200);
@@ -245,8 +320,29 @@
                 return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             }
             window.selectedReportType = "Other";
-            const bodyHtml = `<div class="text-left space-y-4 mt-2"><p class="text-sm text-slate-600 dark:text-slate-400">Help us improve by reporting issues with Question <b>${qId}</b>.</p><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label><div class="grid grid-cols-2 gap-2 mb-2"><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button></div></div><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label><textarea id="report-desc" rows="3" placeholder="Briefly explain the issue..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea></div></div>`;
-            const footerHtml = `<button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30">Submit Report</button><button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>`;
+            
+            const bodyHtml = `
+                <div class="text-left space-y-4 mt-2">
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Help us improve by reporting issues with Question <b>${qId}</b>.</p>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
+                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
+                        <textarea id="report-desc" rows="3" placeholder="Briefly explain the issue..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
+                    </div>
+                </div>
+            `;
+            const footerHtml = `
+                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30">Submit Report</button>
+                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
+            `;
             window.showModal("Report Issue", bodyHtml, footerHtml, "🚩");
         };
 
@@ -261,6 +357,27 @@
                 } else {
                     btn.classList.remove('text-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'border-brand-300', 'dark:border-brand-700');
                     btn.classList.add('text-slate-400', 'bg-white', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700');
+                }
+            }
+        };
+
+        // --- FLASHCARD TOGGLE LOGIC ---
+        window.toggleFlashcard = function(questionId) {
+            const container = document.getElementById(`container-${questionId}`);
+            const card = document.getElementById(`card-${questionId}`);
+            const isDeckMode = questionId.startsWith('deck-');
+            
+            if (card.classList.contains('is-flipped')) {
+                card.classList.remove('is-flipped');
+                if (!isDeckMode) {
+                    setTimeout(() => { container.classList.add('hidden'); }, 600); 
+                }
+            } else {
+                if (!isDeckMode) {
+                    container.classList.remove('hidden');
+                    setTimeout(() => { card.classList.add('is-flipped'); }, 50);
+                } else {
+                    card.classList.add('is-flipped');
                 }
             }
         };
@@ -289,6 +406,8 @@
                 const headerEl = document.getElementById('dynamic-college-header');
                 if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
 
+                window.processDataForAccess();
+
             } catch (error) {
                 console.error("Error fetching data:", error);
                 if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions.</p><p class="text-sm">Please check your internet connection or ensure the JSON file is in the root directory.</p></td></tr>`;
@@ -301,6 +420,7 @@
 
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
+
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
@@ -310,13 +430,18 @@
             } else {
                 window.displayData = [];
             }
+
             window.populateFilters(); 
             window.populateDeckFilters(); 
             window.populateTable();
+            
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+
             if (!window.initialViewConfigured) {
                 window.initialViewConfigured = true;
-                if (window.innerWidth < 768 && !window.isDeckMode) window.toggleDeckMode();
+                if (window.innerWidth < 768 && !window.isDeckMode) {
+                    window.toggleDeckMode();
+                }
             }
         };
 
@@ -325,6 +450,7 @@
             if (!window.currentUserObj) {
                 return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             }
+
             const item = window.displayData[index];
             if (!item) return;
 
@@ -361,6 +487,7 @@
 
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
+            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
@@ -369,11 +496,13 @@
             window.displayData.forEach((item) => {
                 const uniqueId = window.getUniqueQuestionId(item.q);
                 const isSaved = !!window.userBookmarks[uniqueId];
+                
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
                 const tBtn = document.getElementById(`bmk-table-${item.q}`);
                 if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
+
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
@@ -403,25 +532,34 @@
             document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); });
             document.getElementById(id + 'Menu').classList.toggle('show');
         }
+
         window.closeAllDropdowns = function(event) {
             if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
         }
+
         window.handleCheckboxChange = function(id, value, filterSetKey, label) {
             const set = window.filterState[filterSetKey];
             if (set.has(value)) set.delete(value); else set.add(value);
             window.updateButtonText(id, set, label);
             window.filterTable();
         }
+
+        window.toggleGroup = function(unitName, isChecked) {
+            document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
+                if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
+            });
+        }
+
         window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
             if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
             else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
+
         window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
             const container = document.getElementById(containerId);
             let listHtml = '';
             if (isGrouped) {
-                // Not used in CFM since array is flat, but logic remains intact
                 items.forEach(group => {
                     listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
                     group.chapters.forEach(chapter => {
@@ -436,7 +574,6 @@
 
         window.populateFilters = function() {
             window.createMultiSelect('typeFilterWrapper', 'typeSelect', 'Type', window.getUniqueValues('type'), 'types');
-            // Passed FALSE for isGrouped because CFM curriculum is a flat array
             window.createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Chapter', window.curriculumData, 'chapters', false);
             window.createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', window.getUniqueValues('exam'), 'exams');
         }
@@ -459,22 +596,47 @@
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
-                            const optionLetter = window.optionLetters[idx]; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
                     qHtml += '</div>';
                 } else { 
-                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\))/); // Match marks like (2+3=5) or (8)
-                    let stemWithoutMarks = cleanStem;
-                    let marksDisplay = '';
-
+                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\))/); 
+                    let stemWithoutMarks = cleanStem; let marksDisplay = '';
                     if (markMatch) {
                         stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
                         marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
                     }
                     qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
                 }
+
+                // --- ADMIN FLASHCARD RENDER LOGIC ---
+                const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+                const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
+                if (isAdmin && item.ans_image) {
+                    qHtml += `
+                    <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
+                        <div class="flex items-center justify-end mb-3">
+                            <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
+                                <span>👁️ View Answer Card</span>
+                            </button>
+                        </div>
+                        
+                        <div class="flashcard-container hidden w-full" id="container-${item.q}">
+                            <div class="flashcard-inner" id="card-${item.q}">
+                                <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
+                                    <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
+                                </div>
+                                <div class="flashcard-back">
+                                    <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
@@ -483,12 +645,13 @@
                 
                 let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800';
                 let chapterHtml = '';
-                const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
                 
+                const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
                 chArray.forEach(ch => {
                     const unitName = window.getUnitForChapter(ch);
                     chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-300">${ch}</span></div>`;
                 });
+                
                 cell_chapter.innerHTML = chapterHtml;
 
                 let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
@@ -496,6 +659,7 @@
                 cell_exam.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-1">${window.COLLEGE_NAME}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${batchString}</div>`;
 
                 let cell_ai = row.insertCell(); cell_ai.className = 'px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800';
+                
                 const bookmarked = window.isBookmarked(item.q);
                 const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
                 const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
@@ -538,10 +702,12 @@
                 }
                 
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
+                
                 if (showRow && window.filterState.chapters.size > 0) {
                     const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
                     if(!chArray.some(ch => window.filterState.chapters.has(ch))) showRow = false;
                 }
+                
                 if (showRow && window.filterState.exams.size > 0) {
                     let hasExamMatch = false;
                     if (Array.isArray(item.examBatch)) {
@@ -551,6 +717,7 @@
                     }
                     if (!hasExamMatch) showRow = false;
                 }
+
                 tr[i].style.display = showRow ? "" : "none";
             }
         }
@@ -562,10 +729,10 @@
             const chapterString = chArray.join(", "); 
             
             if (item.type === 'MCQ') {
-                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i]}) ${opt}`).join('\n') : "Options not available";
-                textToCopy = `I am studying for a CFM Exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
+                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i] || '-'}) ${opt}`).join('\n') : "Options not available";
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
             } else { 
-                textToCopy = `I am studying for a CFM exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; 
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; 
             }
             
             if (navigator.clipboard && window.isSecureContext) {
@@ -582,7 +749,6 @@
             }
         }
 
-        // --- ADMIN TOOLS ---
         window.handleSecretClick = function() { 
             window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`); 
         }
@@ -648,8 +814,8 @@
             a.href = url;
             
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const subjectName = typeof window.SUBJECT_CODE !== 'undefined' ? window.SUBJECT_CODE.toLowerCase() : "cfm";
-            a.download = `${subjectName}_export_${timestamp}.json`; 
+            const subjectName = typeof window.SUBJECT_CODE !== 'undefined' ? window.SUBJECT_CODE.toLowerCase() : "data";
+            a.download = `${subjectName}_aiims_${window.COLLEGE_CODE}_data_${timestamp}.json`; 
             
             document.body.appendChild(a);
             a.click();
@@ -690,7 +856,7 @@
                 if (q.type === 'MCQ' && q.options && Array.isArray(q.options)) {
                     q.options.forEach((opt, idx) => {
                         const optText = opt ? opt.replace(/<[^>]*>/g, "") : "";
-                        clipboardText += `   ${window.optionLetters[idx]}) ${optText}\n`;
+                        clipboardText += `   ${window.optionLetters[idx] || '-'}) ${optText}\n`;
                     });
                 }
                 clipboardText += `\n`; 
@@ -733,9 +899,6 @@
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
-        // ==========================================
-        // DECK VIEW
-        // ==========================================
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
@@ -943,7 +1106,7 @@
                 questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
                     optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { 
-                        const letter = window.optionLetters[i]; 
+                        const letter = window.optionLetters[i] || '-'; 
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         
                         const status = window.deckStatus[q.q];
@@ -958,7 +1121,7 @@
                     }).join('')}</div>`; 
                 }
             } else { 
-                const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\))/);
+                const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
                 let stemWithoutMarks = cleanStem; let marksDisplay = '';
                 if (markMatch) {
                     stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
@@ -966,26 +1129,106 @@
                 }
                 questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
             }
-            
+
             const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
 
-            container.innerHTML = `
-                <div class="deck-card glass-card">
-                    <div class="mb-4 flex justify-between items-center">
-                        <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
-                        <div class="flex gap-2">
-                            <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
-                            <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
-                            <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
+            const headerHtml = `
+                <div class="mb-4 flex justify-between items-center shrink-0">
+                    <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
+                    <div class="flex gap-2">
+                        <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
+                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                        <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
+                    </div>
+                </div>
+            `;
+
+            const tagsHtml = `
+                <div class="flex flex-wrap gap-2">
+                    ${chArray.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
+                </div>
+            `;
+
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
+            let ankiButtonHtml = '';
+            let backFaceHtml = '';
+
+            if (isAdmin && q.ans_image) {
+                ankiButtonHtml = `
+                    <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/30 dark:hover:bg-brand-900/50 text-brand-600 dark:text-brand-400 rounded-lg transition-transform active:scale-95 border border-brand-200 dark:border-brand-800 text-xs font-bold shadow-sm">
+                        <span>👁️ Ans</span>
+                    </button>
+                `;
+                
+                backFaceHtml = `
+                    <div class="flashcard-back">
+                        <div class="deck-card glass-card w-full h-full flex flex-col">
+                            ${headerHtml}
+                            
+                            <!-- Interactive Image Area -->
+                            <div class="flex-1 relative w-full my-4 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden border border-slate-200 dark:border-slate-700">
+                                <div id="panzoom-wrapper-${q.q}" class="w-full h-full flex items-center justify-center cursor-move" style="touch-action: none;">
+                                    <img src="${q.ans_image}" class="max-w-full max-h-full object-contain pointer-events-none" alt="Answer for ${q.q}" loading="lazy">
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end gap-2 shrink-0">
+                                ${tagsHtml}
+                                <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg transition-transform active:scale-95 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-sm">
+                                    <span>🔙 Back</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    ${questionHtml}
-                    ${optsHtml}
-                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
-                        ${chArray.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="flashcard-container" id="container-deck-${q.q}">
+                    <div class="flashcard-inner" id="card-deck-${q.q}">
+                        
+                        <!-- FRONT FACE: Question & Options -->
+                        <div class="flashcard-front">
+                            <div class="deck-card glass-card w-full h-full flex flex-col">
+                                ${headerHtml}
+                                <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                                    ${questionHtml}
+                                    ${optsHtml}
+                                </div>
+                                <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end gap-2 shrink-0">
+                                    ${tagsHtml}
+                                    ${ankiButtonHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK FACE: Answer Image -->
+                        ${backFaceHtml}
+
                     </div>
-                </div>`;
+                </div>
+            `;
+            
             container.scrollTop = 0;
+
+            if (isAdmin && q.ans_image) {
+                setTimeout(() => {
+                    const wrapper = document.getElementById(`panzoom-wrapper-${q.q}`);
+                    if (wrapper) {
+                        const pz = Panzoom(wrapper, {
+                            maxScale: 5,
+                            minScale: 1,
+                            contain: 'outside',
+                            step: 0.3
+                        });
+                        
+                        wrapper.parentElement.addEventListener('wheel', pz.zoomWithWheel);
+                        wrapper.addEventListener('dblclick', pz.reset);
+                    }
+                }, 50);
+            }
         }
 
         window.checkDeckAnswer = function(btn, picked, correct) {
@@ -1170,7 +1413,6 @@
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 
-                // ADMIN CHECK: Show the Coffee Button ONLY for admins
                 if (coffeeBtn) {
                     if (email === 'educateindiainstitute@gmail.com' || email === 'pankajmahto109@gmail.com') {
                         coffeeBtn.style.display = 'inline-block';
@@ -1179,20 +1421,17 @@
                     }
                 }
 
-                // Profile Listener
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); 
                 });
                 
-                // Bookmarks Listener
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
                     if(typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
-                // Permissions Listener
                 if (allowedVIPs.includes(email)) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
@@ -1214,7 +1453,6 @@
                     });
                 }
             } else { 
-                // Hide the Coffee Button if logged out
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
 
                 window.currentUserProfileData = {}; 
@@ -1224,6 +1462,25 @@
                 
                 if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
+            }
+        });
+
+        // Keyboard Navigation (Space to flip, Arrows to change cards)
+        document.addEventListener('keydown', (e) => {
+            if (window.isDeckMode) {
+                if (e.code === 'Space') {
+                    e.preventDefault(); // Stops the page from scrolling down
+                    const q = window.activeDeckQuestions[window.deckIndex];
+                    if (q && document.getElementById(`container-deck-${q.q}`)) {
+                        window.toggleFlashcard(`deck-${q.q}`);
+                    }
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault(); 
+                    window.deckNext();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault(); 
+                    window.deckPrev();
+                }
             }
         });
     </script>

@@ -7,6 +7,10 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
+    <!-- Robust Markdown Parser for Gemini Output & Media -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script>
         tailwind.config = { 
             darkMode: 'class', 
@@ -17,7 +21,9 @@
                         accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, 
                         dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
                     }, 
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } 
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    animation: { 'fade-in': 'fadeIn 0.3s ease-out forwards' },
+                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 } 
             } 
         }
@@ -100,6 +106,39 @@
         .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
+
+        /* --- ADMIN FLASHCARD 3D FLIP ANIMATION --- */
+        #deck-card-container { display: flex; flex-direction: column; }
+        .flashcard-container { perspective: 1500px; -webkit-perspective: 1500px; flex: 1; width: 100%; display: flex; flex-direction: column; }
+        .flashcard-inner { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; -webkit-transform-style: preserve-3d; position: relative; width: 100%; flex: 1; }
+        .flashcard-inner.is-flipped { transform: rotateY(180deg); -webkit-transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; -webkit-transform: translate3d(0,0,0); }
+        .flashcard-front { transform: rotateY(0deg) translate3d(0,0,0); -webkit-transform: rotateY(0deg) translate3d(0,0,0); z-index: 2; -webkit-tap-highlight-color: transparent; }
+        .flashcard-back { transform: rotateY(180deg) translate3d(0,0,0); -webkit-transform: rotateY(180deg) translate3d(0,0,0); }
+
+        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables & Media) --- */
+        .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
+        html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
+        .markdown-body p { margin-bottom: 1em; }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body strong { font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body strong { color: #f8fafc; }
+        
+        /* Media Specifics */
+        .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+        html.dark .markdown-body img { border-color: #334155; }
+        .markdown-body audio, .markdown-body video { width: 100%; max-width: 100%; margin: 1rem 0; border-radius: 0.5rem; outline: none; }
+        
+        /* Table Specifics */
+        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
+        html.dark .markdown-table-wrapper { border-color: #334155; background: #0f172a; }
+        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
+        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
+        .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -111,10 +150,19 @@
     <script src="app-shell.js"></script>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
-        <header class="text-center mb-10">
+        <header class="text-center mb-10 relative">
             <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">Subject Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300" id="dynamic-college-header">MBBS PROFS PREP</h2>
             <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions.</p>
+            
+            <!-- ADMIN GLOBAL TOGGLE (Hidden by default) -->
+            <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
+                <span class="text-[10px] font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Student Answers</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="global-answer-toggle" class="sr-only peer" onchange="window.toggleGlobalAnswers()">
+                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-green-500"></div>
+                </label>
+            </div>
         </header>
 
         <div class="glass-card p-6 rounded-xl mb-6 relative z-40">
@@ -122,7 +170,7 @@
                 <div class="md:col-span-4 flex items-center gap-2">
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                        <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
+                        <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
                     <button id="summaryButton" onclick="window.handleSecretClick()" title="Admin Tools" style="display: none;">☕️</button>
                 </div>
@@ -151,6 +199,7 @@
         </div>
     </div>
 
+    <!-- GENERIC UTILITY MODAL -->
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto">
         <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
@@ -165,6 +214,22 @@
                     </div>
                 </div>
                 <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-dark-bg px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEDICATED ANSWER VIEWER / EDITOR MODAL (TABLE VIEW) -->
+    <div id="answerModal" class="fixed inset-0 z-[10005] hidden overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeAnswerModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative w-full max-w-5xl transform overflow-hidden rounded-2xl bg-slate-50 dark:bg-dark-surface text-left shadow-2xl transition-all border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0 shadow-sm z-10">
+                    <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span class="text-brand-500">📝</span> Answer Panel
+                    </h3>
+                    <button onclick="window.closeAnswerModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                <div id="ans-modal-body" class="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50 dark:bg-dark-bg"></div>
             </div>
         </div>
     </div>
@@ -189,6 +254,8 @@
         window.isDataLoaded = false;
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
+        window.liveAnswers = {};
+        window.globalPlatformSettings = { showAnswers: false };
 
         // ====================================================================
         // 🔴 MASTER ROUTING CONTROLS
@@ -197,7 +264,7 @@
         window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
-        // 🟢 CHANGE THIS STRING FOR EACH NEW SUBJECT FILE (e.g. "PATHOLOGY", "SURGERY", "MEDICINE")
+        // 🟢 CHANGE THIS STRING FOR EACH NEW SUBJECT FILE
         window.SUBJECT_CODE = "BIOCHEMISTRY"; 
         
         window.curriculumData = [];
@@ -229,6 +296,25 @@
         window.getUniqueQuestionId = function(qId) {
             const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`;
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
+        };
+
+        // --- MARKDOWN RENDERER ---
+        window.renderMarkdown = function(text) {
+            if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
+            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
+            const rawHtml = marked.parse(text);
+            // Wrap tables in responsive div
+            return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+        };
+
+        // --- ADMIN GLOBAL TOGGLE ---
+        window.toggleGlobalAnswers = async function() {
+            if(!window.db) return;
+            const newState = !window.globalPlatformSettings.showAnswers;
+            // Update in Firebase Realtime Database
+            const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+            // The listener in onAuthStateChanged will handle the UI updates
         };
 
         // --- REPORT QUESTION LOGIC ---
@@ -313,6 +399,27 @@
             }
         };
 
+        // --- FLASHCARD TOGGLE LOGIC ---
+        window.toggleFlashcard = function(questionId) {
+            const container = document.getElementById(`container-${questionId}`);
+            const card = document.getElementById(`card-${questionId}`);
+            const isDeckMode = questionId.startsWith('deck-');
+            
+            if (card.classList.contains('is-flipped')) {
+                card.classList.remove('is-flipped');
+                if (!isDeckMode) {
+                    setTimeout(() => { container.classList.add('hidden'); }, 600); 
+                }
+            } else {
+                if (!isDeckMode) {
+                    container.classList.remove('hidden');
+                    setTimeout(() => { card.classList.add('is-flipped'); }, 50);
+                } else {
+                    card.classList.add('is-flipped');
+                }
+            }
+        };
+
         // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
@@ -337,6 +444,8 @@
                 document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
                 const headerEl = document.getElementById('dynamic-college-header');
                 if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
+
+                window.processDataForAccess();
 
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -530,10 +639,82 @@
             window.createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', window.getUniqueValues('exam'), 'exams');
         }
 
+        // --- ANSWER MODAL CONTROLS (TABLE VIEW) ---
+        window.openAnswerModal = function(qId) {
+            const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
+            if(!q) return;
+
+            const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
+            let bodyHtml = `
+                <div class="mb-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Question Reference (${qId})</span>
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '')}</div>
+                </div>
+            `;
+
+            if (isAdmin) {
+                bodyHtml += `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[400px]">
+                    <!-- Admin Editor -->
+                    <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                        <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
+                            <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
+                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
+                        </div>
+                        <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                        </div>
+                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
+                        <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
+                            <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Answer</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="flex flex-col h-full border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                        <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50 shrink-0">
+                            <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Live Student Preview</span>
+                        </div>
+                        <div id="admin-preview-modal-${qId}" class="flex-1 w-full p-6 overflow-y-auto custom-scrollbar markdown-body">
+                            ${window.renderMarkdown(liveAns)}
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                bodyHtml += `
+                <div class="border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                    <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50">
+                        <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Detailed Explanation</span>
+                    </div>
+                    <div class="p-6 markdown-body">
+                        ${window.renderMarkdown(liveAns)}
+                    </div>
+                </div>`;
+            }
+
+            document.getElementById('ans-modal-body').innerHTML = bodyHtml;
+            document.getElementById('answerModal').classList.remove('hidden');
+        }
+
+        window.closeAnswerModal = function() {
+            document.getElementById('answerModal').classList.add('hidden');
+        }
+
+        window.updatePreviewModal = function(qId) {
+            const text = document.getElementById(`admin-ans-modal-${qId}`).value;
+            document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(text);
+        }
+
         window.populateTable = function() {
             const tbody = document.getElementById('tableBody');
             if(!tbody) return;
             tbody.innerHTML = ''; 
+            
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
             
             window.displayData.forEach((item, index) => {
                 const row = tbody.insertRow();
@@ -544,8 +725,9 @@
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
+
                 if (item.type === 'MCQ') {
-                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1">`;
+                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
                             const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
@@ -554,14 +736,59 @@
                     }
                     qHtml += '</div>';
                 } else { 
-                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
+                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/); 
                     let stemWithoutMarks = cleanStem; let marksDisplay = '';
                     if (markMatch) {
                         stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
                         marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
                     }
-                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
+                    
+                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
                 }
+
+                // --- NEW UNIFIED POPUP ANSWER BUTTON ---
+                let ansBlockHtml = '';
+                const liveAns = window.liveAnswers[item.q] ? window.liveAnswers[item.q].text : "";
+                const hasAnswer = !!liveAns;
+                const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
+
+                if (canView) {
+                    const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                    const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
+
+                    ansBlockHtml = `
+                    <div class="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                        <button onclick="window.openAnswerModal('${item.q}')" class="w-full md:w-auto px-6 py-2.5 font-bold rounded-xl border transition-colors text-xs uppercase tracking-wider shadow-sm ${btnStyle}">
+                            ${btnText}
+                        </button>
+                    </div>`;
+                }
+                
+                qHtml += ansBlockHtml;
+
+                // --- ADMIN FLASHCARD RENDER LOGIC ---
+                if (isAdmin && item.ans_image) {
+                    qHtml += `
+                    <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
+                        <div class="flex items-center justify-end mb-3">
+                            <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
+                                <span>👁️ View Answer Card</span>
+                            </button>
+                        </div>
+                        
+                        <div class="flashcard-container hidden w-full" id="container-${item.q}">
+                            <div class="flashcard-inner" id="card-${item.q}">
+                                <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
+                                    <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
+                                </div>
+                                <div class="flashcard-back">
+                                    <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
@@ -833,6 +1060,31 @@
         window.deckIndex = 0;
         window.deckStatus = {};
 
+        // --- ANSWER PANEL TOGGLE (DECK VIEW) ---
+        window.toggleDeckAnswerPanel = function(qId) {
+            const panel = document.getElementById(`deck-ans-panel-${qId}`);
+            const btn = document.getElementById(`btn-deck-ans-${qId}`);
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btn.innerHTML = '🙈 Hide Answer Panel';
+                btn.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
+                btn.classList.remove('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
+            } else {
+                panel.classList.add('hidden');
+                const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
+                const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+                const isAdmin = window.currentUserObj && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+                btn.innerHTML = isAdmin ? (liveAns ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                btn.classList.remove('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
+                btn.classList.add('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
+            }
+        };
+
+        window.updatePreviewDeck = function(qId) {
+            const text = document.getElementById(`admin-ans-deck-${qId}`).value;
+            document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
+        };
+
         window.syncDeckWithFilters = function() {
             const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
             const selectedChapters = getChecked('chapter');
@@ -1028,19 +1280,68 @@
             const realIndex = window.displayData.indexOf(q); 
             document.getElementById('deck-counter').innerText = `${window.deckIndex + 1}/${window.activeDeckQuestions.length}`;
 
-            const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Admin Authentication
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
+            const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
             let questionHtml = ''; let optsHtml = '';
 
             const bookmarked = window.isBookmarked(q.q);
             const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
 
+            // --- NEW UNIFIED PANEL (DECK VIEW) ---
+            let ansBlockHtml = '';
+            const liveAns = window.liveAnswers[q.q] ? window.liveAnswers[q.q].text : "";
+            const hasAnswer = !!liveAns;
+            const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
+
+            if (canView) {
+                const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
+
+                let panelContent = '';
+                if (isAdmin) {
+                    panelContent = `
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
+                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
+                            <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                            </div>
+                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
+                            <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
+                        </div>
+                        <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
+                            <label class="text-[10px] font-black text-green-600 dark:text-green-500 uppercase tracking-widest mb-3 block">Live Student Preview</label>
+                            <div id="admin-preview-deck-${q.q}" class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                        </div>
+                    </div>`;
+                } else {
+                    panelContent = `
+                    <div class="bg-green-50 dark:bg-green-900/10 p-5 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm">
+                        <div class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                    </div>`;
+                }
+
+                ansBlockHtml = `
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button id="btn-deck-ans-${q.q}" onclick="window.toggleDeckAnswerPanel('${q.q}')" class="w-full py-3 font-bold rounded-xl border transition-colors text-sm shadow-sm ${btnStyle}">
+                        ${btnText}
+                    </button>
+                    <div id="deck-ans-panel-${q.q}" class="hidden mt-4 animate-fade-in">
+                        ${panelContent}
+                    </div>
+                </div>`;
+            }
+
             if (q.type === 'MCQ') {
-                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
-                    optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { 
+                    optsHtml = `<div class="space-y-3 pb-2">${q.options.map((opt, i) => { 
                         const letter = window.optionLetters[i] || '-'; 
-                        const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
                         
                         const status = window.deckStatus[q.q];
                         let btnClass = "deck-option-btn group";
@@ -1053,6 +1354,10 @@
                         return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="${btnClass}" ${disabledAttr}><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
                     }).join('')}</div>`; 
                 }
+                
+                // Append unified answer panel to MCQ
+                optsHtml += ansBlockHtml;
+
             } else { 
                 const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
                 let stemWithoutMarks = cleanStem; let marksDisplay = '';
@@ -1060,28 +1365,124 @@
                     stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
                     marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
                 }
-                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
+                
+                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
+
+                // Append unified answer panel to Theory
+                questionHtml += ansBlockHtml;
             }
-            
+
+            // --- FULL CARD ANKI-STYLE FLIP LOGIC ---
             const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
 
-            container.innerHTML = `
-                <div class="deck-card glass-card">
-                    <div class="mb-4 flex justify-between items-center">
-                        <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
-                        <div class="flex gap-2">
-                            <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
-                            <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
-                            <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
+            // 1. Build the Reusable Top Header
+            const headerHtml = `
+                <div class="mb-4 flex justify-between items-center shrink-0">
+                    <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
+                    <div class="flex gap-2">
+                        <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
+                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-50 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
+                        <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
+                    </div>
+                </div>
+            `;
+
+            // 2. Build the Reusable Bottom Tags
+            const tagsHtml = `
+                <div class="flex flex-wrap gap-2">
+                    ${chArray.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
+                </div>
+            `;
+
+            let ankiButtonHtml = '';
+            let backFaceHtml = '';
+
+            // 4. Construct the Back Face (If Admin & Image Exists)
+            if (isAdmin && q.ans_image) {
+                ankiButtonHtml = `
+                    <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-transform active:scale-95 text-xs font-bold shadow-md shadow-brand-500/30 border-none">
+                        <span>👁️ View Answer Card</span>
+                    </button>
+                `;
+                
+                backFaceHtml = `
+                    <div class="flashcard-back">
+                        <div class="deck-card glass-card w-full h-full flex flex-col relative overflow-hidden">
+                            ${headerHtml}
+                            
+                            <!-- Interactive Image Area -->
+                            <div class="flex-1 relative w-full my-4 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                                <!-- Inline Zoom Controls -->
+                                <div class="absolute top-4 right-4 z-50 flex flex-col gap-2 bg-white/90 dark:bg-slate-800/90 p-1.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button onclick="window.zoomInCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold transition-colors">➕</button>
+                                    <button onclick="window.zoomOutCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold transition-colors">➖</button>
+                                    <button onclick="window.resetZoomCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/50 dark:hover:bg-brand-800 text-brand-600 dark:text-brand-400 font-bold transition-colors text-xs">↺</button>
+                                </div>
+
+                                <div id="panzoom-wrapper-${q.q}" class="w-full h-full flex items-center justify-center cursor-move" style="touch-action: none;">
+                                    <img src="${q.ans_image}" class="max-w-full max-h-full object-contain pointer-events-none" alt="Answer for ${q.q}" loading="lazy">
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 shrink-0">
+                                ${tagsHtml}
+                                <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg transition-transform active:scale-95 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-sm">
+                                    <span>🔙 Back to Question</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    ${questionHtml}
-                    ${optsHtml}
-                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
-                        ${chArray.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
+                `;
+            }
+
+            // 5. Render the Full Anki-Style Card
+            container.innerHTML = `
+                <div class="flashcard-container" id="container-deck-${q.q}">
+                    <div class="flashcard-inner" id="card-deck-${q.q}">
+                        
+                        <!-- FRONT FACE: Question & Options -->
+                        <div class="flashcard-front">
+                            <div class="deck-card glass-card w-full h-full flex flex-col">
+                                ${headerHtml}
+                                <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                                    ${questionHtml}
+                                    ${optsHtml}
+                                </div>
+                                <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 shrink-0">
+                                    ${tagsHtml}
+                                    ${ankiButtonHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK FACE: Answer Image -->
+                        ${backFaceHtml}
+
                     </div>
-                </div>`;
+                </div>
+            `;
+            
+            // Allow container to reset scroll position normally
             container.scrollTop = 0;
+
+            // Initialize inline Panzoom after rendering the card
+            if (isAdmin && q.ans_image) {
+                setTimeout(() => {
+                    const wrapper = document.getElementById(`panzoom-wrapper-${q.q}`);
+                    if (wrapper && typeof Panzoom !== 'undefined') {
+                        window[`panzoom_${q.q}`] = Panzoom(wrapper, {
+                            maxScale: 30,
+                            minScale: 1,
+                            contain: 'outside',
+                            step: 0.3,
+                            canvas: true
+                        });
+                        
+                        wrapper.parentElement.addEventListener('wheel', window[`panzoom_${q.q}`].zoomWithWheel);
+                        wrapper.addEventListener('dblclick', window[`panzoom_${q.q}`].reset);
+                    }
+                }, 50);
+            }
         }
 
         window.checkDeckAnswer = function(btn, picked, correct) {
@@ -1217,6 +1618,65 @@
             }
         };
 
+        // --- UNIFIED SAVE FUNCTION FOR TABLE MODAL & DECK PANEL ---
+        window.saveAdminAnswer = async function(qId, btn, context) {
+            const elId = context === 'modal' ? `admin-ans-modal-${qId}` : `admin-ans-deck-${qId}`;
+            const text = document.getElementById(elId).value.trim();
+            const originalText = btn.innerText;
+            
+            if (!text && !confirm("This will delete the current answer. Continue?")) return;
+
+            btn.innerText = "Publishing...";
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+
+            try {
+                const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                
+                if (text) {
+                    await set(answerRef, {
+                        text: text,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: window.currentUserObj.email
+                    });
+                    btn.classList.replace('bg-brand-500', 'bg-green-500');
+                    btn.innerText = "Published! ✅";
+                } else {
+                    await remove(answerRef);
+                    btn.classList.replace('bg-brand-500', 'bg-slate-500');
+                    btn.innerText = "Removed 🗑️";
+                }
+
+                setTimeout(() => {
+                    btn.classList.remove('bg-green-500', 'bg-slate-500');
+                    btn.classList.add('bg-brand-500');
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75');
+                    
+                    if (context === 'deck') window.renderDeckCard();
+                }, 2000);
+
+            } catch(e) {
+                console.error("Save error:", e);
+                alert("Failed to publish: " + e.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+            }
+        };
+
+        window.firebaseUpdateSettings = async function(newState) {
+            try {
+                await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+            } catch (e) {
+                console.error("Settings update failed:", e);
+                alert("Failed to update setting: " + e.message);
+                // Revert toggle UI on error
+                document.getElementById('global-answer-toggle').checked = !newState;
+            }
+        };
+
         window.saveEditedProfile = async function(btn) {
             const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
             if (!name) return alert("Name is required!");
@@ -1262,34 +1722,54 @@
             window.currentUserObj = user;
             
             const coffeeBtn = document.getElementById('summaryButton');
+            const adminControls = document.getElementById('admin-controls');
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
+                const isAdmin = allowedVIPs.includes(email);
                 
-                // ADMIN CHECK: Show the Coffee Button ONLY for admins
-                if (coffeeBtn) {
-                    if (email === 'educateindiainstitute@gmail.com' || email === 'pankajmahto109@gmail.com') {
-                        coffeeBtn.style.display = 'inline-block';
-                    } else {
-                        coffeeBtn.style.display = 'none';
-                    }
-                }
+                // Show admin tools
+                if (coffeeBtn) coffeeBtn.style.display = isAdmin ? 'inline-block' : 'none';
+                if (adminControls) adminControls.classList.toggle('hidden', !isAdmin);
+                if (adminControls) adminControls.classList.toggle('flex', isAdmin);
 
-                // Profile Listener
+                // --- LISTEN FOR GLOBAL SETTINGS ---
+                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                onValue(settingsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    window.globalPlatformSettings.showAnswers = data ? data.showAnswers : false;
+                    
+                    const toggleEl = document.getElementById('global-answer-toggle');
+                    if (toggleEl) toggleEl.checked = window.globalPlatformSettings.showAnswers;
+                    
+                    if (window.displayData && window.displayData.length > 0) {
+                        window.populateTable();
+                        if (window.isDeckMode) window.renderDeckCard();
+                    }
+                });
+                
+                // --- LISTEN FOR LIVE ANSWERS ---
+                const answersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                onValue(answersRef, (snapshot) => {
+                    window.liveAnswers = snapshot.val() || {};
+                    if (window.displayData && window.displayData.length > 0) {
+                        window.populateTable();
+                        if (window.isDeckMode) window.renderDeckCard();
+                    }
+                });
+
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode !== 'bookmarks') window.userPanelApp.renderState(); 
                 });
                 
-                // Bookmarks Listener
                 onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => { 
                     window.userBookmarks = snapshot.exists() ? snapshot.val() : {}; 
                     if(typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
-                // Permissions Listener
-                if (allowedVIPs.includes(email)) {
+                if (isAdmin) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
                     if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
@@ -1310,8 +1790,8 @@
                     });
                 }
             } else { 
-                // Hide the Coffee Button if logged out
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
+                if (adminControls) { adminControls.classList.add('hidden'); adminControls.classList.remove('flex'); }
 
                 window.currentUserProfileData = {}; 
                 window.userBookmarks = {}; 
@@ -1322,6 +1802,7 @@
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
             }
         });
+
     </script>
 </body>
 </html>

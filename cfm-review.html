@@ -8,6 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
+    <!-- Robust Markdown Parser for Gemini Output -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script>
         tailwind.config = { 
             darkMode: 'class', 
@@ -18,7 +21,9 @@
                         accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, 
                         dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
                     }, 
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } 
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    animation: { 'fade-in': 'fadeIn 0.3s ease-out forwards' },
+                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 } 
             } 
         }
@@ -102,54 +107,32 @@
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
 
-        /* --- ADMIN FLASHCARD 3D FLIP ANIMATION (ANDROID OPTIMIZED) --- */
+        /* --- ADMIN FLASHCARD 3D FLIP ANIMATION --- */
         #deck-card-container { display: flex; flex-direction: column; }
+        .flashcard-container { perspective: 1500px; -webkit-perspective: 1500px; flex: 1; width: 100%; display: flex; flex-direction: column; }
+        .flashcard-inner { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; -webkit-transform-style: preserve-3d; position: relative; width: 100%; flex: 1; }
+        .flashcard-inner.is-flipped { transform: rotateY(180deg); -webkit-transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; -webkit-transform: translate3d(0,0,0); }
+        .flashcard-front { transform: rotateY(0deg) translate3d(0,0,0); -webkit-transform: rotateY(0deg) translate3d(0,0,0); z-index: 2; -webkit-tap-highlight-color: transparent; }
+        .flashcard-back { transform: rotateY(180deg) translate3d(0,0,0); -webkit-transform: rotateY(180deg) translate3d(0,0,0); }
+
+        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables) --- */
+        .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
+        html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
+        .markdown-body p { margin-bottom: 1em; }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body strong { font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body strong { color: #f8fafc; }
         
-        .flashcard-container { 
-            perspective: 1500px; 
-            -webkit-perspective: 1500px; 
-            flex: 1; 
-            width: 100%; 
-            display: flex; 
-            flex-direction: column; 
-        }
-        
-        .flashcard-inner { 
-            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); 
-            transform-style: preserve-3d; 
-            -webkit-transform-style: preserve-3d; 
-            position: relative; 
-            width: 100%; 
-            flex: 1; 
-        }
-        
-        .flashcard-inner.is-flipped { 
-            transform: rotateY(180deg); 
-            -webkit-transform: rotateY(180deg); 
-        }
-        
-        .flashcard-front, .flashcard-back { 
-            backface-visibility: hidden; 
-            -webkit-backface-visibility: hidden; 
-            width: 100%; 
-            height: 100%; 
-            position: absolute; 
-            top: 0; 
-            left: 0;
-            -webkit-transform: translate3d(0,0,0);
-        }
-        
-        .flashcard-front { 
-            transform: rotateY(0deg) translate3d(0,0,0); 
-            -webkit-transform: rotateY(0deg) translate3d(0,0,0); 
-            z-index: 2; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .flashcard-back { 
-            transform: rotateY(180deg) translate3d(0,0,0); 
-            -webkit-transform: rotateY(180deg) translate3d(0,0,0); 
-        }
+        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; }
+        html.dark .markdown-table-wrapper { border-color: #334155; }
+        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
+        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
+        .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -161,10 +144,19 @@
     <script src="app-shell.js"></script>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
-        <header class="text-center mb-10">
+        <header class="text-center mb-10 relative">
             <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">CFM Exam Review</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300" id="dynamic-college-header">MBBS PROFS PREP</h2>
             <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions.</p>
+            
+            <!-- ADMIN GLOBAL TOGGLE (Hidden by default) -->
+            <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
+                <span class="text-[10px] font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Student Answers</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="global-answer-toggle" class="sr-only peer" onchange="window.toggleGlobalAnswers()">
+                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-green-500"></div>
+                </label>
+            </div>
         </header>
 
         <div class="glass-card p-6 rounded-xl mb-6 relative z-40">
@@ -201,6 +193,7 @@
         </div>
     </div>
 
+    <!-- GENERIC UTILITY MODAL -->
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto">
         <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
@@ -215,6 +208,22 @@
                     </div>
                 </div>
                 <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-dark-bg px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEDICATED ANSWER VIEWER / EDITOR MODAL (TABLE VIEW) -->
+    <div id="answerModal" class="fixed inset-0 z-[10005] hidden overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeAnswerModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative w-full max-w-5xl transform overflow-hidden rounded-2xl bg-slate-50 dark:bg-dark-surface text-left shadow-2xl transition-all border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0 shadow-sm z-10">
+                    <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span class="text-brand-500">📝</span> Answer Panel
+                    </h3>
+                    <button onclick="window.closeAnswerModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                <div id="ans-modal-body" class="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50 dark:bg-dark-bg"></div>
             </div>
         </div>
     </div>
@@ -239,14 +248,12 @@
         window.isDataLoaded = false;
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
+        window.liveAnswers = {};
+        window.globalPlatformSettings = { showAnswers: false };
 
-        // ====================================================================
-        // 🔴 MASTER ROUTING CONTROLS
-        // ====================================================================
         const urlParams = new URLSearchParams(window.location.search);
         window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
-        
         window.SUBJECT_CODE = "CFM"; 
         
         window.curriculumData = [];
@@ -264,19 +271,30 @@
             if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
         });
 
-        // --- GOOGLE FORM REPORT CONFIG ---
-        window.REPORT_CONFIG = { 
-            formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", 
-            entryID_QID: "entry.1044663891", 
-            entryID_Type: "entry.1296716381", 
-            entryID_Desc: "entry.621177596" 
-        };
+        window.REPORT_CONFIG = { formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", entryID_QID: "entry.1044663891", entryID_Type: "entry.1296716381", entryID_Desc: "entry.621177596" };
         window.selectedReportType = "Other";
 
-        // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
-            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`;
-            return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
+            return (`${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`).replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
+        };
+
+        // --- MARKDOWN RENDERER ---
+        window.renderMarkdown = function(text) {
+            if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
+            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
+            const rawHtml = marked.parse(text);
+            // Wrap tables in responsive div
+            return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+        };
+
+        // --- ADMIN GLOBAL TOGGLE ---
+        window.toggleGlobalAnswers = async function() {
+            if(!window.db) return;
+            const newState = !window.globalPlatformSettings.showAnswers;
+            // Update in Firebase Realtime Database
+            const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+            // The listener in onAuthStateChanged will handle the UI updates
         };
 
         // --- REPORT QUESTION LOGIC ---
@@ -289,64 +307,21 @@
         window.submitReportToForm = function(qid, btn) {
             const desc = document.getElementById('report-desc').value;
             btn.innerText = "Sending..."; btn.disabled = true;
-
-            const currentUrl = window.location.href;
-            const combinedID = `${qid} | ${currentUrl}`;
-
-            const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?` +
-                        `${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(combinedID)}&` +
-                        `${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&` +
-                        `${window.REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`;
-
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-
+            const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(qid + ' | ' + window.location.href)}&${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&${window.REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`;
+            const iframe = document.createElement('iframe'); iframe.style.display = 'none'; iframe.src = url; document.body.appendChild(iframe);
             setTimeout(() => {
-                document.getElementById('modal-body-content').innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p>
-                    </div>`;
+                document.getElementById('modal-body-content').innerHTML = `<div class="text-center py-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3></div>`;
                 document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
                 setTimeout(() => iframe.remove(), 2000);
             }, 1200);
         };
 
         window.openReportModal = function(qId) {
-            if (!window.currentUserObj) {
-                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
-            }
+            if (!window.currentUserObj) return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             window.selectedReportType = "Other";
-            
-            const bodyHtml = `
-                <div class="text-left space-y-4 mt-2">
-                    <p class="text-sm text-slate-600 dark:text-slate-400">Help us improve by reporting issues with Question <b>${qId}</b>.</p>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
-                        <textarea id="report-desc" rows="3" placeholder="Briefly explain the issue..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
-                    </div>
-                </div>
-            `;
-            const footerHtml = `
-                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30">Submit Report</button>
-                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
-            `;
-            window.showModal("Report Issue", bodyHtml, footerHtml, "🚩");
+            window.showModal("Report Issue", `<div class="text-left space-y-4 mt-2"><p class="text-sm text-slate-600 dark:text-slate-400">Issue with Question <b>${qId}</b>.</p><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label><div class="grid grid-cols-2 gap-2 mb-2"><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button></div></div><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label><textarea id="report-desc" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea></div></div>`, `<button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors">Submit Report</button><button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>`, "🚩");
         };
 
-        // --- EYE TOGGLE LOGIC ---
         window.toggleAnswers = function() {
             document.body.classList.toggle('show-answers');
             const btn = document.getElementById('floating-eye-btn');
@@ -361,133 +336,63 @@
             }
         };
 
-        // --- FLASHCARD TOGGLE LOGIC ---
         window.toggleFlashcard = function(questionId) {
-            const container = document.getElementById(`container-${questionId}`);
             const card = document.getElementById(`card-${questionId}`);
-            const isDeckMode = questionId.startsWith('deck-');
-            
             if (card.classList.contains('is-flipped')) {
                 card.classList.remove('is-flipped');
-                if (!isDeckMode) {
-                    setTimeout(() => { container.classList.add('hidden'); }, 600); 
-                }
+                if (!questionId.startsWith('deck-')) setTimeout(() => { document.getElementById(`container-${questionId}`).classList.add('hidden'); }, 600); 
             } else {
-                if (!isDeckMode) {
-                    container.classList.remove('hidden');
-                    setTimeout(() => { card.classList.add('is-flipped'); }, 50);
-                } else {
-                    card.classList.add('is-flipped');
-                }
+                if (!questionId.startsWith('deck-')) { document.getElementById(`container-${questionId}`).classList.remove('hidden'); setTimeout(() => { card.classList.add('is-flipped'); }, 50); }
+                else card.classList.add('is-flipped');
             }
         };
 
-        // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
             const urlParams = new URLSearchParams(window.location.search);
             const collegeCode = urlParams.get('college') || 'deoghar'; 
-            
             const tableBody = document.getElementById('tableBody');
-            if(tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading Question Bank...</p></td></tr>`;
-            }
-
+            if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading Question Bank...</p></td></tr>`;
             try {
                 const response = await fetch(`cfm_aiims_${collegeCode}_data.json`);
                 if (!response.ok) throw new Error("Failed to load JSON file");
-                
                 const data = await response.json();
                 window.COLLEGE_NAME = data.collegeName || "AIIMS";
-                window.curriculumData = data.curriculumData || [];
-                window.qnaData = data.qnaData || [];
-                window.isDataLoaded = true;
-
-                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - CFM Review (${window.COLLEGE_NAME})`;
-                const headerEl = document.getElementById('dynamic-college-header');
-                if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
-
+                window.curriculumData = data.curriculumData || []; window.qnaData = data.qnaData || []; window.isDataLoaded = true;
+                const headTitle = document.getElementById('dynamic-page-title'); if(headTitle) headTitle.innerText = `MBBS PROFS PREP - CFM Review (${window.COLLEGE_NAME})`;
+                const headEl = document.getElementById('dynamic-college-header'); if(headEl) headEl.innerText = window.COLLEGE_NAME;
                 window.processDataForAccess();
-
             } catch (error) {
-                console.error("Error fetching data:", error);
                 if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions.</p><p class="text-sm">Please check your internet connection or ensure the JSON file is in the root directory.</p></td></tr>`;
             }
         };
 
-        window.getUnitForChapter = function(chapterName) {
-            return "Community Medicine"; // CFM doesn't use nested units
-        };
+        window.getUnitForChapter = function(chapterName) { return "Community Medicine"; };
 
         window.processDataForAccess = function() {
             if (!window.isDataLoaded) return; 
-
-            if (window.accessLevel === 'premium') {
-                window.displayData = [...window.qnaData];
-            } else if (window.accessLevel === 'free') {
-                const theoryQs = window.qnaData.filter(q => q.type === 'Theory').slice(0, 10);
-                const mcqQs = window.qnaData.filter(q => q.type === 'MCQ').slice(0, 10);
-                window.displayData = [...theoryQs, ...mcqQs];
-            } else {
-                window.displayData = [];
-            }
-
-            window.populateFilters(); 
-            window.populateDeckFilters(); 
-            window.populateTable();
-            
+            if (window.accessLevel === 'premium') { window.displayData = [...window.qnaData]; } 
+            else if (window.accessLevel === 'free') { window.displayData = [...window.qnaData.filter(q => q.type === 'Theory').slice(0, 10), ...window.qnaData.filter(q => q.type === 'MCQ').slice(0, 10)]; } 
+            else { window.displayData = []; }
+            window.populateFilters(); window.populateDeckFilters(); window.populateTable();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
-
-            if (!window.initialViewConfigured) {
-                window.initialViewConfigured = true;
-                if (window.innerWidth < 768 && !window.isDeckMode) {
-                    window.toggleDeckMode();
-                }
-            }
+            if (!window.initialViewConfigured) { window.initialViewConfigured = true; if (window.innerWidth < 768 && !window.isDeckMode) window.toggleDeckMode(); }
         };
 
-        // --- BOOKMARK LOGIC ---
         window.toggleBookmark = async function(btn, index) {
-            if (!window.currentUserObj) {
-                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
-            }
-
-            const item = window.displayData[index];
-            if (!item) return;
-
+            if (!window.currentUserObj) return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            const item = window.displayData[index]; if (!item) return;
             const uniqueId = window.getUniqueQuestionId(item.q);
-            const cleanStem = item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Question";
             const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-            const chapterString = chArray.length > 0 ? chArray[0] : 'General';
-            
-            const bookmarkData = {
-                q: item.q,
-                type: item.type || "General",
-                text: cleanStem, 
-                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
-                url: window.location.href,
-                timestamp: new Date().toISOString()
-            };
-
-            if (item.options) bookmarkData.options = item.options;
-            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
-            
+            const bookmarkData = { q: item.q, type: item.type || "General", text: item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Question", subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + (chArray.length > 0 ? chArray[0] : 'General'), url: window.location.href, timestamp: new Date().toISOString() };
+            if (item.options) bookmarkData.options = item.options; if (item.ans_key) bookmarkData.ans_key = item.ans_key;
             const isSaved = window.isBookmarked(item.q);
-            
-            if (window.executeBookmarkToggle) {
-                window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
-            } else {
-                alert("App is still connecting to the cloud. Please wait a moment.");
-            }
+            if (window.executeBookmarkToggle) window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved); else alert("App is connecting to cloud. Please wait.");
         };
 
-        window.isBookmarked = function(qId) { 
-            const uniqueId = window.getUniqueQuestionId(qId);
-            return !!window.userBookmarks[uniqueId]; 
-        };
+        window.isBookmarked = function(qId) { return !!window.userBookmarks[window.getUniqueQuestionId(qId)]; };
 
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
-            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
@@ -496,80 +401,44 @@
             window.displayData.forEach((item) => {
                 const uniqueId = window.getUniqueQuestionId(item.q);
                 const isSaved = !!window.userBookmarks[uniqueId];
-                
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
                 const tBtn = document.getElementById(`bmk-table-${item.q}`);
                 if (tBtn) { tBtn.className = `${tableBase} ${activeColors}`; tBtn.innerHTML = activeText; }
-
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
         };
 
-        // --- NATURAL SORTING + ARRAY FLATTENING ---
         window.getUniqueValues = function(key) {
             const values = new Set();
-            if (key === 'chapter') {
-                if (window.curriculumData) {
-                    window.curriculumData.forEach(ch => values.add(ch));
-                }
-                return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
-            } 
-            
-            window.qnaData.forEach(item => { 
-                if (key === 'type' && item.type) { values.add(item.type); } 
-                else if (key === 'exam' && item.examBatch) {
-                    if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } 
-                    else { values.add(item.examBatch); }
-                } else if (item[key]) { values.add(item[key]); }
-            });
+            if (key === 'chapter') { window.curriculumData.forEach(ch => values.add(ch)); return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' })); } 
+            window.qnaData.forEach(item => { if (key === 'type' && item.type) { values.add(item.type); } else if (key === 'exam' && item.examBatch) { if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } else { values.add(item.examBatch); } } else if (item[key]) { values.add(item[key]); } });
             return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
         }
 
-        window.toggleDropdown = function(id) {
-            document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); });
-            document.getElementById(id + 'Menu').classList.toggle('show');
-        }
-
-        window.closeAllDropdowns = function(event) {
-            if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
-        }
+        window.toggleDropdown = function(id) { document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); }); document.getElementById(id + 'Menu').classList.toggle('show'); }
+        window.closeAllDropdowns = function(event) { if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); } }
 
         window.handleCheckboxChange = function(id, value, filterSetKey, label) {
-            const set = window.filterState[filterSetKey];
-            if (set.has(value)) set.delete(value); else set.add(value);
-            window.updateButtonText(id, set, label);
+            const set = window.filterState[filterSetKey]; if (set.has(value)) set.delete(value); else set.add(value);
+            const btnText = document.getElementById(id + 'Text');
+            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
             window.filterTable();
         }
 
-        window.toggleGroup = function(unitName, isChecked) {
-            document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
-                if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
-            });
-        }
-
-        window.updateButtonText = function(id, set, label) {
-            const btnText = document.getElementById(id + 'Text');
-            if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
-            else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
-        }
+        window.toggleGroup = function(unitName, isChecked) { document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => { if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); } }); }
 
         window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
-            const container = document.getElementById(containerId);
             let listHtml = '';
             if (isGrouped) {
                 items.forEach(group => {
                     listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
-                    group.chapters.forEach(chapter => {
-                         listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
-                    });
+                    group.chapters.forEach(chapter => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`; });
                 });
-            } else {
-                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
-            }
-            container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
+            } else { items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; }); }
+            document.getElementById(containerId).innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
         window.populateFilters = function() {
@@ -578,10 +447,79 @@
             window.createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', window.getUniqueValues('exam'), 'exams');
         }
 
+        // --- ANSWER MODAL CONTROLS (TABLE VIEW) ---
+        window.openAnswerModal = function(qId) {
+            const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
+            if(!q) return;
+
+            const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
+            let bodyHtml = `
+                <div class="mb-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Question Reference (${qId})</span>
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+                </div>
+            `;
+
+            if (isAdmin) {
+                bodyHtml += `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[400px]">
+                    <!-- Admin Editor -->
+                    <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                        <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
+                            <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
+                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown Supported</span>
+                        </div>
+                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
+                        <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
+                            <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Answer</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="flex flex-col h-full border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                        <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50 shrink-0">
+                            <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Live Student Preview</span>
+                        </div>
+                        <div id="admin-preview-modal-${qId}" class="flex-1 w-full p-6 overflow-y-auto custom-scrollbar markdown-body">
+                            ${window.renderMarkdown(liveAns)}
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                bodyHtml += `
+                <div class="border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
+                    <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50">
+                        <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Detailed Explanation</span>
+                    </div>
+                    <div class="p-6 markdown-body">
+                        ${window.renderMarkdown(liveAns)}
+                    </div>
+                </div>`;
+            }
+
+            document.getElementById('ans-modal-body').innerHTML = bodyHtml;
+            document.getElementById('answerModal').classList.remove('hidden');
+        }
+
+        window.closeAnswerModal = function() {
+            document.getElementById('answerModal').classList.add('hidden');
+        }
+
+        window.updatePreviewModal = function(qId) {
+            const text = document.getElementById(`admin-ans-modal-${qId}`).value;
+            document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(text);
+        }
+
         window.populateTable = function() {
             const tbody = document.getElementById('tableBody');
             if(!tbody) return;
             tbody.innerHTML = ''; 
+            
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
             
             window.displayData.forEach((item, index) => {
                 const row = tbody.insertRow();
@@ -592,8 +530,9 @@
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
+
                 if (item.type === 'MCQ') {
-                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1">`;
+                    qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
                             const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -608,13 +547,30 @@
                         stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
                         marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
                     }
-                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
+                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
                 }
 
-                // --- ADMIN FLASHCARD RENDER LOGIC ---
-                const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
-                const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+                // --- NEW UNIFIED POPUP ANSWER BUTTON ---
+                let ansBlockHtml = '';
+                const liveAns = window.liveAnswers[item.q] ? window.liveAnswers[item.q].text : "";
+                const hasAnswer = !!liveAns;
+                const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
 
+                if (canView) {
+                    const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                    const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
+
+                    ansBlockHtml = `
+                    <div class="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                        <button onclick="window.openAnswerModal('${item.q}')" class="w-full md:w-auto px-6 py-2.5 font-bold rounded-xl border transition-colors text-xs uppercase tracking-wider shadow-sm ${btnStyle}">
+                            ${btnText}
+                        </button>
+                    </div>`;
+                }
+                
+                qHtml += ansBlockHtml;
+
+                // --- ADMIN FLASHCARD RENDER LOGIC ---
                 if (isAdmin && item.ans_image) {
                     qHtml += `
                     <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
@@ -892,17 +848,35 @@
             document.body.removeChild(textArea);
         }
 
-        window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 
-            const modal = document.getElementById('actionModal');
-            document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
-        }
-        window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
-        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
-
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
         window.deckStatus = {};
+
+        // --- ANSWER PANEL TOGGLE (DECK VIEW) ---
+        window.toggleDeckAnswerPanel = function(qId) {
+            const panel = document.getElementById(`deck-ans-panel-${qId}`);
+            const btn = document.getElementById(`btn-deck-ans-${qId}`);
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btn.innerHTML = '🙈 Hide Answer Panel';
+                btn.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
+                btn.classList.remove('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
+            } else {
+                panel.classList.add('hidden');
+                const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
+                const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+                const isAdmin = window.currentUserObj && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+                btn.innerHTML = isAdmin ? (liveAns ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                btn.classList.remove('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
+                btn.classList.add('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
+            }
+        };
+
+        window.updatePreviewDeck = function(qId) {
+            const text = document.getElementById(`admin-ans-deck-${qId}`).value;
+            document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
+        };
 
         window.syncDeckWithFilters = function() {
             const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
@@ -1095,6 +1069,10 @@
             const realIndex = window.displayData.indexOf(q); 
             document.getElementById('deck-counter').innerText = `${window.deckIndex + 1}/${window.activeDeckQuestions.length}`;
 
+            // Admin Authentication
+            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
             const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             let questionHtml = ''; let optsHtml = '';
 
@@ -1102,10 +1080,52 @@
             const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
 
+            // --- NEW UNIFIED PANEL (DECK VIEW) ---
+            let ansBlockHtml = '';
+            const liveAns = window.liveAnswers[q.q] ? window.liveAnswers[q.q].text : "";
+            const hasAnswer = !!liveAns;
+            const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
+
+            if (canView) {
+                const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
+
+                let panelContent = '';
+                if (isAdmin) {
+                    panelContent = `
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
+                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
+                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
+                            <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
+                        </div>
+                        <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
+                            <label class="text-[10px] font-black text-green-600 dark:text-green-500 uppercase tracking-widest mb-3 block">Live Student Preview</label>
+                            <div id="admin-preview-deck-${q.q}" class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                        </div>
+                    </div>`;
+                } else {
+                    panelContent = `
+                    <div class="bg-green-50 dark:bg-green-900/10 p-5 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm">
+                        <div class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                    </div>`;
+                }
+
+                ansBlockHtml = `
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button id="btn-deck-ans-${q.q}" onclick="window.toggleDeckAnswerPanel('${q.q}')" class="w-full py-3 font-bold rounded-xl border transition-colors text-sm shadow-sm ${btnStyle}">
+                        ${btnText}
+                    </button>
+                    <div id="deck-ans-panel-${q.q}" class="hidden mt-4 animate-fade-in">
+                        ${panelContent}
+                    </div>
+                </div>`;
+            }
+
             if (q.type === 'MCQ') {
-                questionHtml = `<div class="mb-6"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
-                    optsHtml = `<div class="space-y-3 pb-6">${q.options.map((opt, i) => { 
+                    optsHtml = `<div class="space-y-3 pb-2">${q.options.map((opt, i) => { 
                         const letter = window.optionLetters[i] || '-'; 
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         
@@ -1120,6 +1140,10 @@
                         return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="${btnClass}" ${disabledAttr}><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
                     }).join('')}</div>`; 
                 }
+                
+                // Append unified answer panel to MCQ
+                optsHtml += ansBlockHtml;
+
             } else { 
                 const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
                 let stemWithoutMarks = cleanStem; let marksDisplay = '';
@@ -1127,7 +1151,11 @@
                     stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
                     marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
                 }
-                questionHtml = `<div class="mb-6"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
+                
+                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
+
+                // Append unified answer panel to Theory
+                questionHtml += ansBlockHtml;
             }
 
             // --- FULL CARD ANKI-STYLE FLIP LOGIC ---
@@ -1152,10 +1180,6 @@
                 </div>
             `;
 
-            // 3. Admin Authentication
-            const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
-            const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
-
             let ankiButtonHtml = '';
             let backFaceHtml = '';
 
@@ -1163,7 +1187,7 @@
             if (isAdmin && q.ans_image) {
                 ankiButtonHtml = `
                     <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-transform active:scale-95 text-xs font-bold shadow-md shadow-brand-500/30 border-none">
-                        <span>👁️ View Answer</span>
+                        <span>👁️ View Answer Card</span>
                     </button>
                 `;
                 
@@ -1380,6 +1404,54 @@
             }
         };
 
+        // --- UNIFIED SAVE FUNCTION FOR TABLE MODAL & DECK PANEL ---
+        window.saveAdminAnswer = async function(qId, btn, context) {
+            const elId = context === 'modal' ? `admin-ans-modal-${qId}` : `admin-ans-deck-${qId}`;
+            const text = document.getElementById(elId).value.trim();
+            const originalText = btn.innerText;
+            
+            if (!text && !confirm("This will delete the current answer. Continue?")) return;
+
+            btn.innerText = "Publishing...";
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+
+            try {
+                const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                
+                if (text) {
+                    await set(answerRef, {
+                        text: text,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: window.currentUserObj.email
+                    });
+                    btn.classList.replace('bg-brand-500', 'bg-green-500');
+                    btn.innerText = "Published! ✅";
+                } else {
+                    await remove(answerRef);
+                    btn.classList.replace('bg-brand-500', 'bg-slate-500');
+                    btn.innerText = "Removed 🗑️";
+                }
+
+                setTimeout(() => {
+                    btn.classList.remove('bg-green-500', 'bg-slate-500');
+                    btn.classList.add('bg-brand-500');
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75');
+                    
+                    if (context === 'deck') window.renderDeckCard();
+                }, 2000);
+
+            } catch(e) {
+                console.error("Save error:", e);
+                alert("Failed to publish: " + e.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+            }
+        };
+
         window.saveEditedProfile = async function(btn) {
             const name = document.getElementById('edit-name').value.trim(); const joinYear = document.getElementById('edit-join-year').value; const college = document.getElementById('edit-college').value.trim(); const city = document.getElementById('edit-city').value.trim(); const phone = document.getElementById('edit-phone').value.trim();
             if (!name) return alert("Name is required!");
@@ -1425,17 +1497,41 @@
             window.currentUserObj = user;
             
             const coffeeBtn = document.getElementById('summaryButton');
+            const adminControls = document.getElementById('admin-controls');
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
+                const isAdmin = allowedVIPs.includes(email);
                 
-                if (coffeeBtn) {
-                    if (email === 'educateindiainstitute@gmail.com' || email === 'pankajmahto109@gmail.com') {
-                        coffeeBtn.style.display = 'inline-block';
-                    } else {
-                        coffeeBtn.style.display = 'none';
+                // Show admin tools
+                if (coffeeBtn) coffeeBtn.style.display = isAdmin ? 'inline-block' : 'none';
+                if (adminControls) adminControls.classList.toggle('hidden', !isAdmin);
+                if (adminControls) adminControls.classList.toggle('flex', isAdmin);
+
+                // --- LISTEN FOR GLOBAL SETTINGS ---
+                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                onValue(settingsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    window.globalPlatformSettings.showAnswers = data ? data.showAnswers : false;
+                    
+                    const toggleEl = document.getElementById('global-answer-toggle');
+                    if (toggleEl) toggleEl.checked = window.globalPlatformSettings.showAnswers;
+                    
+                    if (window.displayData && window.displayData.length > 0) {
+                        window.populateTable();
+                        if (window.isDeckMode) window.renderDeckCard();
                     }
-                }
+                });
+                
+                // --- LISTEN FOR LIVE ANSWERS ---
+                const answersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                onValue(answersRef, (snapshot) => {
+                    window.liveAnswers = snapshot.val() || {};
+                    if (window.displayData && window.displayData.length > 0) {
+                        window.populateTable();
+                        if (window.isDeckMode) window.renderDeckCard();
+                    }
+                });
 
                 onValue(ref(db, 'users/' + user.uid + '/profile'), (s) => { 
                     window.currentUserProfileData = s.val() || {}; 
@@ -1448,7 +1544,7 @@
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'bookmarks') window.userPanelApp.renderState(); 
                 });
 
-                if (allowedVIPs.includes(email)) {
+                if (isAdmin) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
                     if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
@@ -1470,6 +1566,7 @@
                 }
             } else { 
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
+                if (adminControls) { adminControls.classList.add('hidden'); adminControls.classList.remove('flex'); }
 
                 window.currentUserProfileData = {}; 
                 window.userBookmarks = {}; 
@@ -1481,29 +1578,6 @@
             }
         });
 
-        // --- INLINE ZOOM HELPERS ---
-        window.zoomInCard = function(id) { if(window[`panzoom_${id}`]) window[`panzoom_${id}`].zoomIn(); };
-        window.zoomOutCard = function(id) { if(window[`panzoom_${id}`]) window[`panzoom_${id}`].zoomOut(); };
-        window.resetZoomCard = function(id) { if(window[`panzoom_${id}`]) window[`panzoom_${id}`].reset(); };
-
-        // Spacebar to flip Anki Card
-        document.addEventListener('keydown', (e) => {
-            if (window.isDeckMode) {
-                if (e.code === 'Space') {
-                    e.preventDefault(); // Stops the page from scrolling down
-                    const q = window.activeDeckQuestions[window.deckIndex];
-                    if (q && document.getElementById(`container-deck-${q.q}`)) {
-                        window.toggleFlashcard(`deck-${q.q}`);
-                    }
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault(); 
-                    window.deckNext();
-                } else if (e.key === 'ArrowLeft') {
-                    e.preventDefault(); 
-                    window.deckPrev();
-                }
-            }
-        });
     </script>
 </body>
 </html>

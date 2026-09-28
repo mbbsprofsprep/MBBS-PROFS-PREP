@@ -262,9 +262,10 @@
         // ====================================================================
         const urlParams = new URLSearchParams(window.location.search);
         window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
+        window.VERSION_CODE = urlParams.get('version') || 'standard'; 
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
-        // 🟢 SETTING TO FMT
+        // 🟢 SETTING TO PATHOLOGY
         window.SUBJECT_CODE = "PATHOLOGY"; 
         
         window.curriculumData = [];
@@ -273,11 +274,12 @@
 
         // Instantly update UI Headers before data even loads
         document.addEventListener("DOMContentLoaded", () => {
+            const displayVersion = window.VERSION_CODE === 'ed8' ? 'Marrow Ed 8' : 'Standard';
             const titleEl = document.getElementById('dynamic-page-title');
-            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} (${window.COLLEGE_NAME})`;
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME}) - ${displayVersion}`;
             
             const mainTitleEl = document.getElementById('dynamic-subject-title');
-            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Exam Review`;
+            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Exam Review (${displayVersion})`;
 
             const headerEl = document.getElementById('dynamic-college-header');
             if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
@@ -294,7 +296,7 @@
 
         // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
-            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`;
+            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${window.VERSION_CODE}_${qId}`;
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
@@ -313,7 +315,7 @@
             const newState = !window.globalPlatformSettings.showAnswers;
             // Update in Firebase Realtime Database
             const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}/showAnswers`), newState);
             // The listener in onAuthStateChanged will handle the UI updates
         };
 
@@ -428,8 +430,12 @@
             }
 
             try {
-                // Dynamically load the correct JSON based on SUBJECT and COLLEGE
-                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+                // Dynamically load the correct JSON based on SUBJECT, COLLEGE, and VERSION
+                let fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
+                if (window.VERSION_CODE === 'ed8') {
+                    fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_ed8_data.json`;
+                }
+
                 const response = await fetch(fileName);
                 
                 if (!response.ok) throw new Error("Failed to load JSON file");
@@ -438,19 +444,26 @@
                 
                 window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME; 
                 window.curriculumData = data.curriculumData || [];
-                window.qnaData = data.qnaData || [];
+                
+                // --- DATA NORMALIZATION FIX ---
+                let rawQnaData = data.qnaData || [];
+                rawQnaData.forEach(q => {
+                    if (typeof q.chapter === 'string' && q.chapter.includes('/')) {
+                        q.chapter = q.chapter.split('/').map(c => c.trim());
+                    } else if (typeof q.chapter === 'string') {
+                        q.chapter = [q.chapter.trim()];
+                    }
+                });
+                window.qnaData = rawQnaData;
+                // ------------------------------
+
                 window.isDataLoaded = true;
-
-                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
-                const headerEl = document.getElementById('dynamic-college-header');
-                if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
-
                 window.processDataForAccess();
 
             } catch (error) {
                 console.error("Error fetching data:", error);
                 if(tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json</b> is uploaded to your server.</p></td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Failed to load questions for ${window.COLLEGE_NAME}.</p><p class="text-sm">Please ensure <b>${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_${window.VERSION_CODE === 'ed8' ? 'ed8_' : ''}data.json</b> is uploaded to your server.</p></td></tr>`;
                 }
             }
         };
@@ -1631,7 +1644,7 @@
             btn.classList.add('opacity-75');
 
             try {
-                const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}/${qId}`);
                 
                 if (text) {
                     await set(answerRef, {
@@ -1668,7 +1681,7 @@
 
         window.firebaseUpdateSettings = async function(newState) {
             try {
-                await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+                await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}/showAnswers`), newState);
             } catch (e) {
                 console.error("Settings update failed:", e);
                 alert("Failed to update setting: " + e.message);
@@ -1734,7 +1747,7 @@
                 if (adminControls) adminControls.classList.toggle('flex', isAdmin);
 
                 // --- LISTEN FOR GLOBAL SETTINGS ---
-                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}`);
                 onValue(settingsRef, (snapshot) => {
                     const data = snapshot.val();
                     window.globalPlatformSettings.showAnswers = data ? data.showAnswers : false;
@@ -1749,7 +1762,7 @@
                 });
                 
                 // --- LISTEN FOR LIVE ANSWERS ---
-                const answersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                const answersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}`);
                 onValue(answersRef, (snapshot) => {
                     window.liveAnswers = snapshot.val() || {};
                     if (window.displayData && window.displayData.length > 0) {

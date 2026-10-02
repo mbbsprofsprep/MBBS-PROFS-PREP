@@ -296,14 +296,22 @@
             });
         }
 
-        window.initiateRazorpay = function() {
+      window.initiateRazorpay = function() {
             if (!selectedPlan || !window.currentUserObj) return;
-            
             const btn = document.getElementById('pay-btn');
             const defaultBtnState = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
             
             btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`; 
             btn.disabled = true;
+
+            // PROACTIVE UI WARNING: Injects a warning below the pay button if it doesn't exist yet
+            if(!document.getElementById('rzp-tab-warning')) {
+                const warnText = document.createElement('div');
+                warnText.id = "rzp-tab-warning";
+                warnText.className = "mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl text-xs text-amber-800 dark:text-amber-200 text-center font-medium animate-fade-in";
+                warnText.innerHTML = "💡 <b>Stuck on processing?</b> Your browser may have reached its Maximum Tab Limit. Close some browser tabs and try again.";
+                btn.parentNode.insertBefore(warnText, btn.nextSibling);
+            }
 
             var options = {
                 "key": RZP_KEY_ID, 
@@ -322,33 +330,15 @@
                     }
                 }
             };
-
-            // 1. Temporarily intercept the browser's tab-opening mechanism
-            const originalWindowOpen = window.open;
-            let tabFailed = false;
             
-            window.open = function(...args) {
-                const newTab = originalWindowOpen.apply(this, args);
-                // If the browser blocks the tab (Max Tabs limit or Strict Popup Blocker), it returns null
-                if (newTab === null || typeof newTab === 'undefined') {
-                    tabFailed = true;
-                }
-                return newTab;
-            };
-
-            try {
-                var rzp = new Razorpay(options);
-                
-                rzp.on('payment.failed', function (response){ 
-                    alert("Payment Failed: " + response.error.description); 
-                    btn.innerHTML = defaultBtnState; 
-                    btn.disabled = false; 
-                });
-                
-                rzp.open();
-            } catch (error) {
-                console.error("Razorpay Error:", error);
-            }
+            var rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response){ 
+                alert("Payment Failed: " + response.error.description); 
+                btn.innerHTML = defaultBtnState; 
+                btn.disabled = false; 
+            });
+            rzp.open();
+        };
 
             // 2. Restore normal browser behavior shortly after
             setTimeout(() => {

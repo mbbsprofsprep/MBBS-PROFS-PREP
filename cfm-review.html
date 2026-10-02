@@ -199,8 +199,8 @@
         </div>
     </div>
 
-    <!-- GENERIC UTILITY MODAL -->
-    <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto">
+    <!-- GENERIC UTILITY MODAL (Updated from Code 2) -->
+    <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
@@ -266,6 +266,22 @@
         window.qnaData = [];
         window.displayData = [];
 
+        // --- MODAL SYSTEM (Added from Code 2) ---
+        window.showModal = function(title, bodyHtml, footerHtml, iconHtml) {
+            document.getElementById('modal-title').textContent = title || 'Notice';
+            document.getElementById('modal-body-content').innerHTML = bodyHtml || '';
+            document.getElementById('modal-footer-buttons').innerHTML = footerHtml || '';
+            
+            const iconEl = document.getElementById('modalIcon');
+            if (iconEl) iconEl.innerHTML = iconHtml || 'ℹ️';
+            
+            document.getElementById('actionModal').classList.remove('hidden');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('actionModal').classList.add('hidden');
+        };
+
         document.addEventListener("DOMContentLoaded", () => {
             const titleEl = document.getElementById('dynamic-page-title');
             if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} (${window.COLLEGE_NAME})`;
@@ -287,9 +303,7 @@
         // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
             const rawHtml = marked.parse(text);
-            // Wrap tables in responsive div
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
@@ -297,10 +311,8 @@
         window.toggleGlobalAnswers = async function() {
             if(!window.db) return;
             const newState = !window.globalPlatformSettings.showAnswers;
-            // Update in Firebase Realtime Database
             const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
             await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
-            // The listener in onAuthStateChanged will handle the UI updates
         };
 
         // --- REPORT QUESTION LOGIC ---
@@ -310,16 +322,56 @@
             window.selectedReportType = btn.getAttribute('data-val');
         };
 
+        // FIXED: POST form submission via hidden iframe
         window.submitReportToForm = function(qid, btn) {
             const desc = document.getElementById('report-desc').value;
-            btn.innerText = "Sending..."; btn.disabled = true;
-            const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(qid + ' | ' + window.location.href)}&${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&${window.REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`;
-            const iframe = document.createElement('iframe'); iframe.style.display = 'none'; iframe.src = url; document.body.appendChild(iframe);
+            btn.innerText = "Sending..."; 
+            btn.disabled = true;
+
+            // Create a hidden iframe to prevent page redirect
+            const iframeName = 'hidden_iframe_' + Date.now();
+            const iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            // Create a hidden form that uses POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
+            form.target = iframeName;
+            form.style.display = 'none';
+
+            // Map data to form inputs
+            const inputs = [
+                { name: window.REPORT_CONFIG.entryID_QID, value: qid + ' | ' + window.location.href },
+                { name: window.REPORT_CONFIG.entryID_Type, value: window.selectedReportType },
+                { name: window.REPORT_CONFIG.entryID_Desc, value: desc }
+            ];
+
+            inputs.forEach(data => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = data.name;
+                input.value = data.value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            
+            // Submit form natively
+            form.submit();
+
+            // Show success UI & Cleanup
             setTimeout(() => {
                 document.getElementById('modal-body-content').innerHTML = `<div class="text-center py-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3></div>`;
                 document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
-                setTimeout(() => iframe.remove(), 2000);
-            }, 1200);
+                
+                setTimeout(() => {
+                    iframe.remove();
+                    form.remove();
+                }, 2000);
+            }, 1000);
         };
 
         window.openReportModal = function(qId) {
@@ -713,6 +765,8 @@
                 window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
             }
         }
+
+        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
         window.handleSecretClick = function() { 
             window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`); 

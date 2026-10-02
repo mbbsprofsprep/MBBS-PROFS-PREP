@@ -11,7 +11,7 @@
     <!-- Robust Markdown Parser for Gemini Output & Media -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- ADDED: MathJax for LaTeX Rendering with Smart Loader -->
+  <!-- ADDED: MathJax for LaTeX Rendering with Smart Loader -->
     <script>
         window.MathJax = {
           tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
@@ -21,6 +21,8 @@
         // This function waits for MathJax to load before trying to render
         window.renderMath = function() {
             if (typeof MathJax !== 'undefined' && typeof MathJax.typesetPromise === 'function') {
+                // Clear the MathJax cache so it doesn't ignore dynamically added modals/flashcards
+                MathJax.typesetClear(); 
                 MathJax.typesetPromise().catch(err => console.error('MathJax Error:', err));
             } else {
                 // If not loaded yet, try again in 100ms
@@ -29,7 +31,6 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
     <script>
         tailwind.config = { 
             darkMode: 'class', 
@@ -306,8 +307,25 @@
         // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
-            const rawHtml = marked.parse(text);
+            
+            // 1. Hide MathJax formulas from marked.js to prevent it from altering underscores (_) and asterisks (*)
+            const mathBlocks = [];
+            let safeText = text.replace(/\\\[([\s\S]*?)\\\]/g, (match) => {
+                mathBlocks.push(match);
+                return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+            }).replace(/\\\(([\s\S]*?)\\\)/g, (match) => {
+                mathBlocks.push(match);
+                return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+            });
+
+            // 2. Parse Markdown securely without breaking equations
+            let rawHtml = marked.parse(safeText);
+
+            // 3. Restore the MathJax formulas exactly as they were
+            mathBlocks.forEach((block, index) => {
+                rawHtml = rawHtml.replace(`@@MATH_BLOCK_${index}@@`, block);
+            });
+
             // Wrap tables in responsive div
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };

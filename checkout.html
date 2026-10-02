@@ -323,6 +323,19 @@
                 }
             };
 
+            // 1. Temporarily intercept the browser's tab-opening mechanism
+            const originalWindowOpen = window.open;
+            let tabFailed = false;
+            
+            window.open = function(...args) {
+                const newTab = originalWindowOpen.apply(this, args);
+                // If the browser blocks the tab (Max Tabs limit or Strict Popup Blocker), it returns null
+                if (newTab === null || typeof newTab === 'undefined') {
+                    tabFailed = true;
+                }
+                return newTab;
+            };
+
             try {
                 var rzp = new Razorpay(options);
                 
@@ -333,21 +346,31 @@
                 });
                 
                 rzp.open();
-
-                setTimeout(() => {
-                    if (!document.querySelector('.razorpay-container')) {
-                        alert("Unable to open the secure payment window. You may have reached your browser's maximum tab limit. Please close some tabs and try again.");
-                        btn.innerHTML = defaultBtnState;
-                        btn.disabled = false;
-                    }
-                }, 2500);
-
             } catch (error) {
-                console.error("Razorpay Initialization Error:", error);
-                alert("Your browser prevented the payment window from opening (Maximum Tabs Reached or Pop-up Blocker). Please close some unused tabs and try again.");
-                btn.innerHTML = defaultBtnState;
-                btn.disabled = false;
+                console.error("Razorpay Error:", error);
             }
+
+            // 2. Restore normal browser behavior shortly after
+            setTimeout(() => {
+                window.open = originalWindowOpen;
+            }, 1000);
+
+            // 3. Verify exactly 2 seconds later if it worked or failed
+            setTimeout(() => {
+                const rzpContainer = document.querySelector('.razorpay-container');
+                const isIframeMissing = rzpContainer && rzpContainer.innerHTML === "";
+                
+                // Trigger the alert ONLY if we caught a tab failure OR the container failed to render
+                if (tabFailed || !rzpContainer || isIframeMissing) {
+                    alert("⚠️ Unable to open the secure payment window.\n\nThis usually happens because you have reached your browser's MAXIMUM TAB LIMIT, or a strict pop-up blocker is active.\n\nPlease CLOSE SOME TABS in your browser and try again.");
+                    
+                    btn.innerHTML = defaultBtnState;
+                    btn.disabled = false;
+                    
+                    // Clean up any ghost containers Razorpay might have left behind
+                    if (rzpContainer) rzpContainer.remove();
+                }
+            }, 2000);
         };
 
         window.handlePaymentSuccess = async function(paymentId) {

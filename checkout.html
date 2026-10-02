@@ -298,26 +298,56 @@
 
         window.initiateRazorpay = function() {
             if (!selectedPlan || !window.currentUserObj) return;
+            
             const btn = document.getElementById('pay-btn');
-            btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`; btn.disabled = true;
+            const defaultBtnState = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
+            
+            btn.innerHTML = `<span class="animate-spin inline-block mr-2">↻</span> Contacting Bank...`; 
+            btn.disabled = true;
 
             var options = {
-                "key": RZP_KEY_ID, "amount": Math.round(selectedPlan.price * 100), "currency": selectedPlan.currency,
-                "name": "MBBS Profs Prep", "description": selectedPlan.name,
+                "key": RZP_KEY_ID, 
+                "amount": Math.round(selectedPlan.price * 100), 
+                "currency": selectedPlan.currency,
+                "name": "MBBS Profs Prep", 
+                "description": selectedPlan.name,
                 "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg",
                 "prefill": { "name": userProfile.fullName, "email": userProfile.email, "contact": userProfile.phone },
                 "theme": { "color": "#0ea5e9" },
                 "handler": function (response) { window.handlePaymentSuccess(response.razorpay_payment_id); },
                 "modal": {
                     "ondismiss": function() {
-                        btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`;
+                        btn.innerHTML = defaultBtnState;
                         btn.disabled = false;
                     }
                 }
             };
-            var rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response){ alert("Payment Failed: " + response.error.description); btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> Pay Securely`; btn.disabled = false; });
-            rzp.open();
+
+            try {
+                var rzp = new Razorpay(options);
+                
+                rzp.on('payment.failed', function (response){ 
+                    alert("Payment Failed: " + response.error.description); 
+                    btn.innerHTML = defaultBtnState; 
+                    btn.disabled = false; 
+                });
+                
+                rzp.open();
+
+                setTimeout(() => {
+                    if (!document.querySelector('.razorpay-container')) {
+                        alert("Unable to open the secure payment window. You may have reached your browser's maximum tab limit. Please close some tabs and try again.");
+                        btn.innerHTML = defaultBtnState;
+                        btn.disabled = false;
+                    }
+                }, 2500);
+
+            } catch (error) {
+                console.error("Razorpay Initialization Error:", error);
+                alert("Your browser prevented the payment window from opening (Maximum Tabs Reached or Pop-up Blocker). Please close some unused tabs and try again.");
+                btn.innerHTML = defaultBtnState;
+                btn.disabled = false;
+            }
         };
 
         window.handlePaymentSuccess = async function(paymentId) {

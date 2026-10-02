@@ -11,26 +11,6 @@
     <!-- Robust Markdown Parser for Gemini Output & Media -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-  <!-- ADDED: MathJax for LaTeX Rendering with Smart Loader -->
-    <script>
-        window.MathJax = {
-          tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
-          startup: { typeset: false }
-        };
-        
-        // This function waits for MathJax to load before trying to render
-        window.renderMath = function() {
-            if (typeof MathJax !== 'undefined' && typeof MathJax.typesetPromise === 'function') {
-                // Clear the MathJax cache so it doesn't ignore dynamically added modals/flashcards
-                MathJax.typesetClear(); 
-                MathJax.typesetPromise().catch(err => console.error('MathJax Error:', err));
-            } else {
-                // If not loaded yet, try again in 100ms
-                setTimeout(window.renderMath, 100);
-            }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
         tailwind.config = { 
             darkMode: 'class', 
@@ -307,25 +287,8 @@
         // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-            
-            // 1. Hide MathJax formulas from marked.js to prevent it from altering underscores (_) and asterisks (*)
-            const mathBlocks = [];
-            let safeText = text.replace(/\\\[([\s\S]*?)\\\]/g, (match) => {
-                mathBlocks.push(match);
-                return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
-            }).replace(/\\\(([\s\S]*?)\\\)/g, (match) => {
-                mathBlocks.push(match);
-                return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
-            });
-
-            // 2. Parse Markdown securely without breaking equations
-            let rawHtml = marked.parse(safeText);
-
-            // 3. Restore the MathJax formulas exactly as they were
-            mathBlocks.forEach((block, index) => {
-                rawHtml = rawHtml.replace(`@@MATH_BLOCK_${index}@@`, block);
-            });
-
+            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
+            const rawHtml = marked.parse(text);
             // Wrap tables in responsive div
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
@@ -548,7 +511,6 @@
 
             document.getElementById('ans-modal-body').innerHTML = bodyHtml;
             document.getElementById('answerModal').classList.remove('hidden');
-            window.renderMath(); // CHANGED
         }
 
         window.closeAnswerModal = function() {
@@ -558,7 +520,6 @@
         window.updatePreviewModal = function(qId) {
             const text = document.getElementById(`admin-ans-modal-${qId}`).value;
             document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(text);
-            window.renderMath(); // CHANGED
         }
 
         window.populateTable = function() {
@@ -685,7 +646,6 @@
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
                 cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all premium questions.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Upgrade to Pro</a>`;
             }
-            window.renderMath(); // CHANGED
         }
 
         window.filterTable = function() {
@@ -925,7 +885,6 @@
         window.updatePreviewDeck = function(qId) {
             const text = document.getElementById(`admin-ans-deck-${qId}`).value;
             document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
-            window.renderMath(); // CHANGED
         };
 
         window.syncDeckWithFilters = function() {
@@ -1303,8 +1262,6 @@
             
             // Allow container to reset scroll position normally
             container.scrollTop = 0;
-            
-            window.renderMath(); // CHANGED
 
             // Initialize inline Panzoom after rendering the card
             if (isAdmin && q.ans_image) {

@@ -147,6 +147,7 @@
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>
 
+    <!-- Optional App Shell, keeping from Code 1 -->
     <script src="app-shell.js"></script>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
@@ -199,21 +200,21 @@
         </div>
     </div>
 
-    <!-- GENERIC UTILITY MODAL (Updated from Code 2) -->
+    <!-- MERGED HTML MODAL FROM CODE 2 (Ensures exact DOM structure) -->
     <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
+        <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
-                <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div id="modalDialog" class="relative transform overflow-hidden rounded-xl bg-white dark:bg-slate-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
+                <div class="bg-white dark:bg-slate-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div id="modalIcon" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30 sm:mx-0 sm:h-10 sm:w-10"></div>
                         <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="modal-title"></h3>
+                            <h3 class="text-lg font-bold leading-6 text-slate-900 dark:text-white" id="modal-title"></h3>
                             <div id="modal-body-content" class="mt-2 text-sm text-slate-500 dark:text-slate-400"></div>
                         </div>
                     </div>
                 </div>
-                <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-dark-bg px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
+                <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
             </div>
         </div>
     </div>
@@ -266,7 +267,7 @@
         window.qnaData = [];
         window.displayData = [];
 
-        // --- MODAL SYSTEM (Added from Code 2) ---
+        // --- GLOBAL MODAL CONTROLLERS (Matches Code 2) ---
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) {
             document.getElementById('modal-title').textContent = title || 'Notice';
             document.getElementById('modal-body-content').innerHTML = bodyHtml || '';
@@ -300,14 +301,12 @@
             return (`${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`).replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-        // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
             const rawHtml = marked.parse(text);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
-        // --- ADMIN GLOBAL TOGGLE ---
         window.toggleGlobalAnswers = async function() {
             if(!window.db) return;
             const newState = !window.globalPlatformSettings.showAnswers;
@@ -322,27 +321,56 @@
             window.selectedReportType = btn.getAttribute('data-val');
         };
 
-        // FIXED: POST form submission via hidden iframe
+        // FIX: Removed the Login Requirement so the modal will ALWAYS pop open
+        window.openReportModal = function(qId) {
+            window.selectedReportType = "Other";
+            
+            const bodyHtml = `
+            <div class="text-left space-y-4 mt-2">
+                <p class="text-sm text-slate-600 dark:text-slate-400">Issue with Question <b>${qId}</b>.</p>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
+                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
+                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
+                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
+                    <textarea id="report-desc" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
+                </div>
+            </div>`;
+            
+            const buttonsHtml = `
+                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors">Submit Report</button>
+                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
+            `;
+            
+            window.showModal("Report Issue", bodyHtml, buttonsHtml, "<span class='text-2xl'>🚩</span>");
+        };
+
+        // FIX: Replaced GET Method with Hidden Iframe POST Method
         window.submitReportToForm = function(qid, btn) {
             const desc = document.getElementById('report-desc').value;
             btn.innerText = "Sending..."; 
             btn.disabled = true;
 
-            // Create a hidden iframe to prevent page redirect
+            // 1. Create a hidden iframe
             const iframeName = 'hidden_iframe_' + Date.now();
-            const iframe = document.createElement('iframe');
-            iframe.name = iframeName;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
+            const iframeContainer = document.createElement('div');
+            iframeContainer.innerHTML = `<iframe name="${iframeName}" id="${iframeName}" style="display:none;"></iframe>`;
+            document.body.appendChild(iframeContainer);
 
-            // Create a hidden form that uses POST
+            // 2. Create a hidden form that uses POST
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
             form.target = iframeName;
             form.style.display = 'none';
 
-            // Map data to form inputs
+            // 3. Map inputs to Google Form Entry IDs
             const inputs = [
                 { name: window.REPORT_CONFIG.entryID_QID, value: qid + ' | ' + window.location.href },
                 { name: window.REPORT_CONFIG.entryID_Type, value: window.selectedReportType },
@@ -359,25 +387,25 @@
 
             document.body.appendChild(form);
             
-            // Submit form natively
+            // 4. Submit form natively
             form.submit();
 
-            // Show success UI & Cleanup
+            // 5. Update Modal UI to Success
             setTimeout(() => {
-                document.getElementById('modal-body-content').innerHTML = `<div class="text-center py-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3></div>`;
+                document.getElementById('modal-body-content').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
+                        <p class="text-xs text-slate-500 mt-2">Thank you for helping us improve.</p>
+                    </div>`;
                 document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
                 
+                // Cleanup DOM elements
                 setTimeout(() => {
-                    iframe.remove();
+                    iframeContainer.remove();
                     form.remove();
                 }, 2000);
             }, 1000);
-        };
-
-        window.openReportModal = function(qId) {
-            if (!window.currentUserObj) return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
-            window.selectedReportType = "Other";
-            window.showModal("Report Issue", `<div class="text-left space-y-4 mt-2"><p class="text-sm text-slate-600 dark:text-slate-400">Issue with Question <b>${qId}</b>.</p><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label><div class="grid grid-cols-2 gap-2 mb-2"><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button></div></div><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label><textarea id="report-desc" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea></div></div>`, `<button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors">Submit Report</button><button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>`, "🚩");
         };
 
         window.toggleAnswers = function() {
@@ -754,7 +782,7 @@
             
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(textToCopy).then(() => {
-                    window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
+                    window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `<span class='text-2xl'>✅</span>`);
                 }).catch(() => fallbackCopy(textToCopy));
             } else {
                 fallbackCopy(textToCopy);
@@ -762,14 +790,14 @@
             
             function fallbackCopy(text) {
                 const tempTextarea = document.createElement('textarea'); tempTextarea.value = text; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
-                window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
+                window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `<span class='text-2xl'>✅</span>`);
             }
         }
 
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
         window.handleSecretClick = function() { 
-            window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`); 
+            window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `<span class='text-2xl'>☕️</span>`); 
         }
 
         window.handleNameSubmission = function() {
@@ -787,7 +815,7 @@
             else if (name) { 
                 const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
                 let message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
-                window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `💪`); 
+                window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `<span class='text-2xl'>💪</span>`); 
             }
         }
 
@@ -844,7 +872,7 @@
                 URL.revokeObjectURL(url);
             }, 100);
             
-            window.showModal("Download Complete!", `<p class="text-slate-600 dark:text-slate-400">Successfully exported <b>${visibleQuestions.length}</b> questions in JSON format.</p>`, `<button onclick="window.closeModal()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">Done</button>`, "⬇️");
+            window.showModal("Download Complete!", `<p class="text-slate-600 dark:text-slate-400">Successfully exported <b>${visibleQuestions.length}</b> questions in JSON format.</p>`, `<button onclick="window.closeModal()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">Done</button>`, "<span class='text-2xl'>⬇️</span>");
         }
         
         window.copyForChatGPT = function() {
@@ -863,7 +891,7 @@
             }
             
             if(visibleQuestions.length === 0) {
-                window.showModal("No Questions", "<p class='text-slate-500'>No questions to copy.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 py-3 rounded-xl font-bold">Close</button>`, "⚠️");
+                window.showModal("No Questions", "<p class='text-slate-500'>No questions to copy.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 py-3 rounded-xl font-bold">Close</button>`, "<span class='text-2xl'>⚠️</span>");
                 return;
             }
             
@@ -884,7 +912,7 @@
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(clipboardText)
                     .then(() => {
-                        window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${visibleQuestions.length} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `📋`);
+                        window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${visibleQuestions.length} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `<span class='text-2xl'>📋</span>`);
                     })
                     .catch(err => {
                         console.warn("Clipboard API failed, falling back...", err);
@@ -903,10 +931,10 @@
             textArea.focus(); textArea.select();
             try {
                 const successful = document.execCommand('copy');
-                if (successful) window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${count} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `📋`);
+                if (successful) window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${count} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `<span class='text-2xl'>📋</span>`);
                 else throw new Error("Browser blocked copy");
             } catch (err) {
-                window.showModal("Copy Failed", `<p class="text-red-500">Your browser blocked the clipboard. Try again.</p>`, `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, `❌`);
+                window.showModal("Copy Failed", `<p class="text-red-500">Your browser blocked the clipboard. Try again.</p>`, `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, `<span class='text-2xl'>❌</span>`);
             }
             document.body.removeChild(textArea);
         }
@@ -985,7 +1013,7 @@
             deckLayer.innerHTML = `
                 <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
                     <div class="flex items-center gap-2 md:gap-3">
-                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
+                        <button onclick="window.userPanelApp && window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                         
@@ -1106,7 +1134,7 @@
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
                         <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
-                        <button onclick="window.toggleDeckMode(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs border-none">Sign In / Register</button>
+                        <button onclick="window.toggleDeckMode(); window.userPanelApp && window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs border-none">Sign In / Register</button>
                     </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
@@ -1397,14 +1425,13 @@
                 const icon = document.getElementById('theme-icon');
                 if(icon) icon.innerText = '☀️';
             }
-            const modal = document.getElementById('actionModal');
-            if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
             await window.fetchQuestions();
             window.initDeckView(); 
         };
     </script>
 
+    <!-- KEEPING FIREBASE FOR ADMIN FEATURES (Hidden to normal users without app-shell) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
@@ -1470,7 +1497,6 @@
             }
         };
 
-        // --- UNIFIED SAVE FUNCTION FOR TABLE MODAL & DECK PANEL ---
         window.saveAdminAnswer = async function(qId, btn, context) {
             const elId = context === 'modal' ? `admin-ans-modal-${qId}` : `admin-ans-deck-${qId}`;
             const text = document.getElementById(elId).value.trim();

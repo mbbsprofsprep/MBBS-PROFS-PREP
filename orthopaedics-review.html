@@ -314,13 +314,61 @@
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-        // --- MARKDOWN RENDERER ---
+        // --- MARKDOWN RENDERER WITH YOUTUBE SUPPORT ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
+            
+            let processedText = text;
+            
+            // 1. Process Markdown-style YouTube links: [Video Title](https://youtu.be/XYZ)
+            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
+            processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `<div class="yt-container my-4">
+                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
+            // 2. Process Raw YouTube links: https://youtu.be/XYZ (Ensure not to match if inside another tag by checking boundary)
+            const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
+            processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `${space}<div class="yt-container my-4">
+                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play YouTube Video</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
             // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
-            const rawHtml = marked.parse(text);
+            const rawHtml = marked.parse(processedText);
             // Wrap tables in responsive div
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+        };
+
+        // --- YOUTUBE TOGGLE LOGIC ---
+        window.toggleYT = function(containerId, videoId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            if (container.classList.contains('hidden')) {
+                // Show container
+                container.classList.remove('hidden');
+                // Inject iframe if not present to avoid loading all videos on page load
+                if (container.innerHTML.trim() === '') {
+                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                }
+            } else {
+                // Hide container and destroy iframe to stop video
+                container.classList.add('hidden');
+                container.innerHTML = ''; 
+            }
         };
 
         // --- ADMIN GLOBAL TOGGLE ---
@@ -698,7 +746,7 @@
                             <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
                         </div>
                         <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                            <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; Audio: &lt;audio src="url"&gt; &nbsp;|&nbsp; YouTube: Just paste link!</p>
                         </div>
                         <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
@@ -1347,7 +1395,7 @@
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
                             <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
                             <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; Audio: &lt;audio src="url"&gt; &nbsp;|&nbsp; YouTube: Just paste link!</p>
                             </div>
                             <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
                             <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>

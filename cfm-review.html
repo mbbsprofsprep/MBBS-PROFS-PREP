@@ -147,7 +147,6 @@
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     </script>
 
-    <!-- Optional App Shell, keeping from Code 1 -->
     <script src="app-shell.js"></script>
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
@@ -200,21 +199,21 @@
         </div>
     </div>
 
-    <!-- MERGED HTML MODAL FROM CODE 2 (Ensures exact DOM structure) -->
-    <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="window.closeModal()"></div>
+    <!-- GENERIC UTILITY MODAL -->
+    <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div id="modalDialog" class="relative transform overflow-hidden rounded-xl bg-white dark:bg-slate-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
-                <div class="bg-white dark:bg-slate-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
+                <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div id="modalIcon" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30 sm:mx-0 sm:h-10 sm:w-10"></div>
                         <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 class="text-lg font-bold leading-6 text-slate-900 dark:text-white" id="modal-title"></h3>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="modal-title"></h3>
                             <div id="modal-body-content" class="mt-2 text-sm text-slate-500 dark:text-slate-400"></div>
                         </div>
                     </div>
                 </div>
-                <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
+                <div id="modal-footer-buttons" class="bg-slate-50 dark:bg-dark-bg px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2"></div>
             </div>
         </div>
     </div>
@@ -267,7 +266,7 @@
         window.qnaData = [];
         window.displayData = [];
 
-        // --- GLOBAL MODAL CONTROLLERS (Matches Code 2) ---
+        // --- MODAL SYSTEM ---
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) {
             document.getElementById('modal-title').textContent = title || 'Notice';
             document.getElementById('modal-body-content').innerHTML = bodyHtml || '';
@@ -301,12 +300,60 @@
             return (`${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`).replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
+        // --- MARKDOWN RENDERER WITH YOUTUBE SUPPORT ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-            const rawHtml = marked.parse(text);
+            
+            let processedText = text;
+            
+            // 1. Process Markdown-style YouTube links: [Video Title](https://youtu.be/XYZ)
+            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
+            processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `<div class="yt-container my-4">
+                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
+            // 2. Process Raw YouTube links: https://youtu.be/XYZ 
+            const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
+            processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `${space}<div class="yt-container my-4">
+                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play YouTube Video</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
+            // Uses marked.js loaded in head
+            const rawHtml = marked.parse(processedText);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
+        // --- YOUTUBE TOGGLE LOGIC ---
+        window.toggleYT = function(containerId, videoId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = ''; 
+            }
+        };
+
+        // --- ADMIN GLOBAL TOGGLE ---
         window.toggleGlobalAnswers = async function() {
             if(!window.db) return;
             const newState = !window.globalPlatformSettings.showAnswers;
@@ -321,56 +368,24 @@
             window.selectedReportType = btn.getAttribute('data-val');
         };
 
-        // FIX: Removed the Login Requirement so the modal will ALWAYS pop open
-        window.openReportModal = function(qId) {
-            window.selectedReportType = "Other";
-            
-            const bodyHtml = `
-            <div class="text-left space-y-4 mt-2">
-                <p class="text-sm text-slate-600 dark:text-slate-400">Issue with Question <b>${qId}</b>.</p>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
-                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
-                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
-                        <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
-                    <textarea id="report-desc" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
-                </div>
-            </div>`;
-            
-            const buttonsHtml = `
-                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors">Submit Report</button>
-                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
-            `;
-            
-            window.showModal("Report Issue", bodyHtml, buttonsHtml, "<span class='text-2xl'>🚩</span>");
-        };
-
-        // FIX: Replaced GET Method with Hidden Iframe POST Method
+        // FIXED: POST form submission via hidden iframe
         window.submitReportToForm = function(qid, btn) {
             const desc = document.getElementById('report-desc').value;
             btn.innerText = "Sending..."; 
             btn.disabled = true;
 
-            // 1. Create a hidden iframe
             const iframeName = 'hidden_iframe_' + Date.now();
-            const iframeContainer = document.createElement('div');
-            iframeContainer.innerHTML = `<iframe name="${iframeName}" id="${iframeName}" style="display:none;"></iframe>`;
-            document.body.appendChild(iframeContainer);
+            const iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
 
-            // 2. Create a hidden form that uses POST
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
             form.target = iframeName;
             form.style.display = 'none';
 
-            // 3. Map inputs to Google Form Entry IDs
             const inputs = [
                 { name: window.REPORT_CONFIG.entryID_QID, value: qid + ' | ' + window.location.href },
                 { name: window.REPORT_CONFIG.entryID_Type, value: window.selectedReportType },
@@ -386,26 +401,22 @@
             });
 
             document.body.appendChild(form);
-            
-            // 4. Submit form natively
             form.submit();
 
-            // 5. Update Modal UI to Success
             setTimeout(() => {
-                document.getElementById('modal-body-content').innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
-                        <p class="text-xs text-slate-500 mt-2">Thank you for helping us improve.</p>
-                    </div>`;
+                document.getElementById('modal-body-content').innerHTML = `<div class="text-center py-4"><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div><h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3></div>`;
                 document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
                 
-                // Cleanup DOM elements
                 setTimeout(() => {
-                    iframeContainer.remove();
+                    iframe.remove();
                     form.remove();
                 }, 2000);
             }, 1000);
+        };
+
+        window.openReportModal = function(qId) {
+            window.selectedReportType = "Other";
+            window.showModal("Report Issue", `<div class="text-left space-y-4 mt-2"><p class="text-sm text-slate-600 dark:text-slate-400">Issue with Question <b>${qId}</b>.</p><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label><div class="grid grid-cols-2 gap-2 mb-2"><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button><button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button></div></div><div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label><textarea id="report-desc" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea></div></div>`, `<button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors">Submit Report</button><button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>`, "<span class='text-2xl'>🚩</span>");
         };
 
         window.toggleAnswers = function() {
@@ -559,7 +570,7 @@
                             <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
                         </div>
                         <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; Audio: &lt;audio src="url"&gt; &nbsp;|&nbsp; YouTube: Just paste link!</p>
                         </div>
                         <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
@@ -796,18 +807,16 @@
 
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
+        // --- ADMIN TOOLS SECURED ---
         window.handleSecretClick = function() { 
-            // 1. Strict Security Check: Verify Admin Status immediately upon click
             const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
             const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
             
-            // 2. Block unauthorized access (in case a student un-hides the button via DevTools)
             if (!isAdmin) {
                 window.showModal("Access Denied", "<p class='text-red-500 font-semibold'>This tool is strictly restricted to administrators only.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white font-bold py-3 rounded-xl border-none">Close</button>`, `<span class='text-2xl'>🚫</span>`);
                 return;
             }
 
-            // 3. Allow Admin to proceed
             window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `<span class='text-2xl'>☕️</span>`); 
         }
 
@@ -847,7 +856,7 @@
             }
 
             if (visibleQuestions.length === 0) {
-                window.showModal("No Questions Found", "<p class='text-slate-600 dark:text-slate-400'>No visible questions found to download.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, "⚠️");
+                window.showModal("No Questions Found", "<p class='text-slate-600 dark:text-slate-400'>No visible questions found to download.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, "⚠️️");
                 return;
             }
 
@@ -950,6 +959,11 @@
             document.body.removeChild(textArea);
         }
 
+        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
+
+        // ==========================================
+        // DECK VIEW
+        // ==========================================
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
@@ -1024,7 +1038,7 @@
             deckLayer.innerHTML = `
                 <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
                     <div class="flex items-center gap-2 md:gap-3">
-                        <button onclick="window.userPanelApp && window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
+                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                         
@@ -1145,7 +1159,7 @@
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
                         <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
-                        <button onclick="window.toggleDeckMode(); window.userPanelApp && window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs border-none">Sign In / Register</button>
+                        <button onclick="window.toggleDeckMode(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs border-none">Sign In / Register</button>
                     </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
@@ -1199,7 +1213,7 @@
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
                             <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
                             <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; Audio: &lt;audio src="url"&gt; &nbsp;|&nbsp; YouTube: Just paste link!</p>
                             </div>
                             <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
                             <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
@@ -1436,6 +1450,8 @@
                 const icon = document.getElementById('theme-icon');
                 if(icon) icon.innerText = '☀️';
             }
+            const modal = document.getElementById('actionModal');
+            if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
             await window.fetchQuestions();
             window.initDeckView(); 
@@ -1552,6 +1568,17 @@
                 btn.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-75');
+            }
+        };
+
+        window.firebaseUpdateSettings = async function(newState) {
+            try {
+                await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
+            } catch (e) {
+                console.error("Settings update failed:", e);
+                alert("Failed to update setting: " + e.message);
+                // Revert toggle UI on error
+                document.getElementById('global-answer-toggle').checked = !newState;
             }
         };
 

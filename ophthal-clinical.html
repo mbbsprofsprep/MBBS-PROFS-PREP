@@ -48,10 +48,6 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
 
-        .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
-        body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
-        html.dark body.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
-
         .theory-question { font-style: italic; color: #0284c7; font-weight: 500; background-color: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3395ff; line-height: 1.6; }
         html.dark .theory-question { background-color: rgba(15, 23, 42, 0.8); color: #bae6fd; border-left-color: #0ea5e9; }
         
@@ -73,6 +69,7 @@
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
 
+        /* --- DECK VIEW CSS --- */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Plus Jakarta Sans', sans-serif; }
         html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
@@ -132,7 +129,7 @@
             <!-- ADMIN GLOBAL TOGGLE & UPLOAD BUTTON -->
             <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
                 
-                <!-- NEW: UPLOAD BUTTON -->
+                <!-- UPLOAD BUTTON -->
                 <button id="admin-upload-btn" onclick="document.getElementById('uploadClinicalModal').classList.remove('hidden')" class="hidden bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
                     ➕ Upload Case
                 </button>
@@ -370,7 +367,7 @@
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
-                window.displayData = window.qnaData.slice(0, 10); // Show only 10 cases to free users
+                window.displayData = window.qnaData.slice(0, 10); 
             } else {
                 window.displayData = [];
             }
@@ -517,22 +514,15 @@
             if (isAdmin) {
                 bodyHtml += `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[400px]">
-                    <!-- Admin Editor -->
                     <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
                             <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
-                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
-                        </div>
-                        <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; YouTube: Just paste link!</p>
                         </div>
                         <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
                             <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Case Notes</button>
                         </div>
                     </div>
-
-                    <!-- Live Preview -->
                     <div class="flex flex-col h-full border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50 shrink-0">
                             <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Live Student Preview</span>
@@ -585,7 +575,11 @@
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
 
-                qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${cleanStem}</span></div>`; 
+                if (item.type === 'MCQ') {
+                    qHtml += `<div class="font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</div>`;
+                } else {
+                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${cleanStem}</span></div>`; 
+                }
 
                 let ansBlockHtml = '';
                 const liveAns = window.liveAnswers[item.q] ? window.liveAnswers[item.q].text : "";
@@ -707,8 +701,82 @@
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
 
         // ==========================================
-        // DECK VIEW
+        // DECK VIEW INITIALIZATION & LOGIC
         // ==========================================
+        
+        window.initDeckView = function() {
+            const deckLayer = document.createElement('div');
+            deckLayer.id = 'universal-deck-layer';
+            deckLayer.innerHTML = `
+                <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
+                    <div class="flex items-center gap-2 md:gap-3">
+                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                        
+                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="Filters">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                        </button>
+                        
+                        <div class="ml-1">
+                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate leading-tight">Review Mode</h1>
+                            <div class="text-[10px] text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span id="deck-counter">1/1</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+                
+                <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
+                
+                <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
+                    <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform border-none">Previous</button>
+                    <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Next</button>
+                </div>
+                
+                <div id="deck-nav-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)" class="border-none bg-transparent">✕</button></div>
+                        <div class="nav-grid" id="deck-nav-grid"></div>
+                    </div>
+                </div>
+                
+                <div id="deck-filter-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
+                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                        </div>
+                        <div class="p-5 overflow-y-auto flex-1 custom-scrollbar" id="deck-filter-content"></div>
+                        <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                            <button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(deckLayer);
+
+            const fab = document.createElement('button'); 
+            fab.id = 'view-toggle-btn'; 
+            fab.innerHTML = '🎴'; 
+            fab.title = "Switch to Deck View";
+            fab.onclick = window.toggleDeckMode; 
+            document.body.appendChild(fab);
+
+            const eyeFab = document.createElement('button');
+            eyeFab.id = 'floating-eye-btn';
+            eyeFab.onclick = window.toggleAnswers;
+            eyeFab.className = 'fixed bottom-[96px] right-6 z-[10000] w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-400 shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all hover:scale-110 active:scale-90';
+            eyeFab.title = "Reveal Table Answers";
+            eyeFab.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+            document.body.appendChild(eyeFab);
+        }
+
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
@@ -867,8 +935,13 @@
                 </div>`;
             }
 
-            questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
-            questionHtml += ansBlockHtml;
+            if (q.type === 'MCQ') {
+                questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
+                questionHtml += ansBlockHtml;
+            } else { 
+                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
+                questionHtml += ansBlockHtml;
+            }
 
             const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
 
@@ -953,6 +1026,7 @@
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
+            window.initDeckView(); 
             await window.fetchQuestions();
         };
     </script>
@@ -1164,7 +1238,6 @@
                 onValue(clinRef, (snapshot) => {
                     const data = snapshot.val() || {};
                     
-                    // Transform Firebase object into the array format the table expects
                     window.qnaData = Object.keys(data).map(key => {
                         return {
                             q: key, 

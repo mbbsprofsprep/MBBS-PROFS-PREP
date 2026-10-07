@@ -275,10 +275,26 @@
                         'anaesthesia': 'anaesthesia-review.html',
                     };
                     
+                    // --- NEW ADMIN VERIFICATION ---
+                    const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
+                    const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
+
                     if (routeMap[sub.id]) {
+                        // 1. Standard PYQ Card (Visible to everyone)
                         links = [{ label: 'Chapter Wise PYQ', url: `${routeMap[sub.id]}?college=${this.state.inst.id}` }];
+                        
+                        // 2. Secret Clinical Card (Visible ONLY to admins)
+                        if (isAdmin) {
+                            // This dynamically changes 'anatomy-review.html' to 'anatomy-clinical.html' for the URL
+                            const clinicalUrl = routeMap[sub.id].replace('-review.html', '-clinical.html');
+                            links.push({ label: 'Clinical', url: `${clinicalUrl}?college=${this.state.inst.id}` });
+                        }
                     } else {
+                        // Fallback for subjects without a defined route
                         links = [{ label: `${sub.name} Bank`, url: `#` }];
+                        if (isAdmin) {
+                            links.push({ label: `Clinical`, url: `#` });
+                        }
                     }
                 }
 
@@ -287,7 +303,7 @@
                 if (push) history.pushState({ view: 'resources', inst: this.state.inst, year: this.state.year, sub: this.state.sub }, '');
                 this.renderResources(this.state.inst, this.state.year, sub, links);
             },
-
+            
             showLockedModal: function(name) { alert(`Bank for ${name} is coming soon!`); },
             
             renderInstitutes: function() {

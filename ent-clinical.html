@@ -223,6 +223,13 @@
                     <h3 id="clinicalModalTitle" class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Clinical Case</h3>
                     <button onclick="document.getElementById('uploadClinicalModal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">✕</button>
                 </div>
+                
+               <!-- ADD THIS RIGHT BEFORE THE "Case Scenario" TEXTAREA -->
+<div class="mb-4">
+    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Custom Case ID (Leave blank to auto-generate)</label>
+    <input type="text" id="clin-q-id" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-bold text-brand-600 dark:text-brand-400" placeholder="e.g. ENT-001">
+</div>
+
                 <div class="p-6 bg-white dark:bg-slate-900 space-y-5">
                     <div>
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Case Scenario / Question Stem</label>
@@ -313,22 +320,25 @@
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-        // --- ANKI IMPORT LOGIC (ADMIN ONLY) ---
+               // --- ANKI IMPORT LOGIC (ADMIN ONLY) ---
         window.processAnkiImport = async function(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. PROMPT FOR CUSTOM TOPIC
+            // 1. Prompt for Topic
             const customTopicInput = prompt("Enter the Topic / System name for this Anki import:", "General Clinical");
-            
-            // 2. IF USER CLICKS CANCEL, ABORT THE IMPORT
-            if (customTopicInput === null) {
-                event.target.value = ''; // Reset input so they can click it again if needed
-                return;
-            }
-            
-            // Clean up the input (fallback to "General Clinical" if they leave it blank)
+            if (customTopicInput === null) { event.target.value = ''; return; }
             const finalTopic = customTopicInput.trim() || "General Clinical";
+
+            // 2. Prompt for ID Prefix
+            const prefixInput = prompt("Enter a Prefix for the Question IDs:", "ENT-ANKI");
+            if (prefixInput === null) { event.target.value = ''; return; }
+            const idPrefix = prefixInput.trim() || "ENT-ANKI";
+
+            // 3. Prompt for Starting Number
+            const startNumInput = prompt(`Enter the starting number for these cases (e.g., if you type 1, it will be ${idPrefix}-1):`, "1");
+            if (startNumInput === null) { event.target.value = ''; return; }
+            const startNum = parseInt(startNumInput) || 1;
 
             window.showModal("Importing Anki Deck...", `<div class="py-6 text-center"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="text-sm font-bold text-slate-500">Reading file and syncing to Firebase...</p></div>`, "", "");
 
@@ -350,7 +360,6 @@
                         }
                         if (parts.length < 2) continue; // Skip malformed lines
 
-                        // Clean front and back: Replace &#59; with semicolons
                         let frontText = parts[0].trim().replace(/&#59;/g, ';');
                         let backText = parts.slice(1).join(';').trim().replace(/&#59;/g, ';');
 
@@ -360,7 +369,6 @@
                         let explanation = backText;
                         let type = 'Theory';
 
-                        // Parse Options using Regex (Matches A) B) C) D) structure separated by line breaks or <br>)
                         const optRegex = /(.*?)(?:<br\s*\/?>|\n|^)A\)\s*(.*?)(?:<br\s*\/?>|\n)B\)\s*(.*?)(?:<br\s*\/?>|\n)C\)\s*(.*?)(?:<br\s*\/?>|\n)D\)\s*(.*)/is;
                         const match = frontText.match(optRegex);
 
@@ -373,26 +381,22 @@
                                 match[4].trim().replace(/<br\s*\/?>/gi, '\n'),
                                 match[5].trim().replace(/<br\s*\/?>/gi, '\n')
                             ];
-
-                            // Extract Correct Answer from the Back face
                             const ansMatch = backText.match(/Correct Answer:\s*([A-E])/i) || backText.match(/<b>Correct Answer:\s*([A-E])<\/b>/i);
                             if (ansMatch) {
                                 ansKey = ansMatch[1].toUpperCase();
-                                // Clean the "Correct Answer" string out of the final explanation text
                                 explanation = backText.replace(/<b.*?>Correct Answer:\s*[A-E]<\/b>(?:<br\s*\/?>|\n)*/i, '').replace(/Correct Answer:\s*[A-E](?:<br\s*\/?>|\n)*/i, '').trim();
                             }
                         } else {
-                            // If no options matched, just convert <br> to newlines
                             stem = frontText.replace(/<br\s*\/?>/gi, '\n').trim();
                         }
 
-                        // Generate ID and assign sequential ordering
-                        const qId = "CLIN-ANKI-" + Math.floor(Math.random() * 90000 + 10000);
-                        const order = Date.now() + successCount; // Ensures proper sequence
+                        // Generate incremental ID using User's choices
+                        const qId = `${idPrefix}-${startNum + successCount}`;
+                        const order = Date.now() + successCount; 
 
                         const payload = {
                             stem: stem,
-                            chapter: finalTopic, // <--- NOW USING THE TYPED IN TOPIC
+                            chapter: finalTopic, 
                             type: type,
                             order: order,
                             timestamp: new Date().toISOString(),
@@ -408,7 +412,6 @@
                             payload.answer = explanation.replace(/<br\s*\/?>/gi, '\n');
                         }
 
-                        // Save the complete Question to Firebase
                         const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
                         await set(qRef, payload);
 
@@ -417,12 +420,12 @@
 
                     window.showModal(
                         "Import Complete! 🎉", 
-                        `<p class="text-slate-600 dark:text-slate-300 font-medium">Successfully processed and imported <b>${successCount}</b> questions to the database under the topic: <b>${finalTopic}</b>.</p>`, 
+                        `<p class="text-slate-600 dark:text-slate-300 font-medium">Successfully processed and imported <b>${successCount}</b> questions starting at <b>${idPrefix}-${startNum}</b> under the topic: <b>${finalTopic}</b>.</p>`, 
                         `<button onclick="window.closeModal()" class="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg border-none hover:bg-green-600 transition-colors">Done</button>`, 
                         `📥`
                     );
                     
-                    document.getElementById('ankiFileInput').value = ''; // Reset input
+                    document.getElementById('ankiFileInput').value = '';
 
                 } catch(error) {
                     console.error(error);
@@ -433,7 +436,8 @@
         };
 
         // --- QUESTION EDITOR LOGIC ---
-        window.openAddClinicalModal = function() {
+                window.openAddClinicalModal = function() {
+            document.getElementById('clin-q-id').value = ''; // Clear ID
             document.getElementById('clin-q-stem').value = '';
             document.getElementById('clin-q-chap').value = '';
             document.getElementById('clin-q-type').value = 'Theory';
@@ -455,7 +459,6 @@
             const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
             if(!q) return;
 
-            // If it's an MCQ, append options back to the stem box for editing
             let stemText = q.stem;
             if (q.type === 'MCQ' && q.options) {
                 stemText += '\n';
@@ -464,6 +467,7 @@
                 });
             }
 
+            document.getElementById('clin-q-id').value = q.q; // Populate the editable ID
             document.getElementById('clin-q-stem').value = stemText;
             document.getElementById('clin-q-chap').value = (Array.isArray(q.chapter) ? q.chapter[0] : q.chapter) || '';
             document.getElementById('clin-q-type').value = q.type || 'Theory';
@@ -480,6 +484,7 @@
 
             document.getElementById('uploadClinicalModal').classList.remove('hidden');
         };
+
 
         // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
@@ -1373,8 +1378,9 @@
             }
         };
 
-        // --- UNIFIED SAVE FUNCTION FOR ADDING & EDITING CLINICAL QUESTIONS ---
+                // --- UNIFIED SAVE FUNCTION FOR ADDING & EDITING CLINICAL QUESTIONS ---
         window.saveClinicalQuestion = async function(btn) {
+            let customId = document.getElementById('clin-q-id').value.trim(); // Grab custom ID
             const stem = document.getElementById('clin-q-stem').value.trim();
             const chap = document.getElementById('clin-q-chap').value.trim() || 'General Clinical';
             const type = document.getElementById('clin-q-type').value;
@@ -1390,9 +1396,10 @@
             btn.classList.add('opacity-75');
 
             try {
-                // Generate new unique ID or use existing for edits
-                const qId = editId ? editId : "CLIN-" + Math.floor(Math.random() * 90000 + 10000); 
-                const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                // If they left the ID blank, auto-generate one or keep the original editId
+                const finalQId = customId || (editId ? editId : "CLIN-" + Math.floor(Math.random() * 90000 + 10000));
+                
+                const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${finalQId}`);
                 
                 // Preserve sequence order logic
                 const existingOrder = editId ? (window.qnaData.find(x => x.q === editId)?.order || Date.now()) : Date.now();
@@ -1421,14 +1428,21 @@
                     }
                 }
 
-                if (editId) {
+                // If editing and the user changed the ID, we must delete the old one first to avoid duplicates
+                if (editId && editId !== finalQId) {
+                    const oldRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${editId}`);
+                    await remove(oldRef);
+                }
+
+                // Save or Update the new node
+                if (editId && editId === finalQId) {
                     await update(qRef, payload);
                 } else {
-                    await set(qRef, payload);
+                    await set(qRef, payload); // Using SET for new creation or when migrating to a new ID
                 }
 
                 // Manage answers safely based on whether creating or editing
-                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}/answer`);
+                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${finalQId}/answer`);
                 if (ans !== "") {
                     await set(answerRef, ans);
                 } else if (ans === "" && editId) {
@@ -1454,6 +1468,7 @@
                 btn.classList.remove('opacity-75');
             }
         };
+
 
         // --- UNIFIED SAVE FUNCTION FOR ADMIN ANSWERS (Notes Edits) ---
         window.saveAdminAnswer = async function(qId, btn, context) {

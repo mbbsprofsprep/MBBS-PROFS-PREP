@@ -148,11 +148,14 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
                         <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
-                    <!-- ADMIN ONLY ANKI BUTTON -->
-                    <button id="admin-anki-btn" onclick="window.exportToAnki()" class="hidden px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors items-center gap-2 shadow-sm whitespace-nowrap" title="Export current cases to Anki">
+                    <!-- ADMIN ONLY ANKI IMPORT BUTTON -->
+                    <button id="admin-anki-btn" onclick="document.getElementById('ankiFileInput').click()" class="hidden px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors items-center gap-2 shadow-sm whitespace-nowrap" title="Import Anki .txt file">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        Anki
+                        📥 Import Anki
                     </button>
+                    <!-- HIDDEN FILE INPUT -->
+                    <input type="file" id="ankiFileInput" accept=".txt,.csv" class="hidden" onchange="window.processAnkiImport(event)" />
+                    
                     <button id="summaryButton" onclick="window.handleSecretClick()" title="Admin Tools" style="display: none;">☕</button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
@@ -299,81 +302,73 @@
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-        // --- ANKI EXPORT LOGIC (ADMIN ONLY) ---
-        window.exportToAnki = function() {
-            if (!window.displayData || window.displayData.length === 0) {
-                alert("No cases loaded. Please wait for the database to sync.");
-                return;
-            }
+        // --- ANKI IMPORT LOGIC (ADMIN ONLY) ---
+        window.processAnkiImport = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            // Get current filtered view
-            const searchText = document.getElementById("searchInput").value.toLowerCase();
-            const dataToExport = window.displayData.filter(item => {
-                let show = true;
-                if (searchText) {
-                    const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-                    let rowText = (item.stem || "") + " " + chArray.join(" ");
-                    if (rowText.toLowerCase().indexOf(searchText) === -1) show = false;
-                }
-                if (show && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) show = false;
-                if (show && window.filterState.chapters.size > 0) {
-                    const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-                    if(!chArray.some(ch => window.filterState.chapters.has(ch))) show = false;
-                }
-                if (show && window.filterState.exams.size > 0) {
-                    let hasExamMatch = false;
-                    if (Array.isArray(item.examBatch)) {
-                        hasExamMatch = item.examBatch.some(e => window.filterState.exams.has(e));
-                    } else {
-                        hasExamMatch = window.filterState.exams.has(item.examBatch);
+            window.showModal("Importing Anki Deck...", `<div class="py-6 text-center"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="text-sm font-bold text-slate-500">Reading file and syncing to Firebase...</p></div>`, "", "");
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+                    let successCount = 0;
+                    
+                    const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+                    for (let line of lines) {
+                        if (!line.trim()) continue;
+                        
+                        let parts = line.split(';');
+                        if (parts.length < 2) {
+                            parts = line.split('\t');
+                        }
+                        if (parts.length < 2) continue; // Skip malformed lines
+
+                        // Clean front and back: Replace <br> with newlines, replace &#59; with semicolons
+                        const front = parts[0].trim().replace(/<br\s*\/?>/gi, '\n').replace(/&#59;/g, ';');
+                        const back = parts.slice(1).join(';').trim().replace(/<br\s*\/?>/gi, '\n').replace(/&#59;/g, ';');
+
+                        // Auto-detect Format
+                        const isMCQ = front.match(/[A-D]\)/i) !== null;
+                        const type = isMCQ ? 'MCQ' : 'Theory';
+
+                        // Generate ID and assign sequential ordering
+                        const qId = "CLIN-ANKI-" + Math.floor(Math.random() * 90000 + 10000);
+                        const order = Date.now() + successCount; // Ensures proper sequence
+
+                        const payload = {
+                            stem: front,
+                            chapter: "Anki Imports", // Auto-grouping
+                            type: type,
+                            order: order,
+                            timestamp: new Date().toISOString(),
+                            uploadedBy: window.currentUserObj.email
+                        };
+                        if (back) payload.answer = back;
+
+                        const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                        await set(qRef, payload);
+                        successCount++;
                     }
-                    if (!hasExamMatch) show = false;
+
+                    window.showModal(
+                        "Import Complete! 🎉", 
+                        `<p class="text-slate-600 dark:text-slate-300 font-medium">Successfully processed and imported <b>${successCount}</b> clinical cases to the database.</p>`, 
+                        `<button onclick="window.closeModal()" class="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg border-none hover:bg-green-600 transition-colors">Done</button>`, 
+                        `📥`
+                    );
+                    
+                    document.getElementById('ankiFileInput').value = ''; // Reset input
+
+                } catch(error) {
+                    console.error(error);
+                    window.showModal("Import Failed", `<p class="text-red-500">${error.message}</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 rounded-lg font-bold">Close</button>`, "⚠️");
                 }
-                return show;
-            });
-
-            if (dataToExport.length === 0) {
-                alert("No cases match your current filters to export.");
-                return;
-            }
-
-            let ankiContent = "";
-            dataToExport.forEach(q => {
-                let front = q.stem.replace(/\n/g, '<br>').replace(/;/g, '&#59;'); 
-                let rawAns = window.liveAnswers[q.q] ? window.liveAnswers[q.q].text : "No notes/answer available yet.";
-                let back = window.renderMarkdown(rawAns).replace(/\n/g, ' ').replace(/;/g, '&#59;'); 
-                ankiContent += `${front};${back}\n`;
-            });
-
-            const blob = new Blob([ankiContent], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `MBBS_PROFS_${window.SUBJECT_CODE}_Anki_Deck.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            window.showModal(
-                "Anki Deck Exported! 🗂️",
-                `<div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 text-left">
-                    <p>Your currently filtered list (<b>${dataToExport.length} cases</b>) has been saved as a <b>.txt</b> file.</p>
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                        <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">Import Instructions for Anki:</p>
-                        <ol class="list-decimal pl-5 space-y-1 text-blue-700 dark:text-blue-400">
-                            <li>Open Anki and click <b>File > Import</b>.</li>
-                            <li>Select the downloaded .txt file.</li>
-                            <li>Set Field separator to <b>Semicolon</b>.</li>
-                            <li><b>Check "Allow HTML in fields"</b> (Crucial for formatting).</li>
-                            <li>Ensure Field 1 maps to "Front" and Field 2 to "Back".</li>
-                            <li>Click Import!</li>
-                        </ol>
-                    </div>
-                </div>`,
-                `<button onclick="window.closeModal()" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-md hover:bg-brand-600 transition-colors">Got it, Thanks!</button>`,
-                `✅`
-            );
+            };
+            reader.readAsText(file);
         };
 
         // --- QUESTION EDITOR LOGIC ---

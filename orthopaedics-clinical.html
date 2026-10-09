@@ -9,6 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- SORTABLE JS FOR DRAG AND DROP -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
     <script>
         tailwind.config = { 
@@ -77,10 +79,6 @@
         
         .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #334155; cursor: pointer; position: relative; }
         html.dark .deck-option-btn { border-color: #1e293b; background: rgba(30, 41, 59, 0.5); color: #cbd5e1; }
-        .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; opacity: 1 !important; }
-        html.dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
-        .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; opacity: 0.7; }
-        html.dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
         
         #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
@@ -96,8 +94,6 @@
         .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         html.dark .deck-nav-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
         .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
-        .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
-        .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
 
         /* --- STYLED MARKDOWN RENDER CLASSES --- */
         .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
@@ -110,6 +106,10 @@
         html.dark .markdown-body strong { color: #f8fafc; }
         .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
         html.dark .markdown-body img { border-color: #334155; }
+        
+        /* Drag handle formatting */
+        .sortable-ghost { opacity: 0.4; background-color: #f0f9ff; }
+        html.dark .sortable-ghost { background-color: #1e293b; }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -129,7 +129,6 @@
             <!-- ADMIN GLOBAL TOGGLE & UPLOAD BUTTON -->
             <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
                 
-                <!-- UPLOAD BUTTON -->
                 <button id="admin-upload-btn" onclick="window.openAddClinicalModal()" class="hidden bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
                     ➕ Upload Case
                 </button>
@@ -149,6 +148,11 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
                         <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
+                    <!-- ADMIN ONLY ANKI BUTTON -->
+                    <button id="admin-anki-btn" onclick="window.exportToAnki()" class="hidden px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors items-center gap-2 shadow-sm whitespace-nowrap" title="Export current cases to Anki">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Anki
+                    </button>
                     <button id="summaryButton" onclick="window.handleSecretClick()" title="Admin Tools" style="display: none;">☕</button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
@@ -162,7 +166,7 @@
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800" id="qnaTable">
                     <thead class="bg-brand-500 dark:bg-dark-surface border-b dark:border-slate-700">
                         <tr>
-                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-16">Case ID</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-20">Case ID</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase min-w-[350px]">Clinical Scenario</th>
                             <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase min-w-[100px]">Format</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[200px]">System & Topic</th>
@@ -271,7 +275,7 @@
         window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
-        // 🟢 SETTING TO ORTHOPAEDICS 
+        // 🟢 SETTING TO ORTHOPAEDICS
         window.SUBJECT_CODE ="ORTHOPAEDICS"; 
         
         window.curriculumData = [];
@@ -293,6 +297,83 @@
         window.getUniqueQuestionId = function(qId) {
             const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_CLINICAL_${qId}`;
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
+        };
+
+        // --- ANKI EXPORT LOGIC (ADMIN ONLY) ---
+        window.exportToAnki = function() {
+            if (!window.displayData || window.displayData.length === 0) {
+                alert("No cases loaded. Please wait for the database to sync.");
+                return;
+            }
+
+            // Get current filtered view
+            const searchText = document.getElementById("searchInput").value.toLowerCase();
+            const dataToExport = window.displayData.filter(item => {
+                let show = true;
+                if (searchText) {
+                    const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+                    let rowText = (item.stem || "") + " " + chArray.join(" ");
+                    if (rowText.toLowerCase().indexOf(searchText) === -1) show = false;
+                }
+                if (show && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) show = false;
+                if (show && window.filterState.chapters.size > 0) {
+                    const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+                    if(!chArray.some(ch => window.filterState.chapters.has(ch))) show = false;
+                }
+                if (show && window.filterState.exams.size > 0) {
+                    let hasExamMatch = false;
+                    if (Array.isArray(item.examBatch)) {
+                        hasExamMatch = item.examBatch.some(e => window.filterState.exams.has(e));
+                    } else {
+                        hasExamMatch = window.filterState.exams.has(item.examBatch);
+                    }
+                    if (!hasExamMatch) show = false;
+                }
+                return show;
+            });
+
+            if (dataToExport.length === 0) {
+                alert("No cases match your current filters to export.");
+                return;
+            }
+
+            let ankiContent = "";
+            dataToExport.forEach(q => {
+                let front = q.stem.replace(/\n/g, '<br>').replace(/;/g, '&#59;'); 
+                let rawAns = window.liveAnswers[q.q] ? window.liveAnswers[q.q].text : "No notes/answer available yet.";
+                let back = window.renderMarkdown(rawAns).replace(/\n/g, ' ').replace(/;/g, '&#59;'); 
+                ankiContent += `${front};${back}\n`;
+            });
+
+            const blob = new Blob([ankiContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MBBS_PROFS_${window.SUBJECT_CODE}_Anki_Deck.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            window.showModal(
+                "Anki Deck Exported! 🗂️",
+                `<div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 text-left">
+                    <p>Your currently filtered list (<b>${dataToExport.length} cases</b>) has been saved as a <b>.txt</b> file.</p>
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">Import Instructions for Anki:</p>
+                        <ol class="list-decimal pl-5 space-y-1 text-blue-700 dark:text-blue-400">
+                            <li>Open Anki and click <b>File > Import</b>.</li>
+                            <li>Select the downloaded .txt file.</li>
+                            <li>Set Field separator to <b>Semicolon</b>.</li>
+                            <li><b>Check "Allow HTML in fields"</b> (Crucial for formatting).</li>
+                            <li>Ensure Field 1 maps to "Front" and Field 2 to "Back".</li>
+                            <li>Click Import!</li>
+                        </ol>
+                    </div>
+                </div>`,
+                `<button onclick="window.closeModal()" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-md hover:bg-brand-600 transition-colors">Got it, Thanks!</button>`,
+                `✅`
+            );
         };
 
         // --- QUESTION EDITOR LOGIC ---
@@ -602,10 +683,15 @@
             
             window.displayData.forEach((item, index) => {
                 const row = tbody.insertRow();
-                row.className = 'hover:bg-brand-50 dark:hover:bg-slate-800 group border-b border-slate-200 dark:border-slate-800'; 
+                row.className = 'hover:bg-brand-50 dark:hover:bg-slate-800 group border-b border-slate-200 dark:border-slate-800 transition-colors'; 
                 row.setAttribute('data-index', index);
                 
-                let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
+                // Add drag handle for admins
+                let cell1 = row.insertCell(); 
+                cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle relative'; 
+                let handleHtml = isAdmin ? `<div class="drag-handle cursor-grab absolute left-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 p-1" title="Drag to reorder">⋮⋮</div>` : '';
+                cell1.innerHTML = `${handleHtml} <span class="pl-2">${item.q}</span>`;
+                
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
@@ -629,7 +715,10 @@
                     if (isAdmin) {
                         adminBtnsHtml = `
                         <button onclick="window.editClinicalQuestion('${item.q}')" class="w-full md:w-auto px-4 py-2.5 font-bold rounded-xl border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/50 transition-colors text-xs uppercase tracking-wider shadow-sm mt-2 md:mt-0">
-                            ✏️ Edit Q
+                            ✏️ Edit
+                        </button>
+                        <button onclick="window.deleteClinicalQuestion('${item.q}')" class="w-full md:w-auto px-4 py-2.5 font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors text-xs uppercase tracking-wider shadow-sm mt-2 md:mt-0">
+                            🗑️ Delete
                         </button>
                         `;
                     }
@@ -678,6 +767,67 @@
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
                 cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all clinical cases.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Upgrade to Pro</a>`;
+            }
+
+            // Initialize SortableJS for Admins
+            if (isAdmin && window.Sortable) {
+                if (window.tableSortable) {
+                    window.tableSortable.destroy();
+                }
+                window.tableSortable = new Sortable(tbody, {
+                    animation: 150,
+                    handle: '.drag-handle', 
+                    ghostClass: 'sortable-ghost',
+                    onEnd: async function (evt) {
+                        const itemEl = evt.item; 
+                        const newIndex = evt.newIndex;
+                        
+                        // Prevent sorting if filters are active
+                        if(document.getElementById("searchInput").value || window.filterState.types.size > 0 || window.filterState.chapters.size > 0 || window.filterState.exams.size > 0) {
+                            alert("Reordering is disabled while filters or search are active. Clear them to reorder.");
+                            window.populateTable(); // Revert UI
+                            return;
+                        }
+
+                        const rows = tbody.querySelectorAll('tr[data-index]');
+                        let prevOrder = 0;
+                        let nextOrder = 0;
+
+                        if (newIndex === 0) {
+                            // Moved to very top
+                            const nextDataIndex = rows[1]?.getAttribute('data-index');
+                            nextOrder = window.displayData[nextDataIndex]?.order || Date.now();
+                            prevOrder = nextOrder - 10000;
+                        } else if (newIndex === rows.length - 1) {
+                            // Moved to very bottom
+                            const prevDataIndex = rows[rows.length - 2]?.getAttribute('data-index');
+                            prevOrder = window.displayData[prevDataIndex]?.order || Date.now();
+                            nextOrder = prevOrder + 10000;
+                        } else {
+                            // Moved between two items
+                            const prevDataIndex = rows[newIndex - 1]?.getAttribute('data-index');
+                            const nextDataIndex = rows[newIndex + 1]?.getAttribute('data-index');
+                            prevOrder = window.displayData[prevDataIndex]?.order || Date.now();
+                            nextOrder = window.displayData[nextDataIndex]?.order || Date.now();
+                        }
+
+                        // Calculate middle order
+                        const newOrder = (prevOrder + nextOrder) / 2;
+                        const movedDataIndex = itemEl.getAttribute('data-index');
+                        const movedItem = window.displayData[movedDataIndex];
+                        
+                        // Update Firebase implicitly
+                        try {
+                            const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                            const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${movedItem.q}`);
+                            await update(qRef, { order: newOrder });
+                        } catch(e) {
+                            console.error(e);
+                            alert("Failed to save new sequence order.");
+                            window.populateTable();
+                        }
+                    }
+                });
             }
         }
 
@@ -968,7 +1118,10 @@
                 if (isAdmin) {
                     adminBtnsHtml = `
                     <button onclick="window.editClinicalQuestion('${q.q}')" class="px-4 py-3 font-bold rounded-xl border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 transition-colors text-sm shadow-sm">
-                        ✏️ Edit Q
+                        ✏️ Edit
+                    </button>
+                    <button onclick="window.deleteClinicalQuestion('${q.q}')" class="px-4 py-3 font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 transition-colors text-sm shadow-sm">
+                        🗑️ Delete
                     </button>
                     `;
                 }
@@ -1104,6 +1257,17 @@
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
+        // --- DELETE CLINICAL QUESTION (ADMIN ONLY) ---
+        window.deleteClinicalQuestion = async function(qId) {
+            if(!confirm(`⚠️ Are you sure you want to permanently delete case ${qId}? This cannot be undone.`)) return;
+            try {
+                const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                await remove(qRef);
+            } catch (error) {
+                alert("Failed to delete: " + error.message);
+            }
+        };
+
         // --- UNIFIED SAVE FUNCTION FOR ADDING & EDITING CLINICAL QUESTIONS ---
         window.saveClinicalQuestion = async function(btn) {
             const stem = document.getElementById('clin-q-stem').value.trim();
@@ -1121,14 +1285,18 @@
             btn.classList.add('opacity-75');
 
             try {
-                // Use edit ID or generate a new unique ID
+                // Generate new unique ID or use existing for edits
                 const qId = editId ? editId : "CLIN-" + Math.floor(Math.random() * 90000 + 10000); 
                 const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
                 
+                // Preserve sequence order logic
+                const existingOrder = editId ? (window.qnaData.find(x => x.q === editId)?.order || Date.now()) : Date.now();
+
                 const payload = {
                     stem: stem,
                     chapter: chap,
                     type: type,
+                    order: existingOrder,
                     timestamp: new Date().toISOString(),
                     uploadedBy: window.currentUserObj.email
                 };
@@ -1137,7 +1305,7 @@
                 if (ans !== "") {
                     payload.answer = ans;
                 } else if (ans === "" && editId) {
-                    payload.answer = null; // Will remove the field completely if cleared in edit mode
+                    payload.answer = null; 
                 } else {
                     payload.answer = "";
                 }
@@ -1275,6 +1443,7 @@
             const coffeeBtn = document.getElementById('summaryButton');
             const adminControls = document.getElementById('admin-controls');
             const uploadBtn = document.getElementById('admin-upload-btn'); 
+            const ankiBtn = document.getElementById('admin-anki-btn'); 
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
@@ -1283,6 +1452,7 @@
                 if (coffeeBtn) coffeeBtn.style.display = isAdmin ? 'inline-block' : 'none';
                 if (adminControls) { adminControls.classList.toggle('hidden', !isAdmin); adminControls.classList.toggle('flex', isAdmin); }
                 if (uploadBtn) uploadBtn.classList.toggle('hidden', !isAdmin); 
+                if (ankiBtn) { ankiBtn.classList.toggle('hidden', !isAdmin); ankiBtn.classList.toggle('flex', isAdmin); } 
 
                 // --- LISTEN FOR GLOBAL SETTINGS ---
                 const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_CLINICAL`);
@@ -1299,7 +1469,7 @@
                     }
                 });
 
-                // --- FETCH CLINICAL QUESTIONS FROM FIREBASE ---
+                // --- FETCH CLINICAL QUESTIONS FROM FIREBASE (Now Order Based) ---
                 const clinRef = ref(db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
                 onValue(clinRef, (snapshot) => {
                     const data = snapshot.val() || {};
@@ -1311,9 +1481,10 @@
                             chapter: [data[key].chapter],
                             type: data[key].type,
                             examBatch: "Clinical Wards",
+                            order: data[key].order || 0, // Enforce order property
                             ans_key: "" 
                         };
-                    }).reverse(); 
+                    }).sort((a, b) => a.order - b.order); // Sort ascending by order
 
                     window.liveAnswers = {};
                     Object.keys(data).forEach(key => {
@@ -1358,6 +1529,7 @@
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
                 if (adminControls) { adminControls.classList.add('hidden'); adminControls.classList.remove('flex'); }
                 if (uploadBtn) uploadBtn.classList.add('hidden'); 
+                if (ankiBtn) { ankiBtn.classList.add('hidden'); ankiBtn.classList.remove('flex'); } 
 
                 window.currentUserProfileData = {}; 
                 window.userBookmarks = {}; 

@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="dynamic-page-title">MBBS PROFS PREP - Exam Review</title>
+    <title id="dynamic-page-title">MBBS PROFS Prep ENT Clinical Cases</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
-    <!-- Robust Markdown Parser for Gemini Output & Media -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- SORTABLE JS FOR DRAG AND DROP -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -51,6 +50,7 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
 
+        /* MCQ Table Rendering Styles */
         .correct-option { font-weight: 400; color: inherit; background-color: transparent; padding: 0; border-radius: 0; display: inline; }
         body.show-answers .correct-option { font-weight: 700; color: #15803d; background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; border: 1px solid #22c55e; }
         html.dark body.show-answers .correct-option { color: #4ade80; background-color: rgba(34, 197, 94, 0.2); border: 1px solid #15803d; }
@@ -72,19 +72,17 @@
         .multiselect-option:hover { background-color: #f0f9ff; }
         html.dark .multiselect-option:hover { background-color: #1e293b; }
         .multiselect-option input[type="checkbox"] { margin-right: 0.75rem; width: 1rem; height: 1rem; accent-color: #3395ff; }
-
-        .multiselect-group-header { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #0284c7; background-color: #e0f2fe; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; cursor: pointer; }
-        html.dark .multiselect-group-header { background-color: #020617; color: #38bdf8; }
-        .multiselect-group-header input[type="checkbox"] { margin-right: 0.75rem; accent-color: #0284c7; }
         
         #summaryButton { font-size: 1.5rem; padding: 4px 8px; background-color: transparent; border: none; cursor: pointer; transition: transform 0.3s ease; }
         #summaryButton:hover { transform: scale(1.2); }
 
+        /* --- DECK VIEW CSS --- */
         #universal-deck-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8fafc; z-index: 9990; flex-direction: column; font-family: 'Plus Jakarta Sans', sans-serif; }
         html.dark #universal-deck-layer { background: #020617; color: white; }
         .deck-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
         html.dark .deck-card { background: #0f172a; border: 1px solid #1e293b; }
         
+        /* MCQ Deck Button Styles */
         .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #334155; cursor: pointer; position: relative; }
         html.dark .deck-option-btn { border-color: #1e293b; background: rgba(30, 41, 59, 0.5); color: #cbd5e1; }
         .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; opacity: 1 !important; }
@@ -109,16 +107,7 @@
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
 
-        /* --- ADMIN FLASHCARD 3D FLIP ANIMATION --- */
-        #deck-card-container { display: flex; flex-direction: column; }
-        .flashcard-container { perspective: 1500px; -webkit-perspective: 1500px; flex: 1; width: 100%; display: flex; flex-direction: column; }
-        .flashcard-inner { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; -webkit-transform-style: preserve-3d; position: relative; width: 100%; flex: 1; }
-        .flashcard-inner.is-flipped { transform: rotateY(180deg); -webkit-transform: rotateY(180deg); }
-        .flashcard-front, .flashcard-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; -webkit-transform: translate3d(0,0,0); }
-        .flashcard-front { transform: rotateY(0deg) translate3d(0,0,0); -webkit-transform: rotateY(0deg) translate3d(0,0,0); z-index: 2; -webkit-tap-highlight-color: transparent; }
-        .flashcard-back { transform: rotateY(180deg) translate3d(0,0,0); -webkit-transform: rotateY(180deg) translate3d(0,0,0); }
-
-        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables & Media) --- */
+        /* --- STYLED MARKDOWN RENDER CLASSES --- */
         .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
         .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
         html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
@@ -127,20 +116,8 @@
         .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
         .markdown-body strong { font-weight: 800; color: #0f172a; }
         html.dark .markdown-body strong { color: #f8fafc; }
-        
-        /* Media Specifics */
         .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
         html.dark .markdown-body img { border-color: #334155; }
-        .markdown-body audio, .markdown-body video { width: 100%; max-width: 100%; margin: 1rem 0; border-radius: 0.5rem; outline: none; }
-        
-        /* Table Specifics */
-        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
-        html.dark .markdown-table-wrapper { border-color: #334155; background: #0f172a; }
-        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
-        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
-        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
-        .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
-        html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
         
         /* Drag handle formatting */
         .sortable-ghost { opacity: 0.4; background-color: #f0f9ff; }
@@ -157,15 +134,17 @@
 
     <div class="w-full px-4 pt-28 pb-8 max-w-7xl mx-auto flex-1" id="main-wrapper">
         <header class="text-center mb-10 relative">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">Subject Exam Review</h1>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight mb-2" id="dynamic-subject-title">ENT Clinical Cases</h1>
             <h2 class="text-xl md:text-2xl font-semibold text-brand-500 dark:text-brand-300" id="dynamic-college-header">MBBS PROFS PREP</h2>
-            <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Comprehensive Index of High-Yield Questions.</p>
+            <p class="mt-3 text-md text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Live Clinical Database & Ward Scenarios.</p>
             
             <!-- ADMIN GLOBAL TOGGLE & UPLOAD BUTTON -->
             <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
-                <button id="admin-upload-btn" onclick="window.openAddClinicalModal()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
+                
+                <button id="admin-upload-btn" onclick="window.openAddClinicalModal()" class="hidden bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
                     ➕ Upload Case
                 </button>
+
                 <span class="text-[10px] font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Student Answers</span>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="global-answer-toggle" class="sr-only peer" onchange="window.toggleGlobalAnswers()">
@@ -189,7 +168,7 @@
                     <!-- HIDDEN FILE INPUT -->
                     <input type="file" id="ankiFileInput" accept=".txt,.csv" class="hidden" onchange="window.processAnkiImport(event)" />
                     
-                    <button id="summaryButton" onclick="window.handleSecretClick()" title="Admin Tools" style="display: none;">☕️</button>
+                    <button id="summaryButton" onclick="window.handleSecretClick()" title="Admin Tools" style="display: none;">☕</button>
                 </div>
                 <div class="md:col-span-2" id="typeFilterWrapper"></div>
                 <div class="md:col-span-3" id="chapterFilterWrapper"></div>
@@ -202,11 +181,11 @@
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800" id="qnaTable">
                     <thead class="bg-brand-500 dark:bg-dark-surface border-b dark:border-slate-700">
                         <tr>
-                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-16">Q No.</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase min-w-[350px]">Question Content</th>
-                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase min-w-[100px]">Type</th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[200px]">Unit & Chapter</th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[150px]">Exam Batch</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-20">Case ID</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase min-w-[350px]">Clinical Scenario</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase min-w-[100px]">Format</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[200px]">System & Topic</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-white uppercase min-w-[150px]">Source</th>
                             <th class="px-4 py-4 text-center text-xs font-bold text-white uppercase w-24">Action</th>
                         </tr>
                     </thead>
@@ -241,30 +220,30 @@
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div class="relative w-full max-w-3xl transform overflow-hidden rounded-2xl bg-slate-50 dark:bg-dark-surface text-left shadow-2xl transition-all border border-slate-200 dark:border-slate-700 flex flex-col">
                 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
-                    <h3 id="clinicalModalTitle" class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Question</h3>
+                    <h3 id="clinicalModalTitle" class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Clinical Case</h3>
                     <button onclick="document.getElementById('uploadClinicalModal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">✕</button>
                 </div>
                 <div class="p-6 bg-white dark:bg-slate-900 space-y-5">
                     <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Question Stem</label>
-                        <textarea id="clin-q-stem" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="4" placeholder="Enter question here..."></textarea>
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Case Scenario / Question Stem</label>
+                        <textarea id="clin-q-stem" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="4" placeholder="Describe the clinical presentation..."></textarea>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Topic / Chapter</label>
-                            <input type="text" id="clin-q-chap" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. 1. Basics of Ear">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Topic / System</label>
+                            <input type="text" id="clin-q-chap" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. Trauma, Retina">
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Format</label>
                             <select id="clin-q-type" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
-                                <option value="Theory">Theory Question</option>
+                                <option value="Theory">Clinical Case (Subjective)</option>
                                 <option value="MCQ">MCQ</option>
                             </select>
                         </div>
                     </div>
                     <div>
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Model Answer / Explanation (Markdown)</label>
-                        <textarea id="clin-q-ans" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="5" placeholder="Provide the explanation..."></textarea>
+                        <textarea id="clin-q-ans" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="5" placeholder="Provide the diagnosis and management plan..."></textarea>
                     </div>
                     <button id="saveClinicalBtn" onclick="window.saveClinicalQuestion(this)" class="w-full py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-colors uppercase tracking-wider">Publish to Database</button>
                 </div>
@@ -279,7 +258,7 @@
             <div class="relative w-full max-w-5xl transform overflow-hidden rounded-2xl bg-slate-50 dark:bg-dark-surface text-left shadow-2xl transition-all border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
                 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0 shadow-sm z-10">
                     <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <span class="text-brand-500">📝</span> Answer Panel
+                        <span class="text-brand-500">📝</span> Case Details
                     </h3>
                     <button onclick="window.closeAnswerModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
@@ -287,12 +266,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="w-full border-t border-brand-100 dark:border-slate-800 mt-auto py-8 bg-white dark:bg-dark-surface relative z-10">
-        <div class="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-            <div>&copy; 2026 MBBS Profs Prep. All rights reserved.</div>
-        </div>
-    </footer>
 
     <script>
         // --- CONSTANTS & GLOBALS ---
@@ -302,7 +275,6 @@
 
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
-        window.currentUserProfileData = {};
         window.accessLevel = 'guest'; 
         window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
         window.isDataLoaded = false;
@@ -321,34 +293,23 @@
         // 🟢 SETTING TO ENT
         window.SUBJECT_CODE = "ENT"; 
         
-        window.curriculumData = [];
         window.qnaData = [];
         window.displayData = [];
 
-        // Instantly update UI Headers before data even loads
         document.addEventListener("DOMContentLoaded", () => {
             const titleEl = document.getElementById('dynamic-page-title');
-            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} (${window.COLLEGE_NAME})`;
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Clinical Cases (${window.COLLEGE_NAME})`;
             
             const mainTitleEl = document.getElementById('dynamic-subject-title');
-            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Exam Review`;
+            if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Clinical Cases`;
 
             const headerEl = document.getElementById('dynamic-college-header');
             if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
         });
 
-        // --- GOOGLE FORM REPORT CONFIG ---
-        window.REPORT_CONFIG = { 
-            formID: "1FAIpQLSelW2ekB-oEvl5h4tpteqUdpjFxtJRaWfWSkz_AiZWqYOC59A", 
-            entryID_QID: "entry.1044663891", 
-            entryID_Type: "entry.1296716381", 
-            entryID_Desc: "entry.621177596" 
-        };
-        window.selectedReportType = "Other";
-
         // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
-            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_${qId}`;
+            const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_CLINICAL_${qId}`;
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
@@ -431,19 +392,13 @@
                             payload.ans_key = ansKey;
                         }
 
-                        // Save the core Question details
+                        if (explanation) {
+                            payload.answer = explanation.replace(/<br\s*\/?>/gi, '\n');
+                        }
+
+                        // Save the complete Question to Firebase
                         const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
                         await set(qRef, payload);
-                        
-                        // Save the explanation notes to the Answers node
-                        if (explanation) {
-                            const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
-                            await set(answerRef, {
-                                text: explanation.replace(/<br\s*\/?>/gi, '\n'),
-                                updatedAt: new Date().toISOString(),
-                                updatedBy: window.currentUserObj.email
-                            });
-                        }
 
                         successCount++;
                     }
@@ -465,93 +420,97 @@
             reader.readAsText(file);
         };
 
+        // --- QUESTION EDITOR LOGIC ---
+        window.openAddClinicalModal = function() {
+            document.getElementById('clin-q-stem').value = '';
+            document.getElementById('clin-q-chap').value = '';
+            document.getElementById('clin-q-type').value = 'Theory';
+            document.getElementById('clin-q-ans').value = '';
+
+            const titleEl = document.getElementById('clinicalModalTitle');
+            if (titleEl) titleEl.innerHTML = `➕ Add New Clinical Case`;
+
+            const btn = document.getElementById('saveClinicalBtn');
+            if (btn) {
+                btn.innerText = "Publish to Database";
+                btn.removeAttribute('data-edit-id');
+            }
+
+            document.getElementById('uploadClinicalModal').classList.remove('hidden');
+        };
+
+        window.editClinicalQuestion = function(qId) {
+            const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
+            if(!q) return;
+
+            // If it's an MCQ, append options back to the stem box for editing
+            let stemText = q.stem;
+            if (q.type === 'MCQ' && q.options) {
+                stemText += '\n';
+                q.options.forEach((opt, i) => {
+                    stemText += `\n${window.optionLetters[i]}) ${opt}`;
+                });
+            }
+
+            document.getElementById('clin-q-stem').value = stemText;
+            document.getElementById('clin-q-chap').value = (Array.isArray(q.chapter) ? q.chapter[0] : q.chapter) || '';
+            document.getElementById('clin-q-type').value = q.type || 'Theory';
+            document.getElementById('clin-q-ans').value = window.liveAnswers[qId] ? window.liveAnswers[qId].text : '';
+
+            const titleEl = document.getElementById('clinicalModalTitle');
+            if (titleEl) titleEl.innerHTML = `✏️ Edit Clinical Case <span class="text-sm font-bold text-slate-400 ml-2">(${qId})</span>`;
+
+            const btn = document.getElementById('saveClinicalBtn');
+            if (btn) {
+                btn.innerText = "Update Case in Database";
+                btn.setAttribute('data-edit-id', qId);
+            }
+
+            document.getElementById('uploadClinicalModal').classList.remove('hidden');
+        };
+
         // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
-            if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-            // Uses marked.js loaded in head. It securely and responsively converts markdown to HTML.
-            const rawHtml = marked.parse(text);
-            // Wrap tables in responsive div
+            if (!text) return "<em class='text-slate-400'>No explanation provided yet.</em>";
+            
+            let processedText = text;
+            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
+            processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `<div class="yt-container my-4">
+                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
+            const rawHtml = marked.parse(processedText);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
-        // --- ADMIN GLOBAL TOGGLE ---
+        window.toggleYT = function(containerId, videoId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = ''; 
+            }
+        };
+
         window.toggleGlobalAnswers = async function() {
             if(!window.db) return;
             const newState = !window.globalPlatformSettings.showAnswers;
-            // Update in Firebase Realtime Database
             const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
-            // The listener in onAuthStateChanged will handle the UI updates
+            await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_CLINICAL/showAnswers`), newState);
         };
 
-        // --- REPORT QUESTION LOGIC ---
-        window.selectReportType = function(btn) {
-            document.querySelectorAll('.rep-type-btn').forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-red-400', 'bg-slate-100', 'dark:bg-slate-800'));
-            btn.classList.add('ring-2', 'ring-offset-1', 'ring-red-400', 'bg-slate-100', 'dark:bg-slate-800');
-            window.selectedReportType = btn.getAttribute('data-val');
-        };
-
-        window.submitReportToForm = function(qid, btn) {
-            const desc = document.getElementById('report-desc').value;
-            btn.innerText = "Sending..."; btn.disabled = true;
-
-            const currentUrl = window.location.href;
-            const combinedID = `${qid} | ${currentUrl}`;
-
-            const url = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse?` +
-                        `${window.REPORT_CONFIG.entryID_QID}=${encodeURIComponent(combinedID)}&` +
-                        `${window.REPORT_CONFIG.entryID_Type}=${encodeURIComponent(window.selectedReportType)}&` +
-                        `${window.REPORT_CONFIG.entryID_Desc}=${encodeURIComponent(desc)}&submit=Submit`;
-
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-
-            setTimeout(() => {
-                document.getElementById('modal-body-content').innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p>
-                    </div>`;
-                document.getElementById('modal-footer-buttons').innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
-                setTimeout(() => iframe.remove(), 2000);
-            }, 1200);
-        };
-
-        window.openReportModal = function(qId) {
-            if (!window.currentUserObj) {
-                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to report a question.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
-            }
-            window.selectedReportType = "Other";
-            
-            const bodyHtml = `
-                <div class="text-left space-y-4 mt-2">
-                    <p class="text-sm text-slate-600 dark:text-slate-400">Help us improve by reporting issues with Question <b>${qId}</b>.</p>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">What's wrong?</label>
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Wrong Answer">Wrong Answer</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Typo/Error">Typo / Error</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors" data-val="Missing Content">Missing Content</button>
-                            <button onclick="window.selectReportType(this)" class="rep-type-btn py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-red-400 transition-colors ring-2 ring-offset-1 ring-red-400 bg-slate-100 dark:bg-slate-800" data-val="Other">Other</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-wider">Details (Optional)</label>
-                        <textarea id="report-desc" rows="3" placeholder="Briefly explain the issue..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none dark:text-white resize-none focus:ring-2 focus:ring-red-400 transition-all"></textarea>
-                    </div>
-                </div>
-            `;
-            const footerHtml = `
-                <button onclick="window.submitReportToForm('${qId}', this)" class="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30">Submit Report</button>
-                <button onclick="window.closeModal()" class="w-full sm:w-auto px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
-            `;
-            window.showModal("Report Issue", bodyHtml, footerHtml, "🚩");
-        };
-
-        // --- EYE TOGGLE LOGIC ---
         window.toggleAnswers = function() {
             document.body.classList.toggle('show-answers');
             const btn = document.getElementById('floating-eye-btn');
@@ -566,72 +525,12 @@
             }
         };
 
-        // --- FLASHCARD TOGGLE LOGIC ---
-        window.toggleFlashcard = function(questionId) {
-            const container = document.getElementById(`container-${questionId}`);
-            const card = document.getElementById(`card-${questionId}`);
-            const isDeckMode = questionId.startsWith('deck-');
-            
-            if (card.classList.contains('is-flipped')) {
-                card.classList.remove('is-flipped');
-                if (!isDeckMode) {
-                    setTimeout(() => { container.classList.add('hidden'); }, 600); 
-                }
-            } else {
-                if (!isDeckMode) {
-                    container.classList.remove('hidden');
-                    setTimeout(() => { card.classList.add('is-flipped'); }, 50);
-                } else {
-                    card.classList.add('is-flipped');
-                }
-            }
-        };
-
-        // --- FETCH DYNAMIC JSON LOGIC ---
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Downloading ${window.COLLEGE_NAME} Question Bank...</p></td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing Clinical Database...</p></td></tr>`;
             }
-
-            try {
-                // First read local JSON as foundation, but then Firebase overwrites via onAuthStateChanged
-                const fileName = `${window.SUBJECT_CODE.toLowerCase()}_aiims_${window.COLLEGE_CODE}_data.json`;
-                const response = await fetch(fileName);
-                
-                if (!response.ok) throw new Error("Failed to load JSON file");
-                
-                const data = await response.json();
-                
-                window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME; 
-                window.curriculumData = data.curriculumData || [];
-                window.qnaData = data.qnaData || [];
-                window.isDataLoaded = true;
-
-                document.getElementById('dynamic-page-title').innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
-                const headerEl = document.getElementById('dynamic-college-header');
-                if(headerEl) headerEl.innerText = window.COLLEGE_NAME;
-
-                window.processDataForAccess();
-
-            } catch (error) {
-                console.error("Error fetching local data:", error);
-                if(tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Waiting for Cloud Sync.</p></td></tr>`;
-                }
-            }
-        };
-
-        window.getUnitForChapter = function(chapterName) {
-            if (!window.curriculumData) return window.SUBJECT_CODE;
-            for (const section of window.curriculumData) {
-                if (typeof section === 'string') {
-                    if (section === chapterName) return window.SUBJECT_CODE;
-                } else if (section.chapters && section.chapters.includes(chapterName)) {
-                    return section.unit;
-                }
-            }
-            return window.SUBJECT_CODE;
+            window.isDataLoaded = true; 
         };
 
         window.processDataForAccess = function() {
@@ -640,9 +539,7 @@
             if (window.accessLevel === 'premium') {
                 window.displayData = [...window.qnaData];
             } else if (window.accessLevel === 'free') {
-                const theoryQs = window.qnaData.filter(q => q.type === 'Theory').slice(0, 10);
-                const mcqQs = window.qnaData.filter(q => q.type === 'MCQ').slice(0, 10);
-                window.displayData = [...theoryQs, ...mcqQs];
+                window.displayData = window.qnaData.slice(0, 10); 
             } else {
                 window.displayData = [];
             }
@@ -661,25 +558,24 @@
             }
         };
 
-        // --- BOOKMARK LOGIC ---
         window.toggleBookmark = async function(btn, index) {
             if (!window.currentUserObj) {
-                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save cases to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             }
 
             const item = window.displayData[index];
             if (!item) return;
 
             const uniqueId = window.getUniqueQuestionId(item.q);
-            const cleanStem = item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Question";
+            const cleanStem = item.stem ? item.stem.replace(/<[^>]*>/g, "") : "Saved Case";
             const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
             const chapterString = chArray.length > 0 ? chArray[0] : 'General';
             
             const bookmarkData = {
                 q: item.q,
-                type: item.type || "General",
+                type: item.type || "Clinical",
                 text: cleanStem, 
-                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
+                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " Clinical - " + chapterString,
                 url: window.location.href,
                 timestamp: new Date().toISOString()
             };
@@ -691,8 +587,6 @@
             
             if (window.executeBookmarkToggle) {
                 window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
-            } else {
-                alert("App is still connecting to the cloud. Please wait a moment.");
             }
         };
 
@@ -703,7 +597,6 @@
 
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
-            
             const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
             const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const tableBase = 'w-full max-w-[80px] font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors';
@@ -724,24 +617,14 @@
             });
         };
 
-        // --- NATURAL SORTING + ARRAY FLATTENING ---
         window.getUniqueValues = function(key) {
             const values = new Set();
-            if (key === 'chapter') {
-                if (window.curriculumData) {
-                    window.curriculumData.forEach(group => {
-                        if (typeof group === 'string') {
-                            values.add(group);
-                        } else if (group.chapters) {
-                            group.chapters.forEach(ch => values.add(ch));
-                        }
-                    });
-                }
-                return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
-            } 
-            
             window.qnaData.forEach(item => { 
                 if (key === 'type' && item.type) { values.add(item.type); } 
+                else if (key === 'chapter' && item.chapter) {
+                    if (Array.isArray(item.chapter)) { item.chapter.forEach(e => values.add(e)); } 
+                    else { values.add(item.chapter); }
+                }
                 else if (key === 'exam' && item.examBatch) {
                     if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } 
                     else { values.add(item.examBatch); }
@@ -766,47 +649,25 @@
             window.filterTable();
         }
 
-        window.toggleGroup = function(unitName, isChecked) {
-            document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
-                if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
-            });
-        }
-
         window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
             if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
             else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
 
-        window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey, isGrouped = false) {
+        window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey) {
             const container = document.getElementById(containerId);
             let listHtml = '';
-            if (isGrouped) {
-                items.forEach(group => {
-                    if (typeof group === 'string') {
-                        listHtml += `<label class="multiselect-option"><input type="checkbox" value="${group}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${group}</span></label>`;
-                    } else if (group.chapters) {
-                        listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
-                        group.chapters.forEach(chapter => {
-                             listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
-                        });
-                    }
-                });
-            } else {
-                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
-            }
+            items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
             container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
         window.populateFilters = function() {
-            window.createMultiSelect('typeFilterWrapper', 'typeSelect', 'Type', window.getUniqueValues('type'), 'types');
-            
-            const hasGroups = window.curriculumData.some(item => typeof item === 'object' && item.unit);
-            window.createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Chapter', window.curriculumData, 'chapters', hasGroups);
-            window.createMultiSelect('examFilterWrapper', 'examSelect', 'Exam Batch', window.getUniqueValues('exam'), 'exams');
+            window.createMultiSelect('typeFilterWrapper', 'typeSelect', 'Format', window.getUniqueValues('type'), 'types');
+            window.createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Topic', window.getUniqueValues('chapter'), 'chapters');
+            window.createMultiSelect('examFilterWrapper', 'examSelect', 'Source', window.getUniqueValues('exam'), 'exams');
         }
 
-        // --- ANSWER MODAL CONTROLS (TABLE VIEW) ---
         window.openAnswerModal = function(qId) {
             const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
             if(!q) return;
@@ -817,7 +678,7 @@
 
             let bodyHtml = `
                 <div class="mb-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Question Reference (${qId})</span>
+                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Clinical Reference (${qId})</span>
                     <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '')}</div>
                 </div>
             `;
@@ -825,22 +686,15 @@
             if (isAdmin) {
                 bodyHtml += `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[400px]">
-                    <!-- Admin Editor -->
                     <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
                             <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
-                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
-                        </div>
-                        <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
                         </div>
                         <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
-                            <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Answer</button>
+                            <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Case Notes</button>
                         </div>
                     </div>
-
-                    <!-- Live Preview -->
                     <div class="flex flex-col h-full border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50 shrink-0">
                             <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Live Student Preview</span>
@@ -854,7 +708,7 @@
                 bodyHtml += `
                 <div class="border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                     <div class="bg-green-50 dark:bg-green-900/20 px-5 py-3 border-b border-green-200 dark:border-green-900/50">
-                        <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Detailed Explanation</span>
+                        <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Case Notes / Management</span>
                     </div>
                     <div class="p-6 markdown-body">
                         ${window.renderMarkdown(liveAns)}
@@ -898,6 +752,7 @@
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
 
+                // MCQ TABLE RENDERING
                 if (item.type === 'MCQ') {
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
                     if (item.options && Array.isArray(item.options)) {
@@ -907,25 +762,17 @@
                         });
                     }
                     qHtml += '</div>';
-                } else { 
-                    const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/); 
-                    let stemWithoutMarks = cleanStem; let marksDisplay = '';
-                    if (markMatch) {
-                        stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
-                        marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
-                    }
-                    
-                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${stemWithoutMarks}</span>${marksDisplay}</div>`; 
+                } else {
+                    qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${cleanStem}</span></div>`; 
                 }
 
-                // --- NEW UNIFIED POPUP ANSWER BUTTON ---
                 let ansBlockHtml = '';
                 const liveAns = window.liveAnswers[item.q] ? window.liveAnswers[item.q].text : "";
                 const hasAnswer = !!liveAns;
                 const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
 
                 if (canView) {
-                    const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                    const btnText = isAdmin ? (hasAnswer ? '✍️ Edit Notes' : '➕ Add Case Notes') : '👁️ View Case Notes';
                     const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
 
                     let adminBtnsHtml = '';
@@ -950,30 +797,6 @@
                 }
                 
                 qHtml += ansBlockHtml;
-
-                // --- ADMIN FLASHCARD RENDER LOGIC ---
-                if (isAdmin && item.ans_image) {
-                    qHtml += `
-                    <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
-                        <div class="flex items-center justify-end mb-3">
-                            <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
-                                <span>👁️ View Answer Card</span>
-                            </button>
-                        </div>
-                        
-                        <div class="flashcard-container hidden w-full" id="container-${item.q}">
-                            <div class="flashcard-inner" id="card-${item.q}">
-                                <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
-                                    <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
-                                </div>
-                                <div class="flashcard-back">
-                                    <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                }
-
                 cell2.innerHTML = qHtml;
                 
                 let cell_type = row.insertCell(); cell_type.className = 'px-4 py-4 text-center align-middle';
@@ -981,15 +804,8 @@
                 cell_type.innerHTML = `<span class="${badgeColor} border px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap inline-block">${item.type}</span>`;
                 
                 let cell_chapter = row.insertCell(); cell_chapter.className = 'px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800';
-                let chapterHtml = '';
-                
                 const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-                chArray.forEach(ch => {
-                    const unitName = window.getUnitForChapter(ch);
-                    chapterHtml += `<div class="flex flex-col mb-2 last:mb-0"><span class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-1">${unitName}</span><span class="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-300">${ch}</span></div>`;
-                });
-                
-                cell_chapter.innerHTML = chapterHtml;
+                cell_chapter.innerHTML = chArray.map(ch => `<div class="text-xs font-medium text-slate-700 dark:text-slate-300">${ch}</div>`).join('');
 
                 let cell_exam = row.insertCell(); cell_exam.className = 'px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle';
                 const batchString = Array.isArray(item.examBatch) ? item.examBatch.join(', ') : item.examBatch;
@@ -1003,20 +819,18 @@
 
                 cell_ai.innerHTML = `
                     <div class="flex flex-col gap-1.5 items-center justify-center">
-                        <button onclick="window.askAI(this, window.displayData[${index}])" class="w-full max-w-[80px] bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border border-green-500/20 hover:bg-green-500 hover:text-white transition-colors">AI Help</button>
                         <button id="bmk-table-${item.q}" onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
-                        <button onclick="window.openReportModal('${item.q}')" class="w-full max-w-[80px] bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border border-red-100 dark:border-red-900/50 hover:bg-red-500 hover:text-white transition-colors">Report</button>
                     </div>`;
             });
 
             if (window.accessLevel === 'guest') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
-                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Login Required</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You must be signed in to view the free preview modules.</p><button onclick="window.userPanelApp.open(); window.toggleAuthMode('login')" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Sign In to Continue</button>`;
+                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Login Required</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You must be signed in to view the clinical cases.</p><button onclick="window.userPanelApp.open(); window.toggleAuthMode('login')" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Sign In to Continue</button>`;
             } else if (window.accessLevel === 'free') {
                 const row = tbody.insertRow(); row.setAttribute('data-locked-row', 'true');
                 const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700';
-                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all premium questions.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Upgrade to Pro</a>`;
+                cell.innerHTML = `<div class="w-20 h-20 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto shadow-inner border border-brand-200 dark:border-brand-800">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Unlock Pro Access</h3><p class="text-slate-500 dark:text-slate-400 mb-6 font-medium">You are viewing a free preview. Upgrade to Pro to access all clinical cases.</p><a href="checkout.html" class="inline-block px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg border-none">Upgrade to Pro</a>`;
             }
 
             // Initialize SortableJS for Admins
@@ -1095,7 +909,7 @@
 
                 let showRow = true;
                 if (searchText) {
-                    let rowText = (tr[i].cells[1].textContent || "") + (tr[i].cells[3].textContent || "") + (tr[i].cells[4].textContent || "");
+                    let rowText = (tr[i].cells[1].textContent || "") + (tr[i].cells[3].textContent || "");
                     if (rowText.toLowerCase().indexOf(searchText) === -1) showRow = false;
                 }
                 
@@ -1120,34 +934,6 @@
             }
         }
 
-        window.askAI = function(button, item) {
-            let textToCopy; 
-            const cleanStem = item.stem.replace(/<[^>]*>/g, ""); 
-            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-            const chapterString = chArray.join(", "); 
-            
-            if (item.type === 'MCQ') {
-                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i] || '-'}) ${opt}`).join('\n') : "Options not available";
-                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please explain this MCQ:\n\nQ: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
-            } else { 
-                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Exam. Please provide a structured model answer:\n\n"${cleanStem}"\nContext: ${chapterString}`; 
-            }
-            
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
-                }).catch(() => fallbackCopy(textToCopy));
-            } else {
-                fallbackCopy(textToCopy);
-            }
-            
-            function fallbackCopy(text) {
-                const tempTextarea = document.createElement('textarea'); tempTextarea.value = text; document.body.appendChild(tempTextarea); tempTextarea.select(); document.execCommand('copy'); document.body.removeChild(tempTextarea);
-                window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The question is ready.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
-            }
-        }
-
-        // --- ADMIN TOOLS ---
         window.handleSecretClick = function() { 
             window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`); 
         }
@@ -1158,137 +944,12 @@
             
             if (lowerName === window.SECRET_CODE.toLowerCase() || lowerName === "777pankaj") { 
                 window.closeModal(); 
-                window.copyForChatGPT(); 
-            } 
-            else if (lowerName === "777calm") {
-                window.closeModal(); 
-                window.downloadDataAsJSON();
             } 
             else if (name) { 
                 const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
-                let message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
+                let message = window.motivationalMessages[randomIndex].replace(/[Name]/g, name);
                 window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `💪`); 
             }
-        }
-
-        window.downloadDataAsJSON = function() {
-            const table = document.getElementById("qnaTable");
-            if (!table) return;
-
-            const visibleQuestions = [];
-            const tr = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < tr.length; i++) {
-                if (tr[i].style.display !== "none" && tr[i].getAttribute('data-locked-row') !== "true") {
-                    const indexStr = tr[i].getAttribute('data-index');
-                    if (indexStr !== null && window.displayData[indexStr]) {
-                        visibleQuestions.push(window.displayData[indexStr]);
-                    }
-                }
-            }
-
-            if (visibleQuestions.length === 0) {
-                window.showModal("No Questions Found", "<p class='text-slate-600 dark:text-slate-400'>No visible questions found to download.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, "⚠️");
-                return;
-            }
-
-            const exportedData = {
-                collegeName: typeof window.COLLEGE_NAME !== 'undefined' ? window.COLLEGE_NAME : "Unknown College",
-                curriculumData: typeof window.curriculumData !== 'undefined' ? window.curriculumData : [],
-                qnaData: visibleQuestions
-            };
-
-            let dataStr = JSON.stringify(exportedData, null, 2);
-            dataStr = dataStr.substring(0, dataStr.lastIndexOf('}'));
-            dataStr = dataStr.replace(/\s+$/, '');
-            dataStr += `,\n  "qnaData": [\n`;
-            
-            const qnaLines = visibleQuestions.map(q => `    ${JSON.stringify(q)}`);
-            dataStr += qnaLines.join(',\n');
-            dataStr += `\n  ]\n}`;
-            
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const subjectName = typeof window.SUBJECT_CODE !== 'undefined' ? window.SUBJECT_CODE.toLowerCase() : "data";
-            a.download = `${subjectName}_aiims_${window.COLLEGE_CODE}_data_${timestamp}.json`; 
-            
-            document.body.appendChild(a);
-            a.click();
-            
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
-            
-            window.showModal("Download Complete!", `<p class="text-slate-600 dark:text-slate-400">Successfully exported <b>${visibleQuestions.length}</b> questions in JSON format.</p>`, `<button onclick="window.closeModal()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">Done</button>`, "⬇️");
-        }
-        
-        window.copyForChatGPT = function() {
-            const visibleQuestions = []; 
-            const table = document.getElementById("qnaTable");
-            if (!table) return;
-
-            const tr = table.getElementsByTagName("tr");
-            for (let i = 1; i < tr.length; i++) { 
-                if (tr[i].style.display !== "none" && tr[i].getAttribute('data-locked-row') !== "true") {
-                    const indexStr = tr[i].getAttribute('data-index');
-                    if (indexStr !== null && window.displayData[indexStr]) {
-                        visibleQuestions.push(window.displayData[indexStr]);
-                    }
-                } 
-            }
-            
-            if(visibleQuestions.length === 0) {
-                window.showModal("No Questions", "<p class='text-slate-500'>No questions to copy.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 py-3 rounded-xl font-bold">Close</button>`, "⚠️");
-                return;
-            }
-            
-            let clipboardText = `Analyze the given list of questions and generate a study checklist in the exact format shown in the reference document. Use color-coded numbered headings (🔴🟠🟡🟢) in the format ‘🔴 1. Topic Name (xN)’, where xN equals the number of DISTINCT THEORY questions only. Under each heading, include exactly ONE checkbox line (☐) containing compressed, exam-oriented keywords (no explanations). Below it, place one bracketed code line only in the format ‘[Txx, Txx | Mxx, Mxx]’, with T codes first, M codes after ‘|’. Treat subtopics as the unit of prioritization and order headings strictly by theory count only—MCQs must never affect order. Assign each T code and each M code exactly once and only once, anchoring integrated theory questions to their single dominant topic. Place MCQ-only topics at the end, maintain zero redundancy, and ensure the final output is visually identical in structure, density, and style to the reference checklist.\n\n`;
-            
-            visibleQuestions.forEach(q => {
-                const stemText = q.stem ? q.stem.replace(/<[^>]*>/g, "") : "";
-                clipboardText += `Q ${q.q}: ${stemText}\n`;
-                if (q.type === 'MCQ' && q.options && Array.isArray(q.options)) {
-                    q.options.forEach((opt, idx) => {
-                        const optText = opt ? opt.replace(/<[^>]*>/g, "") : "";
-                        clipboardText += `   ${window.optionLetters[idx] || '-'}) ${optText}\n`;
-                    });
-                }
-                clipboardText += `\n`; 
-            });
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(clipboardText)
-                    .then(() => {
-                        window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${visibleQuestions.length} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `📋`);
-                    })
-                    .catch(err => {
-                        console.warn("Clipboard API failed, falling back...", err);
-                        fallbackCopyTextToClipboard(clipboardText, visibleQuestions.length);
-                    });
-            } else {
-                fallbackCopyTextToClipboard(clipboardText, visibleQuestions.length);
-            }
-        };
-
-        function fallbackCopyTextToClipboard(text, count) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.top = "0"; textArea.style.left = "0"; textArea.style.position = "fixed";
-            document.body.appendChild(textArea);
-            textArea.focus(); textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) window.showModal("Copied!", `<p class="text-slate-500 dark:text-slate-400">Successfully copied ${count} questions for analysis.</p>`, `<button onclick="window.openChatGPT()" class="w-full bg-brand-500 text-white font-bold py-3 rounded-xl border-none">ChatGPT</button>`, `📋`);
-                else throw new Error("Browser blocked copy");
-            } catch (err) {
-                window.showModal("Copy Failed", `<p class="text-red-500">Your browser blocked the clipboard. Try again.</p>`, `<button onclick="window.closeModal()" class="w-full bg-slate-200 text-slate-800 font-bold py-3 rounded-xl border-none">Close</button>`, `❌`);
-            }
-            document.body.removeChild(textArea);
         }
 
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 
@@ -1296,23 +957,91 @@
             document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
         }
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
-        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
-        // ==========================================
-        // DECK VIEW
-        // ==========================================
+        window.initDeckView = function() {
+            const deckLayer = document.createElement('div');
+            deckLayer.id = 'universal-deck-layer';
+            deckLayer.innerHTML = `
+                <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
+                    <div class="flex items-center gap-2 md:gap-3">
+                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                        
+                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="Filters">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                        </button>
+                        
+                        <div class="ml-1">
+                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate leading-tight">Review Mode</h1>
+                            <div class="text-[10px] text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span id="deck-counter">1/1</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+                
+                <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
+                
+                <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
+                    <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform border-none">Previous</button>
+                    <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Next</button>
+                </div>
+                
+                <div id="deck-nav-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)" class="border-none bg-transparent">✕</button></div>
+                        <div class="nav-grid" id="deck-nav-grid"></div>
+                    </div>
+                </div>
+                
+                <div id="deck-filter-drawer" class="deck-drawer">
+                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
+                    <div class="deck-drawer-content">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
+                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                        </div>
+                        <div class="p-5 overflow-y-auto flex-1 custom-scrollbar" id="deck-filter-content"></div>
+                        <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                            <button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(deckLayer);
+
+            const fab = document.createElement('button'); 
+            fab.id = 'view-toggle-btn'; 
+            fab.innerHTML = '🎴'; 
+            fab.title = "Switch to Deck View";
+            fab.onclick = window.toggleDeckMode; 
+            document.body.appendChild(fab);
+
+            const eyeFab = document.createElement('button');
+            eyeFab.id = 'floating-eye-btn';
+            eyeFab.onclick = window.toggleAnswers;
+            eyeFab.className = 'fixed bottom-[96px] right-6 z-[10000] w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-400 shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all hover:scale-110 active:scale-90';
+            eyeFab.title = "Reveal Table Answers";
+            eyeFab.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+            document.body.appendChild(eyeFab);
+        }
+
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
         window.deckStatus = {};
 
-        // --- ANSWER PANEL TOGGLE (DECK VIEW) ---
         window.toggleDeckAnswerPanel = function(qId) {
             const panel = document.getElementById(`deck-ans-panel-${qId}`);
             const btn = document.getElementById(`btn-deck-ans-${qId}`);
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
-                btn.innerHTML = '🙈 Hide Answer Panel';
+                btn.innerHTML = '🙈 Hide Notes';
                 btn.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
                 btn.classList.remove('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
             } else {
@@ -1320,7 +1049,7 @@
                 const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
                 const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
                 const isAdmin = window.currentUserObj && adminEmails.includes(window.currentUserObj.email.toLowerCase());
-                btn.innerHTML = isAdmin ? (liveAns ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                btn.innerHTML = isAdmin ? (liveAns ? '✍️ Edit Notes' : '➕ Add Notes') : '👁️ View Notes';
                 btn.classList.remove('bg-slate-200', 'text-slate-700', 'dark:bg-slate-700', 'dark:text-slate-300');
                 btn.classList.add('bg-brand-50', 'text-brand-600', 'dark:bg-slate-800', 'dark:text-brand-400');
             }
@@ -1335,65 +1064,33 @@
             const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
             const selectedChapters = getChecked('chapter');
             const selectedTypes = getChecked('type');
-            const selectedBatches = getChecked('batch');
             const search = document.getElementById("searchInput").value.toLowerCase();
 
             window.activeDeckQuestions = window.displayData.filter(q => {
                 let show = true;
-                
-                let examText = Array.isArray(q.examBatch) ? q.examBatch.join(" ") : (q.examBatch || "");
                 const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
                 let chapterText = chArray.join(" ");
-                
-                let rowText = (q.stem || "") + " " + chapterText + " " + examText;
+                let rowText = (q.stem || "") + " " + chapterText;
                 
                 if (search && rowText.toLowerCase().indexOf(search) === -1) show = false;
                 if (show && selectedTypes.length > 0 && !selectedTypes.includes(q.type)) show = false;
-                
-                if (show && selectedBatches.length > 0) {
-                    if (Array.isArray(q.examBatch)) {
-                        if (!q.examBatch.some(e => selectedBatches.includes(e))) show = false;
-                    } else {
-                        if (!selectedBatches.includes(q.examBatch)) show = false;
-                    }
-                }
-                
                 if (show && selectedChapters.length > 0 && !(chArray.some(ch => selectedChapters.includes(ch)))) show = false;
                 return show;
             });
             
             window.deckIndex = 0;
             const sub = document.getElementById('deck-subtitle');
-            if (sub) sub.innerText = window.activeDeckQuestions.length === window.displayData.length ? `${window.activeDeckQuestions.length} Questions` : `${window.activeDeckQuestions.length} Filtered`;
+            if (sub) sub.innerText = window.activeDeckQuestions.length === window.displayData.length ? `${window.activeDeckQuestions.length} Cases` : `${window.activeDeckQuestions.length} Filtered`;
             window.renderDeckCard();
         }
 
         window.populateDeckFilters = function() {
-            let allChapters = [];
-            if (window.curriculumData && window.curriculumData.length > 0) {
-                allChapters = window.curriculumData.flatMap(group => {
-                    if (typeof group === 'string') return [group];
-                    if (group.chapters) return group.chapters;
-                    return [];
-                });
-            } else {
-                allChapters = window.qnaData.flatMap(q => Array.isArray(q.chapter) ? q.chapter : [q.chapter]);
-            }
-
-            let allBatches = [];
-            window.qnaData.forEach(q => {
-                if (Array.isArray(q.examBatch)) allBatches.push(...q.examBatch);
-                else if (q.examBatch) allBatches.push(q.examBatch);
-            });
-
+            let allChapters = window.qnaData.flatMap(q => Array.isArray(q.chapter) ? q.chapter : [q.chapter]);
             const naturalSort = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
-
             const chapters = [...new Set(allChapters)].sort(naturalSort);
             const types = [...new Set(window.qnaData.map(q => q.type).filter(Boolean))].sort(naturalSort);
-            const batches = [...new Set(allBatches)].sort(naturalSort);
             
             const container = document.getElementById('deck-filter-content');
-            
             const buildGroup = (label, category, opts) => {
                 if (!opts || opts.length === 0) return '';
                 return `
@@ -1412,7 +1109,7 @@
                 </details>`;
             };
             
-            if(container) container.innerHTML = buildGroup('Chapters', 'chapter', chapters) + buildGroup('Type', 'type', types) + buildGroup('Exam Batch', 'batch', batches);
+            if(container) container.innerHTML = buildGroup('Topic', 'chapter', chapters) + buildGroup('Format', 'type', types);
         }
 
         window.resetDeckFilters = function() { document.querySelectorAll('.deck-filter-checkbox').forEach(cb => cb.checked = false); window.syncDeckWithFilters(); }
@@ -1425,25 +1122,14 @@
                     <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
                         <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">Login Required</h2>
-                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free questions in this deck.</p>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You must be signed in to view the free clinical cases in this deck.</p>
                         <button onclick="window.toggleDeckMode(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs border-none">Sign In / Register</button>
                     </div>`;
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
 
-            if (window.accessLevel === 'free' && window.deckIndex === window.activeDeckQuestions.length) {
-                container.innerHTML = `
-                    <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
-                        <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
-                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">End of Free Preview</h2>
-                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You've completed the free questions. Upgrade to Pro to unlock the remaining premium questions in this deck.</p>
-                        <a href="checkout.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs block">Upgrade to Pro</a>
-                    </div>`;
-                document.getElementById('deck-counter').innerText = `🔒`; return;
-            }
-
             if (window.activeDeckQuestions.length === 0) { 
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No questions match these filters.</p></div>`; 
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No cases match these filters.</p></div>`; 
                 document.getElementById('deck-counter').innerText = '0/0'; 
                 return; 
             }
@@ -1452,7 +1138,6 @@
             const realIndex = window.displayData.indexOf(q); 
             document.getElementById('deck-counter').innerText = `${window.deckIndex + 1}/${window.activeDeckQuestions.length}`;
 
-            // Admin Authentication
             const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
             const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
 
@@ -1463,14 +1148,13 @@
             const bmkClass = bookmarked ? 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
             const bmkText = bookmarked ? '⭐ Saved' : '🔖 Save';
 
-            // --- NEW UNIFIED PANEL (DECK VIEW) ---
             let ansBlockHtml = '';
             const liveAns = window.liveAnswers[q.q] ? window.liveAnswers[q.q].text : "";
             const hasAnswer = !!liveAns;
             const canView = isAdmin || (hasAnswer && window.globalPlatformSettings.showAnswers);
 
             if (canView) {
-                const btnText = isAdmin ? (hasAnswer ? '✍️ Edit / View Answer' : '➕ Add Answer') : '👁️ View Answer';
+                const btnText = isAdmin ? (hasAnswer ? '✍️ Edit Notes' : '➕ Add Notes') : '👁️ View Notes';
                 const btnStyle = isAdmin && !hasAnswer ? 'border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-slate-800' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700 dark:hover:bg-slate-700';
 
                 let panelContent = '';
@@ -1479,11 +1163,8 @@
                     <div class="flex flex-col gap-4">
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
                             <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
-                            <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;&nbsp;|&nbsp;&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
-                            </div>
                             <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
-                            <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
+                            <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Case Notes</button>
                         </div>
                         <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
                             <label class="text-[10px] font-black text-green-600 dark:text-green-500 uppercase tracking-widest mb-3 block">Live Student Preview</label>
@@ -1497,17 +1178,33 @@
                     </div>`;
                 }
 
+                let adminBtnsHtml = '';
+                if (isAdmin) {
+                    adminBtnsHtml = `
+                    <button onclick="window.editClinicalQuestion('${q.q}')" class="px-4 py-3 font-bold rounded-xl border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 transition-colors text-sm shadow-sm">
+                        ✏️ Edit
+                    </button>
+                    <button onclick="window.deleteClinicalQuestion('${q.q}')" class="px-4 py-3 font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 transition-colors text-sm shadow-sm">
+                        🗑️ Delete
+                    </button>
+                    `;
+                }
+
                 ansBlockHtml = `
                 <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button id="btn-deck-ans-${q.q}" onclick="window.toggleDeckAnswerPanel('${q.q}')" class="w-full py-3 font-bold rounded-xl border transition-colors text-sm shadow-sm ${btnStyle}">
-                        ${btnText}
-                    </button>
+                    <div class="flex gap-2 w-full">
+                        <button id="btn-deck-ans-${q.q}" onclick="window.toggleDeckAnswerPanel('${q.q}')" class="flex-1 py-3 font-bold rounded-xl border transition-colors text-sm shadow-sm ${btnStyle}">
+                            ${btnText}
+                        </button>
+                        ${adminBtnsHtml}
+                    </div>
                     <div id="deck-ans-panel-${q.q}" class="hidden mt-4 animate-fade-in">
                         ${panelContent}
                     </div>
                 </div>`;
             }
 
+            // MCQ DECK RENDERING
             if (q.type === 'MCQ') {
                 questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
@@ -1526,135 +1223,42 @@
                         return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="${btnClass}" ${disabledAttr}><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
                     }).join('')}</div>`; 
                 }
-                
-                // Append unified answer panel to MCQ
                 optsHtml += ansBlockHtml;
-
             } else { 
-                const markMatch = cleanStem.match(/(\(\d+(?:\+\d+)*=?\d*\)|\[\d+(?:\+\d+)*=?\d*\])/);
-                let stemWithoutMarks = cleanStem; let marksDisplay = '';
-                if (markMatch) {
-                    stemWithoutMarks = cleanStem.replace(markMatch[0], '').trim();
-                    marksDisplay = `<div class="mt-2 text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 inline-block px-2 py-1 rounded border border-brand-200 dark:border-brand-700">${markMatch[0]}</div>`;
-                }
-                
-                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${stemWithoutMarks}</span>${marksDisplay}</div></div>`; 
-
-                // Append unified answer panel to Theory
+                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
                 questionHtml += ansBlockHtml;
             }
 
-            // --- FULL CARD ANKI-STYLE FLIP LOGIC ---
             const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
 
-            // 1. Build the Reusable Top Header
             const headerHtml = `
                 <div class="mb-4 flex justify-between items-center shrink-0">
                     <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
                     <div class="flex gap-2">
                         <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
-                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-50 hover:text-white dark:hover:bg-green-500 border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> Ask AI</button>
-                        <button onclick="window.openReportModal('${q.q}')" title="Report Error" class="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">🚩</button>
                     </div>
                 </div>
             `;
 
-            // 2. Build the Reusable Bottom Tags
             const tagsHtml = `
                 <div class="flex flex-wrap gap-2">
                     ${chArray.map(ch => `<span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase border border-slate-200 dark:border-slate-700">${ch}</span>`).join('')}
                 </div>
             `;
 
-            let ankiButtonHtml = '';
-            let backFaceHtml = '';
-
-            // 4. Construct the Back Face (If Admin & Image Exists)
-            if (isAdmin && q.ans_image) {
-                ankiButtonHtml = `
-                    <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-transform active:scale-95 text-xs font-bold shadow-md shadow-brand-500/30 border-none">
-                        <span>👁️ View Answer Card</span>
-                    </button>
-                `;
-                
-                backFaceHtml = `
-                    <div class="flashcard-back">
-                        <div class="deck-card glass-card w-full h-full flex flex-col relative overflow-hidden">
-                            ${headerHtml}
-                            
-                            <!-- Interactive Image Area -->
-                            <div class="flex-1 relative w-full my-4 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden border border-slate-200 dark:border-slate-700 group">
-                                <!-- Inline Zoom Controls -->
-                                <div class="absolute top-4 right-4 z-50 flex flex-col gap-2 bg-white/90 dark:bg-slate-800/90 p-1.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <button onclick="window.zoomInCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold transition-colors">➕</button>
-                                    <button onclick="window.zoomOutCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold transition-colors">➖</button>
-                                    <button onclick="window.resetZoomCard('${q.q}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/50 dark:hover:bg-brand-800 text-brand-600 dark:text-brand-400 font-bold transition-colors text-xs">↺</button>
-                                </div>
-
-                                <div id="panzoom-wrapper-${q.q}" class="w-full h-full flex items-center justify-center cursor-move" style="touch-action: none;">
-                                    <img src="${q.ans_image}" class="max-w-full max-h-full object-contain pointer-events-none" alt="Answer for ${q.q}" loading="lazy">
-                                </div>
-                            </div>
-
-                            <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 shrink-0">
-                                ${tagsHtml}
-                                <button onclick="window.toggleFlashcard('deck-${q.q}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg transition-transform active:scale-95 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-sm">
-                                    <span>🔙 Back to Question</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // 5. Render the Full Anki-Style Card
             container.innerHTML = `
-                <div class="flashcard-container" id="container-deck-${q.q}">
-                    <div class="flashcard-inner" id="card-deck-${q.q}">
-                        
-                        <!-- FRONT FACE: Question & Options -->
-                        <div class="flashcard-front">
-                            <div class="deck-card glass-card w-full h-full flex flex-col">
-                                ${headerHtml}
-                                <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                                    ${questionHtml}
-                                    ${optsHtml}
-                                </div>
-                                <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 shrink-0">
-                                    ${tagsHtml}
-                                    ${ankiButtonHtml}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- BACK FACE: Answer Image -->
-                        ${backFaceHtml}
-
+                <div class="deck-card glass-card w-full h-full flex flex-col">
+                    ${headerHtml}
+                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                        ${questionHtml}
+                        ${optsHtml}
+                    </div>
+                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 shrink-0">
+                        ${tagsHtml}
                     </div>
                 </div>
             `;
-            
-            // Allow container to reset scroll position normally
             container.scrollTop = 0;
-
-            // Initialize inline Panzoom after rendering the card
-            if (isAdmin && q.ans_image) {
-                setTimeout(() => {
-                    const wrapper = document.getElementById(`panzoom-wrapper-${q.q}`);
-                    if (wrapper && typeof Panzoom !== 'undefined') {
-                        window[`panzoom_${q.q}`] = Panzoom(wrapper, {
-                            maxScale: 30,
-                            minScale: 1,
-                            contain: 'outside',
-                            step: 0.3,
-                            canvas: true
-                        });
-                        
-                        wrapper.parentElement.addEventListener('wheel', window[`panzoom_${q.q}`].zoomWithWheel);
-                        wrapper.addEventListener('dblclick', window[`panzoom_${q.q}`].reset);
-                    }
-                }, 50);
-            }
         }
 
         window.checkDeckAnswer = function(btn, picked, correct) {
@@ -1720,8 +1324,8 @@
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
-            await window.fetchQuestions();
             window.initDeckView(); 
+            await window.fetchQuestions();
         };
     </script>
 
@@ -1764,7 +1368,7 @@
             const type = document.getElementById('clin-q-type').value;
             const ans = document.getElementById('clin-q-ans').value.trim();
 
-            if (!stem) return alert("Question Stem is required!");
+            if (!stem) return alert("Case Scenario is required!");
 
             const originalText = btn.innerText;
             const editId = btn.getAttribute('data-edit-id');
@@ -1790,7 +1394,7 @@
                     uploadedBy: window.currentUserObj.email
                 };
 
-                // Check if user manually formatted options in text box A) B) C) D)
+                // Auto parse options if user enters A) B) C) D) manually in the stem box
                 if (type === 'MCQ') {
                     const optRegex = /(.*?)(?:<br\s*\/?>|\n|^)A\)\s*(.*?)(?:<br\s*\/?>|\n)B\)\s*(.*?)(?:<br\s*\/?>|\n)C\)\s*(.*?)(?:<br\s*\/?>|\n)D\)\s*(.*)/is;
                     const match = stem.match(optRegex);
@@ -1810,11 +1414,13 @@
                 } else {
                     await set(qRef, payload);
                 }
-                
-                // Save answers
+
+                // Manage answers safely based on whether creating or editing
+                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}/answer`);
                 if (ans !== "") {
-                    const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
-                    await set(answerRef, { text: ans, updatedAt: new Date().toISOString(), updatedBy: window.currentUserObj.email });
+                    await set(answerRef, ans);
+                } else if (ans === "" && editId) {
+                    await remove(answerRef); 
                 }
 
                 btn.classList.replace('bg-brand-500', 'bg-green-500');
@@ -1850,14 +1456,10 @@
             btn.classList.add('opacity-75');
 
             try {
-                const answerRef = ref(window.db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
+                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}/answer`);
                 
                 if (text) {
-                    await set(answerRef, {
-                        text: text,
-                        updatedAt: new Date().toISOString(),
-                        updatedBy: window.currentUserObj.email
-                    });
+                    await set(answerRef, text);
                     btn.classList.replace('bg-brand-500', 'bg-green-500');
                     btn.innerText = "Published! ✅";
                 } else {
@@ -1898,45 +1500,6 @@
             } catch (e) {
                 console.error(e);
                 alert("Error syncing bookmark: " + e.message);
-            }
-        };
-
-        window.deleteBookmark = async function(qId) {
-            if (!window.currentUserObj) return;
-            if (!confirm("Remove this question from your saved items?")) return;
-            
-            let targetKey = qId;
-            if (window.userBookmarks && !window.userBookmarks[qId]) {
-                const foundKey = Object.keys(window.userBookmarks).find(key => window.userBookmarks[key].q === qId);
-                if (foundKey) targetKey = foundKey;
-            }
-
-            if (window.userBookmarks && window.userBookmarks[targetKey]) {
-                delete window.userBookmarks[targetKey];
-            }
-            if (window.userPanelApp && window.userPanelApp.isOpen) {
-                window.userPanelApp.renderState();
-            }
-            if (typeof window.updateBookmarkUI === 'function') {
-                window.updateBookmarkUI();
-            }
-
-            try { 
-                await remove(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${targetKey}`)); 
-            } catch(e) { 
-                console.error(e);
-                alert("Failed to remove bookmark from cloud: " + e.message); 
-            }
-        };
-
-        window.firebaseUpdateSettings = async function(newState) {
-            try {
-                await set(ref(window.db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/showAnswers`), newState);
-            } catch (e) {
-                console.error("Settings update failed:", e);
-                alert("Failed to update setting: " + e.message);
-                // Revert toggle UI on error
-                document.getElementById('global-answer-toggle').checked = !newState;
             }
         };
 
@@ -1986,20 +1549,20 @@
             
             const coffeeBtn = document.getElementById('summaryButton');
             const adminControls = document.getElementById('admin-controls');
+            const uploadBtn = document.getElementById('admin-upload-btn'); 
             const ankiBtn = document.getElementById('admin-anki-btn'); 
 
             if (user) {
                 const email = user.email.toLowerCase().trim();
                 const isAdmin = allowedVIPs.includes(email);
                 
-                // Show admin tools
                 if (coffeeBtn) coffeeBtn.style.display = isAdmin ? 'inline-block' : 'none';
-                if (adminControls) adminControls.classList.toggle('hidden', !isAdmin);
-                if (adminControls) adminControls.classList.toggle('flex', isAdmin);
+                if (adminControls) { adminControls.classList.toggle('hidden', !isAdmin); adminControls.classList.toggle('flex', isAdmin); }
+                if (uploadBtn) uploadBtn.classList.toggle('hidden', !isAdmin); 
                 if (ankiBtn) { ankiBtn.classList.toggle('hidden', !isAdmin); ankiBtn.classList.toggle('flex', isAdmin); } 
 
                 // --- LISTEN FOR GLOBAL SETTINGS ---
-                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                const settingsRef = ref(db, `settings/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_CLINICAL`);
                 onValue(settingsRef, (snapshot) => {
                     const data = snapshot.val();
                     window.globalPlatformSettings.showAnswers = data ? data.showAnswers : false;
@@ -2012,23 +1575,13 @@
                         if (window.isDeckMode) window.renderDeckCard();
                     }
                 });
-                
-                // --- LISTEN FOR LIVE ANSWERS ---
-                const answersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
-                onValue(answersRef, (snapshot) => {
-                    window.liveAnswers = snapshot.val() || {};
-                    if (window.displayData && window.displayData.length > 0) {
-                        window.populateTable();
-                        if (window.isDeckMode) window.renderDeckCard();
-                    }
-                });
 
-                // --- FETCH CLINICAL QUESTIONS FROM FIREBASE (Now Order Based) ---
+                // --- PURE FIREBASE DATA FETCH (NO LOCAL JSON) ---
                 const clinRef = ref(db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
                 onValue(clinRef, (snapshot) => {
                     const data = snapshot.val() || {};
                     
-                    const firebaseQna = Object.keys(data).map(key => {
+                    window.qnaData = Object.keys(data).map(key => {
                         return {
                             q: key, 
                             stem: data[key].stem,
@@ -2039,16 +1592,13 @@
                             ans_key: data[key].ans_key || "",
                             order: data[key].order || 0 
                         };
-                    });
-                    
-                    // Merge local static QNA with Firebase Dynamic QNA
-                    const mergedData = [...window.qnaData, ...firebaseQna];
-                    
-                    // Sort ascending by order. If no order, default to end (Infinity)
-                    window.qnaData = mergedData.sort((a, b) => {
-                        const orderA = a.order !== undefined ? a.order : Infinity;
-                        const orderB = b.order !== undefined ? b.order : Infinity;
-                        return orderA - orderB;
+                    }).sort((a, b) => a.order - b.order); 
+
+                    window.liveAnswers = {};
+                    Object.keys(data).forEach(key => {
+                        if (data[key].answer) {
+                            window.liveAnswers[key] = { text: data[key].answer };
+                        }
                     });
 
                     if(typeof window.processDataForAccess === 'function') window.processDataForAccess();
@@ -2068,7 +1618,6 @@
                 if (isAdmin) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
-                    if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
@@ -2081,13 +1630,13 @@
                         }
                         window.globalUserStatus = sub; 
                         window.accessLevel = sub.isVIP ? 'premium' : 'free';
-                        if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                     });
                 }
             } else { 
                 if (coffeeBtn) coffeeBtn.style.display = 'none';
                 if (adminControls) { adminControls.classList.add('hidden'); adminControls.classList.remove('flex'); }
+                if (uploadBtn) uploadBtn.classList.add('hidden'); 
                 if (ankiBtn) { ankiBtn.classList.add('hidden'); ankiBtn.classList.remove('flex'); } 
 
                 window.currentUserProfileData = {}; 
@@ -2095,7 +1644,6 @@
                 window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
                 window.accessLevel = 'guest';
                 
-                if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
             }
         });

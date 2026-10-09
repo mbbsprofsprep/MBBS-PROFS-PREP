@@ -77,10 +77,6 @@
         
         .deck-option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: left; transition: all 0.2s; font-weight: 500; color: #334155; cursor: pointer; position: relative; }
         html.dark .deck-option-btn { border-color: #1e293b; background: rgba(30, 41, 59, 0.5); color: #cbd5e1; }
-        .deck-opt-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; opacity: 1 !important; }
-        html.dark .deck-opt-correct { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; border-color: #16a34a !important; }
-        .deck-opt-wrong { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; font-weight: 600; opacity: 0.7; }
-        html.dark .deck-opt-wrong { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border-color: #dc2626 !important; }
         
         #view-toggle-btn { position: fixed; bottom: 24px; right: 24px; z-index: 10000; width: 60px; height: 60px; border-radius: 50%; background: #0ea5e9; color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.2s; }
         #view-toggle-btn:active { transform: scale(0.90); }
@@ -96,8 +92,6 @@
         .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         html.dark .deck-nav-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
         .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
-        .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
-        .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
 
         /* --- STYLED MARKDOWN RENDER CLASSES --- */
         .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
@@ -130,7 +124,7 @@
             <div id="admin-controls" class="hidden absolute top-0 right-0 items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-brand-200 dark:border-brand-800 shadow-sm">
                 
                 <!-- UPLOAD BUTTON -->
-                <button id="admin-upload-btn" onclick="document.getElementById('uploadClinicalModal').classList.remove('hidden')" class="hidden bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
+                <button id="admin-upload-btn" onclick="window.openUploadModal()" class="hidden bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-transform active:scale-95 mr-2">
                     ➕ Upload Case
                 </button>
 
@@ -195,13 +189,13 @@
         </div>
     </div>
 
-    <!-- DEDICATED CLINICAL UPLOAD MODAL -->
+    <!-- DEDICATED CLINICAL UPLOAD / EDIT MODAL -->
     <div id="uploadClinicalModal" class="fixed inset-0 z-[10010] hidden overflow-y-auto">
         <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="document.getElementById('uploadClinicalModal').classList.add('hidden')"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div class="relative w-full max-w-3xl transform overflow-hidden rounded-2xl bg-slate-50 dark:bg-dark-surface text-left shadow-2xl transition-all border border-slate-200 dark:border-slate-700 flex flex-col">
                 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
-                    <h3 class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Clinical Case</h3>
+                    <h3 id="upload-modal-title" class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Clinical Case</h3>
                     <button onclick="document.getElementById('uploadClinicalModal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">✕</button>
                 </div>
                 <div class="p-6 bg-white dark:bg-slate-900 space-y-5">
@@ -226,7 +220,7 @@
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Model Answer / Explanation (Markdown)</label>
                         <textarea id="clin-q-ans" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="5" placeholder="Provide the diagnosis and management plan..."></textarea>
                     </div>
-                    <button onclick="window.saveClinicalQuestion(this)" class="w-full py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-colors uppercase tracking-wider">Publish to Database</button>
+                    <button id="upload-modal-btn" onclick="window.saveClinicalQuestion(this)" class="w-full py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-colors uppercase tracking-wider">Publish to Database</button>
                 </div>
             </div>
         </div>
@@ -252,8 +246,6 @@
         // --- CONSTANTS & GLOBALS ---
         window.SECRET_CODE = "777pankaj";
         window.optionLetters = ['A', 'B', 'C', 'D', 'E'];
-        window.motivationalMessages = ["Hi [Name]! You are bringing life to your studies!", "Hey [Name], every expert was once a beginner. Keep pushing.", "Take a deep breath, [Name]. You are doing amazing work!"];
-
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.accessLevel = 'guest'; 
@@ -264,6 +256,9 @@
         window.liveAnswers = {};
         window.globalPlatformSettings = { showAnswers: false };
 
+        // Used to track if we are adding a new question or editing an existing one
+        window.editingClinId = null;
+
         // ====================================================================
         // 🔴 MASTER ROUTING CONTROLS
         // ====================================================================
@@ -271,7 +266,6 @@
         window.COLLEGE_CODE = urlParams.get('college') || 'deoghar'; 
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
-        // 🟢 SETTING TO OPHTHAL
         window.SUBJECT_CODE = "OPHTHAL"; 
         
         window.curriculumData = [];
@@ -281,37 +275,25 @@
         document.addEventListener("DOMContentLoaded", () => {
             const titleEl = document.getElementById('dynamic-page-title');
             if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Clinical Cases (${window.COLLEGE_NAME})`;
-            
             const mainTitleEl = document.getElementById('dynamic-subject-title');
             if (mainTitleEl) mainTitleEl.innerText = `${window.SUBJECT_CODE} Clinical Cases`;
-
             const headerEl = document.getElementById('dynamic-college-header');
             if (headerEl) headerEl.innerText = window.COLLEGE_NAME + " | Professional Examinations";
         });
 
-        // --- UNIQUE ID GENERATOR ---
         window.getUniqueQuestionId = function(qId) {
             const rawId = `${window.COLLEGE_NAME}_${window.SUBJECT_CODE}_CLINICAL_${qId}`;
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-        // --- MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No explanation provided yet.</em>";
-            
             let processedText = text;
             const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
             processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
-                return `<div class="yt-container my-4">
-                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
-                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span>
-                            </button>
-                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
-                        </div>`;
+                return `<div class="yt-container my-4"><button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm"><svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg><span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span></button><div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div></div>`;
             });
-
             const rawHtml = marked.parse(processedText);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
@@ -351,14 +333,13 @@
             }
         };
 
-        // --- BYPASS STATIC JSON - USE REALTIME DB INSTEAD ---
+        // --- FETCH TRIGGER (Actual Logic Handled in Auth Listener) ---
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
             if(tableBody) {
                 tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing Clinical Database...</p></td></tr>`;
             }
             window.isDataLoaded = true; 
-            // Data will be populated by the onAuthStateChanged listener
         };
 
         window.processDataForAccess = function() {
@@ -386,12 +367,42 @@
             }
         };
 
+        // --- EDIT CLINICAL QUESTION MODAL HANDLERS ---
+        window.openUploadModal = function() {
+            window.editingClinId = null;
+            document.getElementById('upload-modal-title').innerHTML = '➕ Add New Clinical Case';
+            document.getElementById('upload-modal-btn').innerText = 'Publish to Database';
+            document.getElementById('clin-q-stem').value = '';
+            document.getElementById('clin-q-chap').value = '';
+            document.getElementById('clin-q-type').value = 'Theory';
+            document.getElementById('clin-q-ans').value = '';
+            document.getElementById('uploadClinicalModal').classList.remove('hidden');
+        };
+
+        window.editClinicalQuestion = function(qId) {
+            const q = window.qnaData.find(x => x.q === qId);
+            if (!q) return;
+
+            window.editingClinId = qId;
+            
+            document.getElementById('clin-q-stem').value = q.stem || '';
+            document.getElementById('clin-q-chap').value = (Array.isArray(q.chapter) ? q.chapter[0] : q.chapter) || '';
+            document.getElementById('clin-q-type').value = q.type || 'Theory';
+            
+            const liveAns = window.liveAnswers[qId] ? window.liveAnswers[qId].text : "";
+            document.getElementById('clin-q-ans').value = liveAns;
+
+            document.getElementById('upload-modal-title').innerHTML = '✏️ Edit Clinical Case';
+            document.getElementById('upload-modal-btn').innerText = 'Update Case Data';
+
+            document.getElementById('uploadClinicalModal').classList.remove('hidden');
+        };
+
         // --- BOOKMARK LOGIC ---
         window.toggleBookmark = async function(btn, index) {
             if (!window.currentUserObj) {
                 return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save cases to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             }
-
             const item = window.displayData[index];
             if (!item) return;
 
@@ -400,26 +411,12 @@
             const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
             const chapterString = chArray.length > 0 ? chArray[0] : 'General';
             
-            const bookmarkData = {
-                q: item.q,
-                type: item.type || "Clinical",
-                text: cleanStem, 
-                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " Clinical - " + chapterString,
-                url: window.location.href,
-                timestamp: new Date().toISOString()
-            };
-            
+            const bookmarkData = { q: item.q, type: item.type || "Clinical", text: cleanStem, subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " Clinical - " + chapterString, url: window.location.href, timestamp: new Date().toISOString() };
             const isSaved = window.isBookmarked(item.q);
-            
-            if (window.executeBookmarkToggle) {
-                window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
-            }
+            if (window.executeBookmarkToggle) window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
         };
 
-        window.isBookmarked = function(qId) { 
-            const uniqueId = window.getUniqueQuestionId(qId);
-            return !!window.userBookmarks[uniqueId]; 
-        };
+        window.isBookmarked = function(qId) { return !!window.userBookmarks[window.getUniqueQuestionId(qId)]; };
 
         window.updateBookmarkUI = function() {
             if (!window.displayData) return;
@@ -431,7 +428,6 @@
             window.displayData.forEach((item) => {
                 const uniqueId = window.getUniqueQuestionId(item.q);
                 const isSaved = !!window.userBookmarks[uniqueId];
-                
                 const activeColors = isSaved ? savedClass : unsavedClass;
                 const activeText = isSaved ? '⭐ Saved' : '🔖 Save';
 
@@ -443,31 +439,23 @@
             });
         };
 
-        // --- MULTISELECT FILTERS ---
+        // --- FILTERS ---
         window.getUniqueValues = function(key) {
             const values = new Set();
             window.qnaData.forEach(item => { 
                 if (key === 'type' && item.type) { values.add(item.type); } 
                 else if (key === 'chapter' && item.chapter) {
-                    if (Array.isArray(item.chapter)) { item.chapter.forEach(e => values.add(e)); } 
-                    else { values.add(item.chapter); }
+                    if (Array.isArray(item.chapter)) { item.chapter.forEach(e => values.add(e)); } else { values.add(item.chapter); }
                 }
                 else if (key === 'exam' && item.examBatch) {
-                    if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } 
-                    else { values.add(item.examBatch); }
+                    if (Array.isArray(item.examBatch)) { item.examBatch.forEach(e => values.add(e)); } else { values.add(item.examBatch); }
                 } else if (item[key]) { values.add(item[key]); }
             });
             return Array.from(values).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
         }
 
-        window.toggleDropdown = function(id) {
-            document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); });
-            document.getElementById(id + 'Menu').classList.toggle('show');
-        }
-
-        window.closeAllDropdowns = function(event) {
-            if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
-        }
+        window.toggleDropdown = function(id) { document.querySelectorAll('.multiselect-menu').forEach(menu => { if (menu.id !== id + 'Menu') menu.classList.remove('show'); }); document.getElementById(id + 'Menu').classList.toggle('show'); }
+        window.closeAllDropdowns = function(event) { if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); } }
 
         window.handleCheckboxChange = function(id, value, filterSetKey, label) {
             const set = window.filterState[filterSetKey];
@@ -548,14 +536,8 @@
             document.getElementById('answerModal').classList.remove('hidden');
         }
 
-        window.closeAnswerModal = function() {
-            document.getElementById('answerModal').classList.add('hidden');
-        }
-
-        window.updatePreviewModal = function(qId) {
-            const text = document.getElementById(`admin-ans-modal-${qId}`).value;
-            document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(text);
-        }
+        window.closeAnswerModal = function() { document.getElementById('answerModal').classList.add('hidden'); }
+        window.updatePreviewModal = function(qId) { document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(document.getElementById(`admin-ans-modal-${qId}`).value); }
 
         window.populateTable = function() {
             const tbody = document.getElementById('tableBody');
@@ -575,8 +557,12 @@
                 
                 let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
 
-                if (item.type === 'MCQ') {
-                    qHtml += `<div class="font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</div>`;
+                // --- NEW EDIT BUTTON INJECTION FOR ADMINS ---
+                if (isAdmin) {
+                    qHtml += `<div class="flex items-start justify-between gap-4 mb-2">
+                                <div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left flex-1 m-0"><span>${cleanStem}</span></div>
+                                <button onclick="window.editClinicalQuestion('${item.q}')" class="shrink-0 mt-2 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm flex items-center gap-1" title="Edit Question Details">✏️ Edit</button>
+                              </div>`;
                 } else {
                     qHtml += `<div class="theory-question shadow-sm dark:bg-dark-surface dark:text-brand-200 dark:border-brand-500 text-left mb-2"><span>${cleanStem}</span></div>`; 
                 }
@@ -676,24 +662,6 @@
         }
 
         // --- ADMIN TOOLS ---
-        window.handleSecretClick = function() { 
-            window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`); 
-        }
-
-        window.handleNameSubmission = function() {
-            const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
-            const lowerName = name.toLowerCase();
-            
-            if (lowerName === window.SECRET_CODE.toLowerCase() || lowerName === "777pankaj") { 
-                window.closeModal(); 
-            } 
-            else if (name) { 
-                const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
-                let message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
-                window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `💪`); 
-            }
-        }
-
         window.showModal = function(title, bodyHtml, footerHtml, iconHtml) { 
             const modal = document.getElementById('actionModal');
             document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
@@ -704,83 +672,9 @@
         // DECK VIEW INITIALIZATION & LOGIC
         // ==========================================
         
-        window.initDeckView = function() {
-            const deckLayer = document.createElement('div');
-            deckLayer.id = 'universal-deck-layer';
-            deckLayer.innerHTML = `
-                <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10 shrink-0">
-                    <div class="flex items-center gap-2 md:gap-3">
-                        <button onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="My Account">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                        </button>
-                        
-                        <button onclick="window.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors border-none" title="Filters">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                        </button>
-                        
-                        <div class="ml-1">
-                            <h1 class="font-bold text-lg text-brand-600 dark:text-brand-400 truncate leading-tight">Review Mode</h1>
-                            <div class="text-[10px] text-slate-500 font-medium" id="deck-subtitle">Loading...</div>
-                        </div>
-                    </div>
-                    
-                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        <span id="deck-counter">1/1</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
-                </div>
-                
-                <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
-                
-                <div class="p-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0 pb-20">
-                    <button onclick="window.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 active:scale-95 transition-transform border-none">Previous</button>
-                    <button onclick="window.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Next</button>
-                </div>
-                
-                <div id="deck-nav-drawer" class="deck-drawer">
-                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
-                    <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)" class="border-none bg-transparent">✕</button></div>
-                        <div class="nav-grid" id="deck-nav-grid"></div>
-                    </div>
-                </div>
-                
-                <div id="deck-filter-drawer" class="deck-drawer">
-                    <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
-                    <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                            <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
-                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
-                        </div>
-                        <div class="p-5 overflow-y-auto flex-1 custom-scrollbar" id="deck-filter-content"></div>
-                        <div class="p-4 border-t border-slate-200 dark:border-slate-700">
-                            <button onclick="window.syncDeckWithFilters(); window.toggleDeckDrawer(null);" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform border-none">Apply Filters</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(deckLayer);
-
-            const fab = document.createElement('button'); 
-            fab.id = 'view-toggle-btn'; 
-            fab.innerHTML = '🎴'; 
-            fab.title = "Switch to Deck View";
-            fab.onclick = window.toggleDeckMode; 
-            document.body.appendChild(fab);
-
-            const eyeFab = document.createElement('button');
-            eyeFab.id = 'floating-eye-btn';
-            eyeFab.onclick = window.toggleAnswers;
-            eyeFab.className = 'fixed bottom-[96px] right-6 z-[10000] w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-400 shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all hover:scale-110 active:scale-90';
-            eyeFab.title = "Reveal Table Answers";
-            eyeFab.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
-            document.body.appendChild(eyeFab);
-        }
-
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
         window.deckIndex = 0;
-        window.deckStatus = {};
 
         window.toggleDeckAnswerPanel = function(qId) {
             const panel = document.getElementById(`deck-ans-panel-${qId}`);
@@ -935,13 +829,16 @@
                 </div>`;
             }
 
-            if (q.type === 'MCQ') {
-                questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
-                questionHtml += ansBlockHtml;
-            } else { 
-                questionHtml = `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
-                questionHtml += ansBlockHtml;
+            // --- NEW EDIT BUTTON INJECTION FOR ADMINS (DECK VIEW) ---
+            if (isAdmin) {
+                questionHtml += `<div class="mb-4 flex items-start justify-between gap-4">
+                                    <div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left flex-1 m-0"><span>${cleanStem}</span></div>
+                                    <button onclick="window.editClinicalQuestion('${q.q}')" class="shrink-0 mt-2 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm flex items-center gap-1" title="Edit Question Details">✏️ Edit</button>
+                                 </div>`;
+            } else {
+                questionHtml += `<div class="mb-4"><div class="theory-question shadow-sm dark:bg-dark-bg dark:text-brand-200 dark:border-brand-500 text-left"><span>${cleanStem}</span></div></div>`; 
             }
+            questionHtml += ansBlockHtml;
 
             const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
 
@@ -1052,7 +949,7 @@
 
         const allowedVIPs = [ "pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
 
-        // --- NEW: Save Clinical Question to Firebase ---
+        // --- NEW & UPDATE: Save/Update Clinical Question to Firebase ---
         window.saveClinicalQuestion = async function(btn) {
             const stem = document.getElementById('clin-q-stem').value.trim();
             const chap = document.getElementById('clin-q-chap').value.trim() || 'General Clinical';
@@ -1062,13 +959,13 @@
             if (!stem) return alert("Case Scenario is required!");
 
             const originalText = btn.innerText;
-            btn.innerText = "Publishing to Cloud...";
+            btn.innerText = window.editingClinId ? "Updating..." : "Publishing to Cloud...";
             btn.disabled = true;
             btn.classList.add('opacity-75');
 
             try {
-                // Generate a clean, random unique ID for the question
-                const qId = "CLIN-" + Math.floor(Math.random() * 90000 + 10000); 
+                // If editing, use the existing ID. If new, generate a random ID.
+                const qId = window.editingClinId ? window.editingClinId : "CLIN-" + Math.floor(Math.random() * 90000 + 10000); 
                 const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${qId}`);
                 
                 await set(qRef, {
@@ -1081,7 +978,7 @@
                 });
 
                 btn.classList.replace('bg-brand-500', 'bg-green-500');
-                btn.innerText = "Published! ✅";
+                btn.innerText = window.editingClinId ? "Updated! ✅" : "Published! ✅";
                 
                 setTimeout(() => {
                     btn.classList.replace('bg-green-500', 'bg-brand-500');
@@ -1089,13 +986,12 @@
                     btn.disabled = false;
                     btn.classList.remove('opacity-75');
                     
-                    document.getElementById('clin-q-stem').value = '';
-                    document.getElementById('clin-q-ans').value = '';
                     document.getElementById('uploadClinicalModal').classList.add('hidden');
+                    window.editingClinId = null; // Clear the edit state after success
                 }, 1500);
 
             } catch (error) {
-                alert("Upload Failed: " + error.message);
+                alert("Action Failed: " + error.message);
                 btn.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-75');

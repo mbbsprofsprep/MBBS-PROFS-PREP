@@ -9,7 +9,7 @@ if (typeof marked === 'undefined') {
     document.head.appendChild(markedScript);
 }
 
-// 1. INJECT SCOPED CSS FOR 3D NEURO-RECALL FLASHCARDS
+// 1. INJECT SCOPED CSS FOR 3D NEURO-RECALL FLASHCARDS & IMAGE STYLING
 const neuroRecallCSS = `
 <style id="neuro-recall-styles">
     #neuro-recall-layer {
@@ -66,6 +66,24 @@ const neuroRecallCSS = `
     .nr-face-back {
         transform: rotateY(180deg) translate3d(0, 0, 0);
         -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
+    }
+    /* Ensure all question & explanation images render cleanly inside 3D cards */
+    .nr-face img, .bm-flip-card img {
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: 260px !important;
+        object-fit: contain;
+        border-radius: 12px;
+        margin: 12px auto;
+        display: block;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        cursor: zoom-in;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+    html.dark .nr-face img, html.dark .bm-flip-card img {
+        border-color: #334155;
+        background: #1e293b;
     }
     .nr-opt-btn {
         width: 100%;
@@ -154,7 +172,7 @@ const neuroRecallCSS = `
 `;
 document.head.insertAdjacentHTML('beforeend', neuroRecallCSS);
 
-// 2. INJECT THE NAVBAR, SIDEBAR & NEURO-RECALL LAYER HTML
+// 2. INJECT THE NAVBAR, SIDEBAR, LIGHTBOX & NEURO-RECALL LAYER HTML
 const appShellHTML = `
     <nav class="fixed top-0 w-full z-50 border-b border-brand-100 dark:border-slate-800 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-md transition-colors">
         <div class="w-full px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
@@ -208,6 +226,14 @@ const appShellHTML = `
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <!-- ADMIN GLOBAL VISIBILITY TOGGLE IN HEADER -->
+                <div id="nr-admin-header-toggle" class="hidden items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700 mr-1">
+                    <span class="text-[10px] font-black text-amber-400 uppercase tracking-wider">Public Access</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="nr-header-toggle-input" class="sr-only peer" onchange="window.toggleGlobalNeuroRecall()">
+                        <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
                 <button onclick="window.neuroRecallApp.promptExamDate()" class="px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors" title="Set Target Exam Date">
                     📅 <span id="nr-exam-days-label">90d to Exam</span>
                 </button>
@@ -292,6 +318,12 @@ const appShellHTML = `
             </div>
         </footer>
     </div>
+
+    <!-- IMAGE ZOOM LIGHTBOX FOR FLASHCARDS -->
+    <div id="nr-image-lightbox" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[35000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <button onclick="document.getElementById('nr-image-lightbox').classList.add('hidden')" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white text-xl font-bold flex items-center justify-center border-none cursor-pointer">✕</button>
+        <img id="nr-lightbox-img" src="" class="max-w-[95vw] max-h-[90vh] object-contain rounded-xl shadow-2xl" alt="Zoomed Medical Image">
+    </div>
 `;
 
 document.body.insertAdjacentHTML('afterbegin', appShellHTML);
@@ -305,9 +337,35 @@ window.ADMIN_EMAILS = [
     "pankajkumarmahto1009@gmail.com"
 ];
 
+window.globalNeuroRecallEnabled = false; // Controlled by Admin via Firebase settings/global/showNeuroRecall
+window.subjectJsonCache = {}; // Caches JSON files to restore stripped images in older bookmarks
+
 window.isUserAdmin = function(user = window.currentUserObj) {
     return Boolean(user && user.email && window.ADMIN_EMAILS.includes(user.email.toLowerCase().trim()));
 };
+
+// Returns true if user is Admin OR if Admin has enabled Neuro-Recall for all students
+window.canAccessNeuroRecall = function() {
+    return window.isUserAdmin() || Boolean(window.globalNeuroRecallEnabled);
+};
+
+window.openNrLightbox = function(imgSrc) {
+    if (!imgSrc) return;
+    const lb = document.getElementById('nr-image-lightbox');
+    const img = document.getElementById('nr-lightbox-img');
+    if (lb && img) {
+        img.src = imgSrc;
+        lb.classList.remove('hidden');
+    }
+};
+
+// Delegate clicks on images inside Neuro-Recall or Bookmark cards to open the zoom lightbox
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.tagName === 'IMG' && (e.target.closest('.nr-face') || e.target.closest('.bm-flip-card'))) {
+        e.stopPropagation();
+        window.openNrLightbox(e.target.src);
+    }
+});
 
 if (localStorage.getItem('theme') === 'dark') {
     document.documentElement.classList.add('dark');
@@ -316,8 +374,20 @@ if (localStorage.getItem('theme') === 'dark') {
 }
 
 // ====================================================
-// 4. SPACED REPETITION MATH ENGINE (FROM MEDPYQ)
+// 4. SPACED REPETITION MATH & ADMIN TOGGLE ENGINE
 // ====================================================
+window.toggleGlobalNeuroRecall = async function() {
+    if (!window.isUserAdmin() || !window.db) return;
+    const newState = !window.globalNeuroRecallEnabled;
+    try {
+        const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+        await set(ref(window.db, `settings/global/showNeuroRecall`), newState);
+    } catch (e) {
+        console.error("Failed to toggle Neuro-Recall setting:", e);
+        alert("Failed to update setting: " + e.message);
+    }
+};
+
 window.getDaysToExam = function() {
     const targetDateStr = localStorage.getItem('mbbs_target_date');
     if (targetDateStr) {
@@ -355,11 +425,22 @@ window.getDueBookmarksCount = function() {
 window.updateNeuroDueBadges = function() {
     const dueCount = window.getDueBookmarksCount();
     const totalCount = Object.keys(window.userBookmarks || {}).length;
-
     const navBtn = document.getElementById('nav-neuro-due-btn');
     const navCount = document.getElementById('nav-neuro-due-count');
+
+    const headerAdminWrap = document.getElementById('nr-admin-header-toggle');
+    const headerToggleInput = document.getElementById('nr-header-toggle-input');
+    if (headerAdminWrap) {
+        const isAdm = window.isUserAdmin();
+        headerAdminWrap.classList.toggle('hidden', !isAdm);
+        headerAdminWrap.classList.toggle('flex', isAdm);
+    }
+    if (headerToggleInput) {
+        headerToggleInput.checked = Boolean(window.globalNeuroRecallEnabled);
+    }
+
     if (navBtn && navCount) {
-        if (window.currentUserObj && totalCount > 0) {
+        if (window.currentUserObj && totalCount > 0 && window.canAccessNeuroRecall()) {
             navCount.innerText = dueCount > 0 ? dueCount : totalCount;
             navBtn.onclick = () => window.neuroRecallApp.open(dueCount > 0 ? 'due' : 'all');
             navBtn.classList.remove('hidden');
@@ -372,7 +453,62 @@ window.updateNeuroDueBadges = function() {
 };
 
 // ====================================================
-// 5. NEURO-ADAPTIVE RECALL FLASHCARD ENGINE
+// 5. IMAGE & RICH STEM RECOVERY FOR BOOKMARKS
+// ====================================================
+window.recoverRichQuestionData = async function(bm) {
+    if (!bm) return { stemHtml: "Saved Question", ansImage: null, img: null };
+
+    let stemHtml = bm.stemHtml || bm.text || "Saved Question";
+    let ansImage = bm.ans_image || null;
+    let img = bm.img || null;
+
+    // 1. Check if the question is in the current page's loaded qnaData
+    if (Array.isArray(window.qnaData) && bm.q) {
+        const localMatch = window.qnaData.find(x => x && x.q === bm.q);
+        if (localMatch) {
+            if (localMatch.stem) stemHtml = localMatch.stem;
+            if (localMatch.ans_image) ansImage = localMatch.ans_image;
+            if (localMatch.img) img = localMatch.img;
+            return { stemHtml, ansImage, img };
+        }
+    }
+
+    // 2. If stemHtml does not contain an <img> tag yet, check the subject JSON file to restore stripped images
+    if (!stemHtml.includes('<img') && bm.q) {
+        try {
+            let colCode = bm.collegeCode;
+            let subCode = bm.subjectCode;
+            if ((!colCode || !subCode) && bm.subject) {
+                const parts = bm.subject.split(' - ');
+                if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
+                if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toLowerCase();
+            }
+            if (colCode && subCode && !subCode.includes('clinical')) {
+                const fileName = `${subCode.toLowerCase()}_aiims_${colCode.toLowerCase()}_data.json`;
+                if (!window.subjectJsonCache[fileName]) {
+                    const res = await fetch(fileName);
+                    if (res.ok) {
+                        const json = await res.json();
+                        window.subjectJsonCache[fileName] = json.qnaData || [];
+                    } else {
+                        window.subjectJsonCache[fileName] = [];
+                    }
+                }
+                const found = window.subjectJsonCache[fileName].find(x => x && x.q === bm.q);
+                if (found) {
+                    if (found.stem) stemHtml = found.stem;
+                    if (found.ans_image) ansImage = found.ans_image;
+                    if (found.img) img = found.img;
+                }
+            }
+        } catch (e) {}
+    }
+
+    return { stemHtml, ansImage, img };
+};
+
+// ====================================================
+// 6. NEURO-ADAPTIVE RECALL FLASHCARD ENGINE
 // ====================================================
 window.neuroRecallApp = {
     isOpen: false,
@@ -390,9 +526,15 @@ window.neuroRecallApp = {
             window.toggleAuthMode('login');
             return;
         }
+        if (!window.canAccessNeuroRecall()) {
+            if (window.showModal) {
+                window.showModal("Coming Soon", "<p class='text-sm text-slate-500'>Neuro-Recall Flashcards are currently being prepared by the academic team and will be unlocked soon!</p>", `<button onclick="window.closeModal()" class="w-full py-2.5 bg-brand-500 text-white rounded-xl font-bold border-none">Got it</button>`, "🧠");
+            }
+            return;
+        }
+
         const totalSaved = Object.keys(window.userBookmarks || {}).length;
         const dueCount = window.getDueBookmarksCount();
-        // Auto-switch to Full Vault if no cards are strictly due right now but user has bookmarks
         if (mode === 'due' && dueCount === 0 && totalSaved > 0) {
             this.isCramMode = true;
         } else {
@@ -406,6 +548,7 @@ window.neuroRecallApp = {
         this.isOpen = true;
         this.sessionAnswered.clear();
         document.getElementById('neuro-recall-layer').classList.add('active');
+        window.updateNeuroDueBadges();
         this.updateExamDaysUI();
         this.syncModeButtons();
         this.buildQueue();
@@ -558,7 +701,6 @@ window.neuroRecallApp = {
         if (window.liveAnswers && bm.q && window.liveAnswers[bm.q] && window.liveAnswers[bm.q].text) {
             return window.liveAnswers[bm.q].text;
         }
-        // Try fetching live answer from Firebase if collegeCode and subjectCode are known or parseable
         if (window.db && bm.q) {
             try {
                 const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
@@ -582,7 +724,7 @@ window.neuroRecallApp = {
         return "";
     },
 
-    renderCard: function() {
+    renderCard: async function() {
         const bm = this.currentItem.data;
         const step = bm.current_step || 1;
         const daysToExam = window.getDaysToExam();
@@ -593,21 +735,35 @@ window.neuroRecallApp = {
         document.getElementById('nr-time-guess').innerText = `+${this.calcGuessDays}d`;
         document.getElementById('nr-time-mastered').innerText = `+${this.calcMasteredDays}d`;
 
-        // Reset footer to Front State
         document.getElementById('nr-footer-prompt').classList.remove('hidden');
         document.getElementById('nr-footer-wrong').classList.add('hidden');
         document.getElementById('nr-footer-wrong').classList.remove('flex');
         document.getElementById('nr-footer-correct').classList.add('hidden');
         document.getElementById('nr-footer-correct').classList.remove('flex');
 
-        const cleanStem = (bm.text || "Saved Question").replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Recover full HTML stem (including <img> and <table>) and answer images
+        const rich = await window.recoverRichQuestionData(bm);
+        this.currentItem.rich = rich;
+
+        const cleanStem = rich.stemHtml
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\\text{([^}]+)}/g, '$1')
+            .replace(/\$/g, '');
+
+        const extraImgHtml = (rich.img && !cleanStem.includes(rich.img))
+            ? `<img src="${rich.img}" alt="Question Image">`
+            : '';
+
         const isMCQ = bm.type === 'MCQ' && Array.isArray(bm.options) && bm.options.length > 0;
 
         let interactionHtml = '';
         if (isMCQ) {
             interactionHtml = `<div class="space-y-2.5 mt-4">` + bm.options.map((opt, idx) => {
                 const letter = String.fromCharCode(65 + idx);
-                const cleanOpt = String(opt || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                const cleanOpt = String(opt || '')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\\text{([^}]+)}/g, '$1')
+                    .replace(/\$/g, '');
                 return `
                     <button type="button" onclick="window.neuroRecallApp.selectMCQ('${letter}')" class="nr-opt-btn group">
                         <span class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold text-xs flex items-center justify-center shrink-0 group-hover:bg-sky-500 group-hover:text-white transition-colors">${letter}</span>
@@ -632,7 +788,8 @@ window.neuroRecallApp = {
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 px-3 py-1 rounded-lg border border-sky-200 dark:border-sky-800 truncate">${bm.subject || 'Saved Question'} (${bm.q || ''})</span>
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 shrink-0">⚡ Level ${step}</span>
             </div>
-            <div class="text-base md:text-lg font-bold leading-relaxed mb-4">${cleanStem}</div>
+            <div class="text-base md:text-lg font-bold leading-relaxed mb-3">${cleanStem}</div>
+            ${extraImgHtml}
             ${interactionHtml}
         `;
         frontEl.scrollTop = 0;
@@ -677,12 +834,21 @@ window.neuroRecallApp = {
 
     populateBackFace: async function(bm, bannerHtml, correctBoxHtml) {
         const backEl = document.getElementById('nr-card-back');
-        const cleanStem = (bm.text || "").replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const rich = this.currentItem.rich || await window.recoverRichQuestionData(bm);
+        const cleanStem = (rich.stemHtml || bm.text || "")
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\\text{([^}]+)}/g, '$1')
+            .replace(/\$/g, '');
+
+        const ansImgHtml = rich.ansImage
+            ? `<div class="my-3"><div class="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">Answer Card Image (Tap to Zoom)</div><img src="${rich.ansImage}" alt="Answer Card"></div>`
+            : '';
 
         backEl.innerHTML = `
             ${bannerHtml}
             <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">${cleanStem}</div>
             ${correctBoxHtml}
+            ${ansImgHtml}
             <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-l-4 border-sky-500 text-sm leading-relaxed flex-1 markdown-body" id="nr-back-expl">
                 <span class="text-slate-400 animate-pulse">Loading explanation...</span>
             </div>
@@ -702,6 +868,8 @@ window.neuroRecallApp = {
         if (explContainer) {
             if (explText) {
                 explContainer.innerHTML = `<div class="text-[10px] font-black uppercase tracking-widest text-sky-500 mb-2">Neuro-Link (Explanation)</div>` + window.sharedRenderMarkdown(explText);
+            } else if (rich.ansImage) {
+                explContainer.innerHTML = `<em class="text-slate-400 text-xs">Refer to the visual Answer Card above, or tap <b>Copy for ChatGPT</b> below for extra text notes.</em>`;
             } else {
                 explContainer.innerHTML = `<em class="text-slate-400 text-xs">No saved explanation yet for this question. Tap <b>Copy for ChatGPT</b> below for an instant structured model answer.</em>`;
             }
@@ -752,13 +920,11 @@ window.neuroRecallApp = {
         }
 
         if (gradeCode === 0) {
-            // Re-queue at end of current session until mastered
             this.queue.push(shifted);
         } else {
             this.sessionAnswered.add(key);
         }
 
-        // Persist updated synaptic step and next review timestamp to Firebase
         try {
             if (window.db) {
                 const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
@@ -777,7 +943,7 @@ window.neuroRecallApp = {
 };
 
 // ====================================================
-// 6. GLOBAL SEARCH ROUTER (Index & Review/Clinical Pages)
+// 7. GLOBAL SEARCH ROUTER (Index & Review/Clinical Pages)
 // ====================================================
 window.handleGlobalSearch = function(query) {
     const q = (query || "").toLowerCase().trim();
@@ -805,7 +971,7 @@ window.handleGlobalSearch = function(query) {
 };
 
 // ====================================================
-// 7. PANZOOM FLASHCARD HELPERS
+// 8. PANZOOM FLASHCARD HELPERS
 // ====================================================
 window.zoomInCard = function(qId) {
     if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].zoomIn();
@@ -818,7 +984,7 @@ window.resetZoomCard = function(qId) {
 };
 
 // ====================================================
-// 8. UNIFIED MEDIA-AWARE MARKDOWN & VIDEO PLAYERS
+// 9. UNIFIED MEDIA-AWARE MARKDOWN & VIDEO PLAYERS
 // ====================================================
 window.toggleYT = function(containerId, videoId) {
     const container = document.getElementById(containerId);
@@ -896,7 +1062,7 @@ window.sharedRenderMarkdown = function(text) {
 };
 
 // ====================================================
-// 9. SECURE CHECKOUT LOADER
+// 10. SECURE CHECKOUT LOADER
 // ====================================================
 window.openSecureCheckout = function(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -936,7 +1102,7 @@ window.openSecureCheckout = function(e) {
 };
 
 // ====================================================
-// 10. AUTH UI & THEME HELPERS
+// 11. AUTH UI & THEME HELPERS
 // ====================================================
 window.toggleAuthMode = function(mode) {
     window.userPanelApp.authMode = mode;
@@ -977,7 +1143,7 @@ window.toggleTheme = function() {
 };
 
 // ====================================================
-// 11. THE MULTI-VIEW USER PANEL APP (WITH 3D BOOKMARKS & NEURO-RECALL)
+// 12. THE MULTI-VIEW USER PANEL APP (WITH ADMIN TOGGLE & 3D BOOKMARKS)
 // ====================================================
 window.userPanelApp = {
     isOpen: false,
@@ -1034,6 +1200,8 @@ window.userPanelApp = {
         if (user) {
             const totalSaved = Object.keys(window.userBookmarks || {}).length;
             const dueCount = window.getDueBookmarksCount();
+            const isAdmin = window.isUserAdmin(user);
+            const canUseNeuro = window.canAccessNeuroRecall();
 
             if (this.viewMode === 'menu') {
                 let badgeHtml = '';
@@ -1054,24 +1222,44 @@ window.userPanelApp = {
                 const nameToDisplay = user.displayName || pData.fullName || "User";
                 const initial = (user.email || "U").charAt(0).toUpperCase();
 
+                // Admin Global Toggle Card for Neuro-Recall
+                const adminNeuroControlHtml = isAdmin ? `
+                    <div class="p-3.5 bg-amber-50/80 dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-between shadow-sm">
+                        <div>
+                            <div class="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Admin Control: Neuro-Recall</div>
+                            <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">${window.globalNeuroRecallEnabled ? '🟢 Visible to All Students' : '🔒 Admin-Only (Hidden for Students)'}</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" ${window.globalNeuroRecallEnabled ? 'checked' : ''} onchange="window.toggleGlobalNeuroRecall()">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                ` : '';
+
+                const neuroRecallCardHtml = canUseNeuro ? `
+                    <a onclick="window.neuroRecallApp.open('${dueCount > 0 ? 'due' : 'all'}')" class="flex items-center justify-between p-4 bg-gradient-to-r from-sky-500 to-brand-600 text-white rounded-2xl cursor-pointer transition-all shadow-md hover:shadow-lg group">
+                        <div class="flex items-center gap-3.5 font-extrabold text-sm">
+                            <span class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🧠</span>
+                            <div>
+                                <div>Neuro-Recall Flashcards</div>
+                                <div class="text-[10px] font-semibold text-sky-100">${dueCount} Due Today • ${totalSaved} Saved</div>
+                            </div>
+                        </div>
+                        <span class="text-white/80 text-xs font-bold bg-white/20 px-2.5 py-1 rounded-full">Practice ❯</span>
+                    </a>
+                ` : '';
+
                 els.body.innerHTML = `
                     <div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm">
                         <div class="w-20 h-20 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">${initial}</div>
                         <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
                         <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${user.email}</p>
-                        ${badgeHtml}${daysHtml}
+                        ${badgeHtml}
+                        ${daysHtml}
                     </div>
                     <div class="flex flex-col gap-3">
-                        <a onclick="window.neuroRecallApp.open('${dueCount > 0 ? 'due' : 'all'}')" class="flex items-center justify-between p-4 bg-gradient-to-r from-sky-500 to-brand-600 text-white rounded-2xl cursor-pointer transition-all shadow-md hover:shadow-lg group">
-                            <div class="flex items-center gap-3.5 font-extrabold text-sm">
-                                <span class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🧠</span>
-                                <div>
-                                    <div>Neuro-Recall Flashcards</div>
-                                    <div class="text-[10px] font-semibold text-sky-100">${dueCount} Due Today • ${totalSaved} Saved</div>
-                                </div>
-                            </div>
-                            <span class="text-white/80 text-xs font-bold bg-white/20 px-2.5 py-1 rounded-full">Practice ❯</span>
-                        </a>
+                        ${adminNeuroControlHtml}
+                        ${neuroRecallCardHtml}
                         <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-yellow/50 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-accent-yellow/10 dark:bg-slate-800 flex items-center justify-center text-accent-yellow text-xl group-hover:scale-110 transition-transform">🔖</span> Bookmarks & Saved (${totalSaved})</div><span class="text-slate-400 text-xs">❯</span></a>
                         <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-500 text-xl group-hover:scale-110 transition-transform">👤</span> My Profile</div><span class="text-slate-400 text-xs">❯</span></a>
                         <a onclick="window.openSecureCheckout(event)" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-slate-800 flex items-center justify-center text-purple-500 text-xl group-hover:scale-110 transition-transform">💳</span> Subscription & Billing</div><span class="text-slate-400 text-xs">❯</span></a>
@@ -1083,21 +1271,56 @@ window.userPanelApp = {
                 let bookmarksHtml = '';
 
                 if (bookmarkEntries.length === 0) {
-                    bookmarksHtml = `<div class="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4"><span class="text-5xl mb-4 opacity-70">🔖</span><h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4><p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here as interactive flashcards.</p><button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2.5 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-lg font-bold text-sm hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors border border-brand-200 dark:border-brand-800">Go Back</button></div>`;
+                    bookmarksHtml = `<div class="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4"><span class="text-5xl mb-4 opacity-70">🔖</span><h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4><p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p><button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2.5 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-lg font-bold text-sm hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors border border-brand-200 dark:border-brand-800">Go Back</button></div>`;
                 } else {
-                    bookmarksHtml = `
+                    const launchBannerHtml = canUseNeuro ? `
                         <button onclick="window.neuroRecallApp.open('${dueCount > 0 ? 'due' : 'all'}')" class="w-full mt-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-sky-500 to-brand-600 text-white font-extrabold text-sm shadow-lg shadow-sky-500/20 flex items-center justify-between hover:opacity-95 transition-all">
                             <span class="flex items-center gap-2"><span>⚡</span> Start Fullscreen Neuro-Recall</span>
                             <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full">${dueCount} Due / ${totalSaved} Total</span>
-                        </button>
-                        <div class="space-y-5 pb-10">`;
+                        </button>` : '';
+
+                    bookmarksHtml = `${launchBannerHtml}<div class="space-y-5 mt-3 pb-10">`;
 
                     bookmarkEntries.forEach(([bmKey, bm], idx) => {
-                        let formattedText = (bm.text || 'Saved Question').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        const richText = (bm.stemHtml || bm.text || 'Saved Question').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         const step = bm.current_step || 1;
                         const isDue = Date.now() >= (bm.next_review_date || 0);
                         const cardDomId = `bm-card-${idx}`;
 
+                        // If Neuro-Recall is disabled for students and user is not admin, render classic non-flipping bookmark card
+                        if (!canUseNeuro) {
+                            let optionsHtml = '';
+                            if (bm.type === 'MCQ' && bm.options) {
+                                optionsHtml = `<div class="mt-4 space-y-2.5">`;
+                                bm.options.forEach((opt, oIdx) => {
+                                    const letter = String.fromCharCode(65 + oIdx);
+                                    const isCorrect = String(bm.ans_key || '').toUpperCase() === letter;
+                                    let btnClass = "w-full text-left p-3.5 rounded-xl border transition-colors flex items-start gap-3 shadow-sm";
+                                    if (isCorrect) btnClass += " bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold";
+                                    else btnClass += " bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
+                                    let formattedOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    const letterBadgeClass = isCorrect ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700" : "bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600";
+                                    const letterBadge = `<span class="flex-shrink-0 w-7 h-7 rounded-lg ${letterBadgeClass} text-xs font-bold flex items-center justify-center border">${letter}</span>`;
+                                    optionsHtml += `<div class="${btnClass}">${letterBadge}<span class="pt-0.5 text-sm font-medium leading-snug">${formattedOpt}</span></div>`;
+                                });
+                                optionsHtml += `</div>`;
+                            }
+                            bookmarksHtml += `
+                                <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 relative group transition-all shadow-sm">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800">${bm.subject || 'QBank'}</div>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">${new Date(bm.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white mb-2 leading-relaxed bm-flip-card">${richText}</div>${optionsHtml}
+                                    <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                        <button onclick="window.deleteBookmark('${bmKey}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors uppercase tracking-wide">🗑️ Remove</button>
+                                        <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-4 py-2.5 rounded-xl border border-brand-200 dark:border-brand-800">Review ➝</a>
+                                    </div>
+                                </div>`;
+                            return;
+                        }
+
+                        // 3D Interactive Flashcard View (Admin or when Neuro-Recall is enabled)
                         let frontOptionsHtml = '';
                         let backAnswerHtml = '';
 
@@ -1123,7 +1346,10 @@ window.userPanelApp = {
                                 </div>`;
                         }
 
-                        const savedExpl = bm.explanation ? `<div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed markdown-body mt-2">${window.sharedRenderMarkdown(bm.explanation)}</div>` : `<p class="text-xs text-slate-400 italic mt-2">Open in Neuro-Recall or source page to view full notes.</p>`;
+                        const ansImageBack = bm.ans_image ? `<img src="${bm.ans_image}" alt="Answer Card">` : '';
+                        const savedExpl = bm.explanation
+                            ? `<div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed markdown-body mt-2">${window.sharedRenderMarkdown(bm.explanation)}</div>`
+                            : `<p class="text-xs text-slate-400 italic mt-2">Open in Fullscreen Neuro-Recall to view live synced notes.</p>`;
 
                         bookmarksHtml += `
                             <div class="bm-flip-scene">
@@ -1135,7 +1361,7 @@ window.userPanelApp = {
                                                 <span class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800 truncate">${bm.subject || 'QBank'}</span>
                                                 <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md border shrink-0 ${isDue ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}">⚡ Lvl ${step}</span>
                                             </div>
-                                            <div class="text-sm font-bold text-slate-900 dark:text-white mb-2 leading-relaxed">${formattedText}</div>${frontOptionsHtml}
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white mb-2 leading-relaxed">${richText}</div>${frontOptionsHtml}
                                         </div>
                                         <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
                                             <button onclick="window.deleteBookmark('${bmKey}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors uppercase tracking-wide">
@@ -1154,7 +1380,8 @@ window.userPanelApp = {
                                                 <span class="text-[10px] font-black uppercase tracking-widest text-brand-500">🧠 Flashcard Back (${bm.q || ''})</span>
                                                 <button onclick="document.getElementById('${cardDomId}').classList.remove('is-flipped')" class="text-xs font-bold text-slate-400 hover:text-slate-600">✕ Flip Back</button>
                                             </div>
-                                            ${backAnswerHtml}${savedExpl}
+                                            ${backAnswerHtml}
+                                            ${ansImageBack}${savedExpl}
                                         </div>
                                         <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
                                             <button onclick="document.getElementById('${cardDomId}').classList.remove('is-flipped')" class="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl">
@@ -1176,8 +1403,8 @@ window.userPanelApp = {
                         <div class="flex items-center justify-between mb-4 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
                             <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
                         </div>
-                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-1">Saved Flashcards</h3>
-                        <p class="text-xs text-slate-500 font-medium">Tap any card to flip it in 3D or launch Neuro-Recall.</p>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-1">${canUseNeuro ? 'Saved Flashcards' : 'Saved Items'}</h3>
+                        <p class="text-xs text-slate-500 font-medium">${canUseNeuro ? 'Tap any card to flip it in 3D or launch Neuro-Recall.' : 'Quickly access your saved questions synced from the cloud.'}</p>
                         ${bookmarksHtml}
                     </div>`;
                 els.footer.innerHTML = ``;
@@ -1252,11 +1479,47 @@ window.userPanelApp = {
 };
 
 // ====================================================
-// 12. AUTO-PATCH REVIEW & CLINICAL PAGES ON DOM LOAD
+// 13. AUTO-PATCH REVIEW & CLINICAL PAGES ON DOM LOAD
 // ====================================================
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.renderMarkdown === 'function') {
         window.renderMarkdown = window.sharedRenderMarkdown;
+    }
+
+    // Override toggleBookmark so <img> and <table> tags in item.stem are NEVER stripped
+    if (typeof window.toggleBookmark === 'function') {
+        window.toggleBookmark = async function(btn, index) {
+            if (!window.currentUserObj) {
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            }
+
+            const item = window.displayData[index];
+            if (!item) return;
+
+            const uniqueId = window.getUniqueQuestionId(item.q);
+            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+            const chapterString = chArray.length > 0 ? chArray[0] : 'General';
+
+            const bookmarkData = {
+                q: item.q,
+                type: item.type || "General",
+                text: item.stem || "Saved Question",      // Keep HTML/images intact!
+                stemHtml: item.stem || "Saved Question",  // Explicit rich HTML stem
+                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
+
+            if (item.options) bookmarkData.options = item.options;
+            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
+            if (item.ans_image) bookmarkData.ans_image = item.ans_image;
+            if (item.img) bookmarkData.img = item.img;
+
+            const isSaved = window.isBookmarked(item.q);
+            if (window.executeBookmarkToggle) {
+                window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
+            }
+        };
     }
 
     if (typeof window.submitReportToForm === 'function' && window.REPORT_CONFIG) {
@@ -1350,7 +1613,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ====================================================
-// 13. CENTRALIZED FIREBASE SYNC, NEURAL BOOKMARKS & 2-DEVICE GUARD
+// 14. CENTRALIZED FIREBASE SYNC, NEURAL BOOKMARKS & 2-DEVICE GUARD
 // ====================================================
 (async function initCentralizedFirebaseSync() {
     try {
@@ -1365,32 +1628,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const db = getDatabase(fbApp);
             window.db = db;
 
-            // 1. Upgrade executeBookmarkToggle to store Spaced-Repetition & Explanation Metadata
+            // 1. Listen to Global Neuro-Recall Public Toggle
+            onValue(ref(db, 'settings/global/showNeuroRecall'), (snap) => {
+                window.globalNeuroRecallEnabled = Boolean(snap.val());
+                window.updateNeuroDueBadges();
+                if (window.userPanelApp && window.userPanelApp.isOpen) {
+                    window.userPanelApp.renderState();
+                }
+            });
+
+            // 2. Upgrade executeBookmarkToggle to preserve full HTML stems (<img>/<table>) & Spaced-Repetition metadata
             window.executeBookmarkToggle = async function(uniqueId, bookmarkData, isSaved) {
                 try {
                     const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${uniqueId}`);
                     if (isSaved) {
                         await remove(dbRef);
-                        if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your Neuro-Recall deck.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+                        if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your saved items.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
                     } else {
+                        // Look up the original question object to ensure <img> tags and ans_image are never lost
+                        const fullItem = (window.qnaData || window.displayData || []).find(x => x && x.q === bookmarkData.q);
                         const enrichedBookmark = {
                             ...bookmarkData,
+                            text: (fullItem && fullItem.stem) ? fullItem.stem : bookmarkData.text,
+                            stemHtml: (fullItem && fullItem.stem) ? fullItem.stem : (bookmarkData.stemHtml || bookmarkData.text),
+                            ans_image: (fullItem && fullItem.ans_image) ? fullItem.ans_image : (bookmarkData.ans_image || null),
+                            img: (fullItem && fullItem.img) ? fullItem.img : (bookmarkData.img || null),
                             collegeCode: window.COLLEGE_CODE || 'deoghar',
                             subjectCode: window.SUBJECT_CODE || '',
                             current_step: 1,
-                            next_review_date: Date.now() // Immediately due for first active recall session
+                            next_review_date: Date.now()
                         };
                         if (window.liveAnswers && bookmarkData.q && window.liveAnswers[bookmarkData.q] && window.liveAnswers[bookmarkData.q].text) {
                             enrichedBookmark.explanation = window.liveAnswers[bookmarkData.q].text;
                         }
                         await set(dbRef, enrichedBookmark);
+
                         if (window.showModal) {
-                            window.showModal(
-                                "Added to Neuro-Recall! 🧠",
-                                `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved as a 3D Spaced-Repetition Flashcard. Practice it anytime from your account or the top navbar.</p>`,
-                                `<div class="flex gap-2 w-full"><button onclick="window.closeModal(); window.neuroRecallApp.open('due');" class="flex-1 py-2.5 bg-sky-500 text-white rounded-xl font-bold border-none text-xs">Practice Now ⚡</button><button onclick="window.closeModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold border-none text-xs">Keep Studying</button></div>`,
-                                `☁️`
-                            );
+                            if (window.canAccessNeuroRecall()) {
+                                window.showModal(
+                                    "Added to Neuro-Recall! 🧠",
+                                    `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved as a 3D Spaced-Repetition Flashcard (with images preserved).</p>`,
+                                    `<div class="flex gap-2 w-full"><button onclick="window.closeModal(); window.neuroRecallApp.open('due');" class="flex-1 py-2.5 bg-sky-500 text-white rounded-xl font-bold border-none text-xs">Practice Now ⚡</button><button onclick="window.closeModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold border-none text-xs">Keep Studying</button></div>`,
+                                    `☁️`
+                                );
+                            } else {
+                                window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+                            }
                         }
                     }
                 } catch (e) {
@@ -1399,10 +1682,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // 2. Upgrade deleteBookmark to support both uniqueId keys and raw qId lookups
+            // 3. Upgrade deleteBookmark
             window.deleteBookmark = async function(qIdOrKey) {
                 if (!window.currentUserObj) return;
-                if (!confirm("Remove this flashcard from your saved items?")) return;
+                if (!confirm("Remove this question from your saved items?")) return;
 
                 let targetKey = qIdOrKey;
                 if (window.userBookmarks && !window.userBookmarks[qIdOrKey]) {
@@ -1429,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // 3. Upgrade Forgot Password handler with user-not-found check
+            // 4. Upgrade Forgot Password handler
             window.handleForgotPass = () => {
                 const e = document.getElementById('login-email') ? document.getElementById('login-email').value.trim() : "";
                 if (!e) return window.showAuthError("Enter email first");
@@ -1451,13 +1734,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             };
 
-            // 4. Ensure sign-out always clears local session token
+            // 5. Ensure sign-out always clears local session token
             window.firebaseSignOut = () => {
                 localStorage.removeItem('my_session_token');
                 signOut(auth).then(() => window.location.reload());
             };
 
-            // 5. Listen to Auth & Bookmarks to keep Due Counter updated in real time
+            // 6. Listen to Auth & Bookmarks
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
@@ -1536,7 +1819,7 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ====================================================
-// 14. REGISTER SERVICE WORKER
+// 15. REGISTER SERVICE WORKER
 // ====================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

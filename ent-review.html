@@ -172,7 +172,7 @@
                 <div class="md:col-span-4 flex items-center gap-2">
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                        <input type="text" id="searchInput" onkeyup="window.filterTable(); if(window.isDeckMode) window.syncDeckWithFilters();" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
+                        <input type="text" id="searchInput" oninput="window.filterTable(); window.syncDeckWithFilters();" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
                     <!-- SAVED / BOOKMARKED FILTER BUTTON (TABLE VIEW) -->
                     <button type="button" id="btn-filter-saved" onclick="window.toggleSavedFilter()" class="px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 transition-all shrink-0 shadow-sm" title="Filter Bookmarked Questions">
@@ -578,7 +578,7 @@
             window.populateFilters(); 
             window.populateDeckFilters(); 
             window.populateTable();
-            
+            window.syncAllFilterUI();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
 
             if (!window.initialViewConfigured) {
@@ -630,41 +630,59 @@
             return !!window.userBookmarks[uniqueId]; 
         };
 
-        // --- SYNCHRONIZED SAVED / BOOKMARK FILTER TOGGLE ---
+        // --- TWO-WAY FILTER SYNCHRONIZATION ENGINE (TABLE <-> DECK) ---
+        window.syncAllFilterUI = function() {
+            const isSavedOnly = window.filterState.savedOnly;
+
+            // 1. Sync Saved Filter Buttons & Checkbox
+            const tableSavedBtn = document.getElementById('btn-filter-saved');
+            if (tableSavedBtn) {
+                tableSavedBtn.className = isSavedOnly
+                    ? "px-3.5 py-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0 shadow-sm ring-2 ring-amber-400/30"
+                    : "px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 transition-all shrink-0 shadow-sm";
+            }
+
+            const deckHeaderSavedBtn = document.getElementById('deck-header-saved-btn');
+            if (deckHeaderSavedBtn) {
+                deckHeaderSavedBtn.className = isSavedOnly
+                    ? "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-extrabold transition-colors shadow-sm"
+                    : "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-amber-400 transition-colors";
+            }
+
+            const deckSavedChk = document.getElementById('deck-chk-saved');
+            if (deckSavedChk) deckSavedChk.checked = isSavedOnly;
+
+            // 2. Sync Table View Checkboxes & Dropdown Button Labels
+            ['types', 'chapters', 'exams'].forEach(filterSetKey => {
+                const set = window.filterState[filterSetKey];
+                document.querySelectorAll(`.table-filter-checkbox[data-filter-key="${filterSetKey}"]`).forEach(cb => {
+                    cb.checked = set.has(cb.value);
+                });
+                document.querySelectorAll(`.deck-filter-checkbox[data-filter-key="${filterSetKey}"]`).forEach(cb => {
+                    cb.checked = set.has(cb.value);
+                });
+            });
+
+            // 3. Sync Unit Group Header Checkboxes in Table View
+            document.querySelectorAll('.unit-group-checkbox').forEach(groupCb => {
+                const unitName = groupCb.getAttribute('data-unit');
+                const childCbs = Array.from(document.querySelectorAll(`.table-filter-checkbox[data-group="${unitName}"]`));
+                groupCb.checked = childCbs.length > 0 && childCbs.every(cb => cb.checked);
+            });
+
+            // 4. Update Table View Dropdown Button Texts
+            window.updateButtonText('typeSelect', window.filterState.types, 'Type');
+            window.updateButtonText('chapterSelect', window.filterState.chapters, 'Chapter');
+            window.updateButtonText('examSelect', window.filterState.exams, 'Exam Batch');
+        };
+
         window.toggleSavedFilter = function(forceState) {
             if (!window.currentUserObj) {
                 return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to filter your saved bookmarks.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
             }
 
             window.filterState.savedOnly = (typeof forceState === 'boolean') ? forceState : !window.filterState.savedOnly;
-            const isSavedOnly = window.filterState.savedOnly;
-
-            // 1. Update Table View Button UI
-            const tableSavedBtn = document.getElementById('btn-filter-saved');
-            if (tableSavedBtn) {
-                if (isSavedOnly) {
-                    tableSavedBtn.className = "px-3.5 py-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0 shadow-sm ring-2 ring-amber-400/30";
-                } else {
-                    tableSavedBtn.className = "px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 transition-all shrink-0 shadow-sm";
-                }
-            }
-
-            // 2. Update Deck View Header Quick-Filter Button UI
-            const deckHeaderSavedBtn = document.getElementById('deck-header-saved-btn');
-            if (deckHeaderSavedBtn) {
-                if (isSavedOnly) {
-                    deckHeaderSavedBtn.className = "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-extrabold transition-colors shadow-sm";
-                } else {
-                    deckHeaderSavedBtn.className = "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-amber-400 transition-colors";
-                }
-            }
-
-            // 3. Update Deck Filter Drawer Checkbox
-            const deckSavedChk = document.getElementById('deck-chk-saved');
-            if (deckSavedChk) {
-                deckSavedChk.checked = isSavedOnly;
-            }
-
+            window.syncAllFilterUI();
             window.filterTable();
             if (typeof window.syncDeckWithFilters === 'function') {
                 window.syncDeckWithFilters();
@@ -695,6 +713,7 @@
 
             if (window.filterState.savedOnly) {
                 window.filterTable();
+                if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
             }
         };
 
@@ -733,21 +752,53 @@
             if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
         }
 
-        window.handleCheckboxChange = function(id, value, filterSetKey, label) {
+        window.handleCheckboxChange = function(id, value, filterSetKey, label, isChecked) {
             const set = window.filterState[filterSetKey];
-            if (set.has(value)) set.delete(value); else set.add(value);
-            window.updateButtonText(id, set, label);
+            if (typeof isChecked === 'boolean') {
+                if (isChecked) set.add(value); else set.delete(value);
+            } else {
+                if (set.has(value)) set.delete(value); else set.add(value);
+            }
+            window.syncAllFilterUI();
             window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
         }
 
+        window.handleDeckCheckboxChange = function(cb) {
+            const filterSetKey = cb.getAttribute('data-filter-key');
+            if (!filterSetKey || !window.filterState[filterSetKey]) return;
+            if (cb.checked) {
+                window.filterState[filterSetKey].add(cb.value);
+            } else {
+                window.filterState[filterSetKey].delete(cb.value);
+            }
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
+        };
+
         window.toggleGroup = function(unitName, isChecked) {
-            document.querySelectorAll(`input[data-group="${unitName}"]`).forEach(cb => {
-                if (cb.checked !== isChecked) { cb.checked = isChecked; window.handleCheckboxChange('chapterSelect', cb.value, 'chapters', 'Chapter'); }
+            document.querySelectorAll(`.table-filter-checkbox[data-group="${unitName}"]`).forEach(cb => {
+                if (isChecked) {
+                    window.filterState.chapters.add(cb.value);
+                } else {
+                    window.filterState.chapters.delete(cb.value);
+                }
             });
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
         }
 
         window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
+            if (!btnText) return;
             if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
             else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
@@ -758,16 +809,16 @@
             if (isGrouped) {
                 items.forEach(group => {
                     if (typeof group === 'string') {
-                        listHtml += `<label class="multiselect-option"><input type="checkbox" value="${group}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${group}</span></label>`;
+                        listHtml += `<label class="multiselect-option"><input type="checkbox" class="table-filter-checkbox" data-filter-key="${filterSetKey}" value="${group}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}', this.checked)"><span>${group}</span></label>`;
                     } else if (group.chapters) {
-                        listHtml += `<label class="multiselect-group-header"><input type="checkbox" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
+                        listHtml += `<label class="multiselect-group-header"><input type="checkbox" class="unit-group-checkbox" data-unit="${group.unit}" onclick="window.toggleGroup('${group.unit}', this.checked)"><span>${group.unit}</span></label>`;
                         group.chapters.forEach(chapter => {
-                             listHtml += `<label class="multiselect-option"><input type="checkbox" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${chapter}</span></label>`;
+                             listHtml += `<label class="multiselect-option"><input type="checkbox" class="table-filter-checkbox" data-filter-key="${filterSetKey}" value="${chapter}" data-group="${group.unit}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}', this.checked)"><span>${chapter}</span></label>`;
                         });
                     }
                 });
             } else {
-                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
+                items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" class="table-filter-checkbox" data-filter-key="${filterSetKey}" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}', this.checked)"><span>${item}</span></label>`; });
             }
             container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
@@ -1214,7 +1265,7 @@
         window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
         // ==========================================
-        // DECK VIEW (WITH BOOKMARK FILTER & NAV BADGES)
+        // DECK VIEW (SYNCHRONIZED WITH TABLE FILTERS)
         // ==========================================
         window.isDeckMode = false;
         window.activeDeckQuestions = [];
@@ -1246,11 +1297,8 @@
             document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
         };
 
+        // Filters Deck View directly from unified window.filterState
         window.syncDeckWithFilters = function() {
-            const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
-            const selectedChapters = getChecked('chapter');
-            const selectedTypes = getChecked('type');
-            const selectedBatches = getChecked('batch');
             const searchInputEl = document.getElementById("searchInput");
             const search = searchInputEl ? searchInputEl.value.toLowerCase() : "";
 
@@ -1262,24 +1310,28 @@
                     show = false;
                 }
                 
+                // 2. Search Text Filter
                 let examText = Array.isArray(q.examBatch) ? q.examBatch.join(" ") : (q.examBatch || "");
                 const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
                 let chapterText = chArray.join(" ");
-                
                 let rowText = (q.q || "") + " " + (q.stem || "") + " " + chapterText + " " + examText;
-                
                 if (show && search && rowText.toLowerCase().indexOf(search) === -1) show = false;
-                if (show && selectedTypes.length > 0 && !selectedTypes.includes(q.type)) show = false;
+
+                // 3. Type Filter
+                if (show && window.filterState.types.size > 0 && !window.filterState.types.has(q.type)) show = false;
                 
-                if (show && selectedBatches.length > 0) {
+                // 4. Chapter Filter
+                if (show && window.filterState.chapters.size > 0 && !chArray.some(ch => window.filterState.chapters.has(ch))) show = false;
+
+                // 5. Exam Batch Filter
+                if (show && window.filterState.exams.size > 0) {
                     if (Array.isArray(q.examBatch)) {
-                        if (!q.examBatch.some(e => selectedBatches.includes(e))) show = false;
+                        if (!q.examBatch.some(e => window.filterState.exams.has(e))) show = false;
                     } else {
-                        if (!selectedBatches.includes(q.examBatch)) show = false;
+                        if (!window.filterState.exams.has(q.examBatch)) show = false;
                     }
                 }
                 
-                if (show && selectedChapters.length > 0 && !(chArray.some(ch => selectedChapters.includes(ch)))) show = false;
                 return show;
             });
             
@@ -1355,7 +1407,7 @@
                     <div class="deck-drawer-content">
                         <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                             <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
-                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                            <button onclick="window.resetAllFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
                         </div>
                         <div class="p-5 overflow-y-auto flex-1 custom-scrollbar" id="deck-filter-content"></div>
                         <div class="p-4 border-t border-slate-200 dark:border-slate-700">
@@ -1408,7 +1460,6 @@
             
             const container = document.getElementById('deck-filter-content');
 
-            // Saved Bookmarks Quick Filter at Top of Drawer (Inspired by MedPYQ)
             const savedFilterBlock = `
                 <div class="mb-5 pb-4 border-b border-slate-200 dark:border-slate-800">
                     <div class="font-bold text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 px-1">Quick Filter</div>
@@ -1419,7 +1470,7 @@
                 </div>
             `;
             
-            const buildGroup = (label, category, opts) => {
+            const buildGroup = (label, filterSetKey, opts) => {
                 if (!opts || opts.length === 0) return '';
                 return `
                 <details class="mb-4 group filter-group" open>
@@ -1430,24 +1481,35 @@
                     <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar px-2 pb-2 mt-1">
                         ${opts.map(opt => `
                         <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                            <input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900 outline-none" data-category="${category}">
+                            <input type="checkbox" value="${opt}" onchange="window.handleDeckCheckboxChange(this)" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900 outline-none" data-filter-key="${filterSetKey}">
                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span>
                         </label>`).join('')}
                     </div>
                 </details>`;
             };
             
-            if(container) container.innerHTML = savedFilterBlock + buildGroup('Chapters', 'chapter', chapters) + buildGroup('Type', 'type', types) + buildGroup('Exam Batch', 'batch', batches);
+            if(container) container.innerHTML = savedFilterBlock + buildGroup('Chapters', 'chapters', chapters) + buildGroup('Type', 'types', types) + buildGroup('Exam Batch', 'exams', batches);
         }
 
-        window.resetDeckFilters = function() {
-            document.querySelectorAll('.deck-filter-checkbox').forEach(cb => cb.checked = false);
-            if (window.filterState.savedOnly) {
-                window.toggleSavedFilter(false);
-            } else {
+        // Resets all filters across both Table View and Deck View simultaneously
+        window.resetAllFilters = function() {
+            window.filterState.types.clear();
+            window.filterState.chapters.clear();
+            window.filterState.exams.clear();
+            window.filterState.savedOnly = false;
+
+            const searchInputEl = document.getElementById("searchInput");
+            if (searchInputEl) searchInputEl.value = "";
+            const globalSearchEl = document.getElementById("globalSearch");
+            if (globalSearchEl) globalSearchEl.value = "";
+
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
                 window.syncDeckWithFilters();
             }
-        }
+        };
+        window.resetDeckFilters = window.resetAllFilters;
 
         window.renderDeckCard = function() {
             const container = document.getElementById('deck-card-container');
@@ -1479,7 +1541,7 @@
                     <div class="h-full flex flex-col items-center justify-center text-slate-400 text-center p-6">
                         <div class="text-4xl mb-4 opacity-50">${window.filterState.savedOnly ? '🔖' : '🔍'}</div>
                         <p class="font-bold text-slate-600 dark:text-slate-300 mb-2">${window.filterState.savedOnly ? 'No saved bookmarks match these filters.' : 'No questions match these filters.'}</p>
-                        <button onclick="window.resetDeckFilters(); window.toggleDeckDrawer(null);" class="mt-3 px-5 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl shadow-md hover:bg-brand-600 transition-colors border-none">Reset Filters</button>
+                        <button onclick="window.resetAllFilters(); window.toggleDeckDrawer(null);" class="mt-3 px-5 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl shadow-md hover:bg-brand-600 transition-colors border-none">Reset Filters</button>
                     </div>`; 
                 document.getElementById('deck-counter').innerText = '0/0'; 
                 return; 
@@ -1715,7 +1777,10 @@
                 }).join('');
                 nav.classList.add('open');
             }
-            if (type === 'filter') filt.classList.add('open');
+            if (type === 'filter') {
+                window.syncAllFilterUI();
+                filt.classList.add('open');
+            }
         }
 
         window.deckNext = function() { 
@@ -1737,6 +1802,7 @@
                 fab.innerHTML = '📋';
                 fab.title = "Switch to Table View";
                 if(eyeFab) eyeFab.style.display = 'none'; 
+                window.syncAllFilterUI();
                 window.syncDeckWithFilters(); 
             } else {
                 if (mainContent) mainContent.style.display = 'block';
@@ -1744,6 +1810,8 @@
                 fab.innerHTML = '🎴'; 
                 fab.title = "Switch to Deck View";
                 if(eyeFab) eyeFab.style.display = 'flex'; 
+                window.syncAllFilterUI();
+                window.filterTable();
             }
         }
 
@@ -1755,8 +1823,8 @@
             const modal = document.getElementById('actionModal');
             if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
             
-            await window.fetchQuestions();
             window.initDeckView(); 
+            await window.fetchQuestions();
         };
     </script>
 

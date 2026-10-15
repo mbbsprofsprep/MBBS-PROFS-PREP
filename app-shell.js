@@ -359,8 +359,17 @@ window.openNrLightbox = function(imgSrc) {
     }
 };
 
-// Delegate clicks on images inside Neuro-Recall or Bookmark cards to open the zoom lightbox
+// Global Click Delegation:
+// 1. Intercepts any hardcoded <a href="checkout.html"> on review/clinical pages so Android WebView opens external browser
+// 2. Opens image zoom lightbox when clicking images inside Neuro-Recall or Bookmark cards
 document.addEventListener('click', (e) => {
+    const checkoutLink = e.target.closest('a[href*="checkout.html"]');
+    if (checkoutLink) {
+        e.preventDefault();
+        window.openSecureCheckout(e);
+        return;
+    }
+
     if (e.target && e.target.tagName === 'IMG' && (e.target.closest('.nr-face') || e.target.closest('.bm-flip-card'))) {
         e.stopPropagation();
         window.openNrLightbox(e.target.src);
@@ -1062,38 +1071,39 @@ window.sharedRenderMarkdown = function(text) {
 };
 
 // ====================================================
-// 10. SECURE CHECKOUT LOADER
+// 10. SECURE CHECKOUT LOADER (ORIGINAL ANDROID EXTERNAL BROWSER HANDOFF)
 // ====================================================
 window.openSecureCheckout = function(e) {
-    if (e && typeof e.preventDefault === 'function') e.preventDefault();
-
-    const existing = document.getElementById('secure-checkout-loader');
-    if (existing) existing.remove();
-
+    if (e) e.preventDefault();
+    
+    // 1. Inject the sleek loading overlay
     const loader = document.createElement('div');
     loader.id = 'secure-checkout-loader';
     loader.className = 'fixed inset-0 z-[30000] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300 text-center px-4';
     loader.innerHTML = `
         <div class="w-12 h-12 border-4 border-slate-700 border-t-brand-500 rounded-full animate-spin mb-6 mx-auto"></div>
         <h2 class="text-xl md:text-2xl font-black text-white mb-2">Preparing Checkout</h2>
-        <p class="text-slate-300 text-sm font-medium animate-pulse">Opening secure browser for payment...</p>
+        <p class="text-slate-300 text-sm font-medium animate-pulse">Opening secure browser for secure payment...</p>
     `;
     document.body.appendChild(loader);
 
+    // 2. Immediately attempt to open the external checkout
     const checkoutUrl = "https://mbbsprofsprep.github.io/MBBS-PROFS-PREP/checkout.html";
     const checkoutWindow = window.open(checkoutUrl, "_blank");
 
+    // 3. ADBLOCKER / POPUP BLOCKER DETECTION
     if (!checkoutWindow) {
         loader.innerHTML = `
             <div class="w-12 h-12 bg-red-500/20 text-red-500 border border-red-500/50 rounded-full flex items-center justify-center text-xl mb-6 mx-auto shadow-[0_0_15px_rgba(239,68,68,0.3)]">🛡️</div>
-            <h2 class="text-xl font-black text-white mb-2">Popup Blocked</h2>
-            <p class="text-slate-300 text-sm font-medium mb-6 leading-relaxed max-w-sm mx-auto">Your browser or adblocker prevented the secure checkout from opening.<br><br><span class="text-brand-400 font-bold">Please allow popups for this site or tap below to continue.</span></p>
+            <h2 class="text-xl font-black text-white mb-2">Adblocker Detected</h2>
+            <p class="text-slate-300 text-sm font-medium mb-6 leading-relaxed max-w-sm mx-auto">Your browser or adblocker prevented the secure checkout from opening.<br><br><span class="text-brand-400 font-bold">Please disable your adblocker or popup blocker for this site and try again.</span></p>
             <div class="flex flex-col gap-3 w-full max-w-xs mx-auto">
-                <a href="${checkoutUrl}" class="w-full px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors shadow-lg block">Continue to Checkout</a>
+                <button onclick="document.getElementById('secure-checkout-loader').remove(); window.openSecureCheckout();" class="w-full px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors shadow-lg">Try Again</button>
                 <button onclick="document.getElementById('secure-checkout-loader').remove()" class="w-full px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors">Cancel</button>
             </div>
         `;
     } else {
+        // 4. Clean up the overlay smoothly if it succeeded
         setTimeout(() => {
             loader.classList.add('opacity-0');
             setTimeout(() => loader.remove(), 300);
@@ -1287,7 +1297,6 @@ window.userPanelApp = {
                         const isDue = Date.now() >= (bm.next_review_date || 0);
                         const cardDomId = `bm-card-${idx}`;
 
-                        // If Neuro-Recall is disabled for students and user is not admin, render classic non-flipping bookmark card
                         if (!canUseNeuro) {
                             let optionsHtml = '';
                             if (bm.type === 'MCQ' && bm.options) {
@@ -1645,7 +1654,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         await remove(dbRef);
                         if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your saved items.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
                     } else {
-                        // Look up the original question object to ensure <img> tags and ans_image are never lost
                         const fullItem = (window.qnaData || window.displayData || []).find(x => x && x.q === bookmarkData.q);
                         const enrichedBookmark = {
                             ...bookmarkData,

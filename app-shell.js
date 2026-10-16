@@ -1,16 +1,48 @@
 // ==========================================
-// app-shell.js - Centralized UI, Auth, Security & Neuro-Recall Engine (MBBS Profs Prep)
+// app-shell.js - Centralized UI, Auth, Security, Math/Flowchart Renderer & Neuro-Recall Engine (MBBS Profs Prep)
 // ==========================================
 
-// 0. ENSURE MARKED.JS IS AVAILABLE ON ALL PAGES (INCLUDING INDEX.HTML)
-if (typeof marked === 'undefined') {
-    const markedScript = document.createElement('script');
-    markedScript.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    document.head.appendChild(markedScript);
-}
+// 0. AUTO-LOAD MARKED.JS, KATEX (MATH ENGINE) & JETBRAINS MONO FONT ON ALL PAGES
+(function ensureDependencies() {
+    if (typeof marked === 'undefined') {
+        const markedScript = document.createElement('script');
+        markedScript.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+        document.head.appendChild(markedScript);
+    }
 
-// 1. INJECT SCOPED CSS FOR 3D NEURO-RECALL FLASHCARDS & IMAGE STYLING
-const neuroRecallCSS = `
+    if (!document.querySelector('link[href*="JetBrains+Mono"]')) {
+        const fontLink = document.createElement('link');
+        fontLink.rel = "stylesheet";
+        fontLink.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+        document.head.appendChild(fontLink);
+    }
+
+    if (!document.querySelector('link[href*="katex.min.css"]')) {
+        const katexCss = document.createElement('link');
+        katexCss.rel = "stylesheet";
+        katexCss.href = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
+        document.head.appendChild(katexCss);
+    }
+
+    if (typeof katex === 'undefined' && !document.querySelector('script[src*="katex.min.js"]')) {
+        const katexScript = document.createElement('script');
+        katexScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
+        katexScript.onload = () => {
+            // Re-render open answer panels or flashcards if KaTeX finishes loading after initial render
+            if (window.displayData && window.displayData.length > 0) {
+                if (typeof window.populateTable === 'function') window.populateTable();
+                if (window.isDeckMode && typeof window.renderDeckCard === 'function') window.renderDeckCard();
+            }
+            if (window.neuroRecallApp && window.neuroRecallApp.isOpen && window.neuroRecallApp.currentItem) {
+                window.neuroRecallApp.renderCard();
+            }
+        };
+        document.head.appendChild(katexScript);
+    }
+})();
+
+// 1. INJECT SCOPED CSS FOR 3D NEURO-RECALL FLASHCARDS, KATEX MATH & ASCII FLOWCHARTS
+const neuroRecallAndMarkdownCSS = `
 <style id="neuro-recall-styles">
     #neuro-recall-layer {
         display: none;
@@ -168,9 +200,110 @@ const neuroRecallCSS = `
         transform: rotateY(180deg) translate3d(0, 0, 0);
         -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
     }
+
+    /* ====================================================================
+       GLOBAL MARKDOWN, LATEX MATH & ASCII FLOWCHART STYLES (ALL PAGES)
+       ==================================================================== */
+    .markdown-body { font-size: 0.925rem; line-height: 1.7; color: inherit; word-wrap: break-word; }
+    .markdown-body h1 { font-size: 1.4rem; font-weight: 800; margin-top: 1.5em; margin-bottom: 0.6em; color: #0284c7; border-bottom: 2px solid #e0f2fe; padding-bottom: 0.3em; }
+    .markdown-body h2 { font-size: 1.25rem; font-weight: 800; margin-top: 1.4em; margin-bottom: 0.5em; color: #0284c7; border-bottom: 1px solid #e0f2fe; padding-bottom: 0.25em; }
+    .markdown-body h3 { font-size: 1.1rem; font-weight: 800; margin-top: 1.3em; margin-bottom: 0.5em; color: #0284c7; }
+    .markdown-body h4 { font-size: 0.98rem; font-weight: 800; margin-top: 1.1em; margin-bottom: 0.4em; color: #0369a1; text-transform: uppercase; letter-spacing: 0.02em; }
+    .markdown-body h5, .markdown-body h6 { font-size: 0.9rem; font-weight: 700; margin-top: 1em; margin-bottom: 0.4em; color: #0284c7; }
+    
+    html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; border-color: #1e293b; }
+    html.dark .markdown-body h4, html.dark .markdown-body h5, html.dark .markdown-body h6 { color: #7dd3fc; }
+
+    .markdown-body p { margin-bottom: 0.9em; }
+    .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+    .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+    .markdown-body ul ul, .markdown-body ol ul { list-style-type: circle; margin-top: 0.35em; margin-bottom: 0.35em; }
+    .markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-alpha; margin-top: 0.35em; margin-bottom: 0.35em; }
+    .markdown-body li { margin-bottom: 0.35em; }
+    .markdown-body li > p { margin-bottom: 0.35em; }
+
+    .markdown-body strong { font-weight: 800; color: #0f172a; }
+    html.dark .markdown-body strong { color: #ffffff; }
+    .markdown-body em { font-style: italic; }
+
+    .markdown-body hr { border: 0; border-top: 2px dashed #cbd5e1; margin: 1.75rem 0; }
+    html.dark .markdown-body hr { border-top-color: #334155; }
+
+    .markdown-body blockquote {
+        border-left: 4px solid #0ea5e9;
+        background: #f0f9ff;
+        padding: 0.85rem 1.15rem;
+        border-radius: 0 0.75rem 0.75rem 0;
+        margin: 1rem 0;
+        color: #0c4a6e;
+        font-style: italic;
+    }
+    html.dark .markdown-body blockquote {
+        background: rgba(14, 165, 233, 0.1);
+        color: #bae6fd;
+        border-left-color: #38bdf8;
+    }
+
+    /* ASCII Flowcharts & Code Blocks */
+    .markdown-body pre {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        font-size: 0.78rem !important;
+        line-height: 1.45 !important;
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        padding: 1rem 1.25rem !important;
+        border-radius: 0.75rem !important;
+        border: 1px solid #cbd5e1 !important;
+        overflow-x: auto !important;
+        white-space: pre !important;
+        margin: 1.25rem 0 !important;
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+    }
+    html.dark .markdown-body pre {
+        background-color: #020617 !important;
+        color: #38bdf8 !important;
+        border-color: #1e293b !important;
+    }
+    .markdown-body code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.84em;
+        background-color: #f1f5f9;
+        color: #0284c7;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.375rem;
+        border: 1px solid #e2e8f0;
+    }
+    html.dark .markdown-body code {
+        background-color: #1e293b;
+        color: #38bdf8;
+        border-color: #334155;
+    }
+    .markdown-body pre code {
+        background: transparent !important;
+        color: inherit !important;
+        padding: 0 !important;
+        border: none !important;
+        font-size: inherit !important;
+    }
+
+    /* KaTeX Math Display & Inline Overrides */
+    .katex-display {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.75rem 0.5rem;
+        margin: 0.85rem 0 !important;
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+    html.dark .katex-display {
+        background: rgba(15, 23, 42, 0.7);
+        border-color: #1e293b;
+    }
+    .katex { font-size: 1.05em; }
 </style>
 `;
-document.head.insertAdjacentHTML('beforeend', neuroRecallCSS);
+document.head.insertAdjacentHTML('beforeend', neuroRecallAndMarkdownCSS);
 
 // 2. INJECT THE NAVBAR, SIDEBAR, LIGHTBOX & NEURO-RECALL LAYER HTML
 const appShellHTML = `
@@ -754,10 +887,7 @@ window.neuroRecallApp = {
         const rich = await window.recoverRichQuestionData(bm);
         this.currentItem.rich = rich;
 
-        const cleanStem = rich.stemHtml
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\\text{([^}]+)}/g, '$1')
-            .replace(/\$/g, '');
+        const cleanStem = window.formatInlineMathAndBold(rich.stemHtml);
 
         const extraImgHtml = (rich.img && !cleanStem.includes(rich.img))
             ? `<img src="${rich.img}" alt="Question Image">`
@@ -769,10 +899,7 @@ window.neuroRecallApp = {
         if (isMCQ) {
             interactionHtml = `<div class="space-y-2.5 mt-4">` + bm.options.map((opt, idx) => {
                 const letter = String.fromCharCode(65 + idx);
-                const cleanOpt = String(opt || '')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\\text{([^}]+)}/g, '$1')
-                    .replace(/\$/g, '');
+                const cleanOpt = window.formatInlineMathAndBold(opt);
                 return `
                     <button type="button" onclick="window.neuroRecallApp.selectMCQ('${letter}')" class="nr-opt-btn group">
                         <span class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold text-xs flex items-center justify-center shrink-0 group-hover:bg-sky-500 group-hover:text-white transition-colors">${letter}</span>
@@ -809,7 +936,7 @@ window.neuroRecallApp = {
         const correctLetter = String(bm.ans_key || 'A').trim().toUpperCase();
         const isCorrect = (selectedLetter === correctLetter);
         const ansIndex = Math.max(0, correctLetter.charCodeAt(0) - 65);
-        const correctText = (bm.options && bm.options[ansIndex]) ? bm.options[ansIndex] : `Option ${correctLetter}`;
+        const correctText = (bm.options && bm.options[ansIndex]) ? window.formatInlineMathAndBold(bm.options[ansIndex]) : `Option ${correctLetter}`;
 
         const bannerHtml = isCorrect
             ? `<div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/25 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-extrabold text-sm flex items-center gap-2.5 mb-4"><span>✅</span> <span>Correct! Excellent synaptic retrieval.</span></div>`
@@ -844,10 +971,7 @@ window.neuroRecallApp = {
     populateBackFace: async function(bm, bannerHtml, correctBoxHtml) {
         const backEl = document.getElementById('nr-card-back');
         const rich = this.currentItem.rich || await window.recoverRichQuestionData(bm);
-        const cleanStem = (rich.stemHtml || bm.text || "")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\\text{([^}]+)}/g, '$1')
-            .replace(/\$/g, '');
+        const cleanStem = window.formatInlineMathAndBold(rich.stemHtml || bm.text || "");
 
         const ansImgHtml = rich.ansImage
             ? `<div class="my-3"><div class="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">Answer Card Image (Tap to Zoom)</div><img src="${rich.ansImage}" alt="Answer Card"></div>`
@@ -993,7 +1117,7 @@ window.resetZoomCard = function(qId) {
 };
 
 // ====================================================
-// 9. UNIFIED MEDIA-AWARE MARKDOWN & VIDEO PLAYERS
+// 9. UNIFIED MATH (KaTeX) + FLOWCHART + MEDIA MARKDOWN ENGINE
 // ====================================================
 window.toggleYT = function(containerId, videoId) {
     const container = document.getElementById(containerId);
@@ -1023,10 +1147,79 @@ window.toggleWebVideo = function(containerId, videoUrl) {
     }
 };
 
+// Helper for inline LaTeX math and bolding in question stems & MCQ options
+window.formatInlineMathAndBold = function(str) {
+    if (!str) return "";
+    let s = String(str).replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    if (typeof katex !== 'undefined') {
+        s = s.replace(/\\\\\(([\s\S]*?)\\\\\)|\\\(([\s\S]*?)\\\)/g, (m, g1, g2) => {
+            try { return katex.renderToString((g1 !== undefined ? g1 : g2).trim(), { throwOnError: false }); } catch (e) { return m; }
+        });
+        s = s.replace(/\$([^\$\n]+?)\$/g, (m, g1) => {
+            try { return katex.renderToString(g1.trim(), { throwOnError: false }); } catch (e) { return m; }
+        });
+    }
+    return s;
+};
+
 window.sharedRenderMarkdown = function(text) {
     if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
-    let processedText = text;
+    
+    // 1. Strip invisible zero-width spaces (\u200B, \uFEFF) that break NotebookLM numbered lists
+    let processedText = String(text).replace(/[\u200B-\u200D\uFEFF]/g, '');
 
+    // 2. Protect fenced code blocks (``` ... ```) so ASCII flowcharts aren't altered by math regexes
+    const codeBlocks = [];
+    processedText = processedText.replace(/```[\s\S]*?```/g, (match) => {
+        const token = `@@CODEBLOCK_${codeBlocks.length}@@`;
+        codeBlocks.push(match);
+        return token;
+    });
+
+    // 3. Extract & render LaTeX math expressions BEFORE marked.parse() strips backslashes
+    const mathBlocks = [];
+    const storeMath = (latex, displayMode) => {
+        const token = `@@MATH_${mathBlocks.length}@@`;
+        let rendered = latex;
+        if (typeof katex !== 'undefined') {
+            try {
+                rendered = katex.renderToString(latex.trim(), {
+                    displayMode: displayMode,
+                    throwOnError: false,
+                    strict: false
+                });
+            } catch (e) {
+                rendered = `<code>${latex}</code>`;
+            }
+        }
+        mathBlocks.push(rendered);
+        return token;
+    };
+
+    // 3A. Display Math: \\[ ... \\] or \[ ... \]
+    processedText = processedText.replace(/\\\\\[([\s\S]*?)\\\\\]|\\\[([\s\S]*?)\\\]/g, (m, g1, g2) => {
+        return storeMath(g1 !== undefined ? g1 : g2, true);
+    });
+
+    // 3B. Display Math: $$ ... $$
+    processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (m, g1) => {
+        return storeMath(g1, true);
+    });
+
+    // 3C. Inline Math: \\( ... \\) or \( ... \)
+    processedText = processedText.replace(/\\\\\(([\s\S]*?)\\\\\)|\\\(([\s\S]*?)\\\)/g, (m, g1, g2) => {
+        return storeMath(g1 !== undefined ? g1 : g2, false);
+    });
+
+    // 3D. Inline Math: $ ... $
+    processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (m, g1) => {
+        return storeMath(g1, false);
+    });
+
+    // 4. Restore fenced code blocks before Markdown parsing
+    processedText = processedText.replace(/@@CODEBLOCK_(\d+)@@/g, (m, idx) => codeBlocks[Number(idx)]);
+
+    // 5. Markdown YouTube links: [Title](youtube_url)
     const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
     processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
         const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -1039,6 +1232,7 @@ window.sharedRenderMarkdown = function(text) {
                 </div>`;
     });
 
+    // 6. Raw pasted YouTube links
     const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
     processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
         const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -1051,6 +1245,7 @@ window.sharedRenderMarkdown = function(text) {
                 </div>`;
     });
 
+    // 7. Direct Website Video links: [Title](https://.../video.mp4|.webm|.ogg)
     const vidMarkdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(?:mp4|webm|ogg)(?:\?[^\s\)]*)?)\)/gi;
     processedText = processedText.replace(vidMarkdownRegex, (match, title, videoUrl) => {
         const uniqueId = 'vid-' + Math.random().toString(36).substring(2, 11);
@@ -1063,11 +1258,14 @@ window.sharedRenderMarkdown = function(text) {
                 </div>`;
     });
 
-    if (typeof marked !== 'undefined') {
-        const rawHtml = marked.parse(processedText);
-        return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
-    }
-    return processedText;
+    // 8. Parse Markdown & Wrap Tables
+    let rawHtml = typeof marked !== 'undefined' ? marked.parse(processedText) : processedText;
+    rawHtml = rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+
+    // 9. Restore rendered KaTeX math blocks
+    rawHtml = rawHtml.replace(/@@MATH_(\d+)@@/g, (m, idx) => mathBlocks[Number(idx)]);
+
+    return rawHtml;
 };
 
 // ====================================================
@@ -1292,7 +1490,7 @@ window.userPanelApp = {
                     bookmarksHtml = `${launchBannerHtml}<div class="space-y-5 mt-3 pb-10">`;
 
                     bookmarkEntries.forEach(([bmKey, bm], idx) => {
-                        const richText = (bm.stemHtml || bm.text || 'Saved Question').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        const richText = window.formatInlineMathAndBold(bm.stemHtml || bm.text || 'Saved Question');
                         const step = bm.current_step || 1;
                         const isDue = Date.now() >= (bm.next_review_date || 0);
                         const cardDomId = `bm-card-${idx}`;
@@ -1307,7 +1505,7 @@ window.userPanelApp = {
                                     let btnClass = "w-full text-left p-3.5 rounded-xl border transition-colors flex items-start gap-3 shadow-sm";
                                     if (isCorrect) btnClass += " bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold";
                                     else btnClass += " bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
-                                    let formattedOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    let formattedOpt = window.formatInlineMathAndBold(opt);
                                     const letterBadgeClass = isCorrect ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700" : "bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600";
                                     const letterBadge = `<span class="flex-shrink-0 w-7 h-7 rounded-lg ${letterBadgeClass} text-xs font-bold flex items-center justify-center border">${letter}</span>`;
                                     optionsHtml += `<div class="${btnClass}">${letterBadge}<span class="pt-0.5 text-sm font-medium leading-snug">${formattedOpt}</span></div>`;
@@ -1337,7 +1535,7 @@ window.userPanelApp = {
                             frontOptionsHtml = `<div class="mt-3 space-y-2">`;
                             bm.options.forEach((opt, oIdx) => {
                                 const letter = String.fromCharCode(65 + oIdx);
-                                let formattedOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                let formattedOpt = window.formatInlineMathAndBold(opt);
                                 frontOptionsHtml += `
                                     <div onclick="document.getElementById('${cardDomId}').classList.add('is-flipped')" class="w-full text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-brand-400 text-slate-700 dark:text-slate-300 flex items-start gap-2.5 cursor-pointer transition-colors">
                                         <span class="w-6 h-6 rounded-md bg-white dark:bg-slate-700 text-slate-500 text-xs font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 shrink-0">${letter}</span>
@@ -1348,7 +1546,7 @@ window.userPanelApp = {
 
                             const correctLetter = String(bm.ans_key || 'A').toUpperCase();
                             const ansIdx = Math.max(0, correctLetter.charCodeAt(0) - 65);
-                            const correctOptText = bm.options[ansIdx] || `Option ${correctLetter}`;
+                            const correctOptText = bm.options[ansIdx] ? window.formatInlineMathAndBold(bm.options[ansIdx]) : `Option ${correctLetter}`;
                             backAnswerHtml = `
                                 <div class="p-3.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold text-xs mb-3">
                                     ✅ Correct Answer: ${correctLetter})${correctOptText}
@@ -1491,11 +1689,10 @@ window.userPanelApp = {
 // 13. AUTO-PATCH REVIEW & CLINICAL PAGES ON DOM LOAD
 // ====================================================
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.renderMarkdown === 'function') {
-        window.renderMarkdown = window.sharedRenderMarkdown;
-    }
+    // 1. Upgrade renderMarkdown on all review/clinical pages to support KaTeX Math, Flowcharts, YouTube & Direct Video
+    window.renderMarkdown = window.sharedRenderMarkdown;
 
-    // Override toggleBookmark so <img> and <table> tags in item.stem are NEVER stripped
+    // 2. Override toggleBookmark so <img> and <table> tags in item.stem are NEVER stripped
     if (typeof window.toggleBookmark === 'function') {
         window.toggleBookmark = async function(btn, index) {
             if (!window.currentUserObj) {
@@ -1675,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (window.canAccessNeuroRecall()) {
                                 window.showModal(
                                     "Added to Neuro-Recall! 🧠",
-                                    `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved as a 3D Spaced-Repetition Flashcard (with images preserved).</p>`,
+                                    `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved as a 3D Spaced-Repetition Flashcard (with images & math preserved).</p>`,
                                     `<div class="flex gap-2 w-full"><button onclick="window.closeModal(); window.neuroRecallApp.open('due');" class="flex-1 py-2.5 bg-sky-500 text-white rounded-xl font-bold border-none text-xs">Practice Now ⚡</button><button onclick="window.closeModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold border-none text-xs">Keep Studying</button></div>`,
                                     `☁️`
                                 );
@@ -1839,4 +2036,4 @@ if ('serviceWorker' in navigator) {
                 console.log('ServiceWorker registration failed: ', error);
             });
     });
-}
+        }

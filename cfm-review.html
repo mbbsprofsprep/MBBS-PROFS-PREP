@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="dynamic-page-title">MBBS PROFS PREP - Exam Review</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
-    <!-- Robust Markdown Parser for Gemini Output & Media -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Google Fonts: Plus Jakarta Sans (UI) & JetBrains Mono (ASCII Flowcharts & Code) -->
+    <link href="[https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap)" rel="stylesheet"/>
+    
+    <!-- KaTeX for High-Speed LaTeX Math Formula Rendering -->
+    <link rel="stylesheet" href="[https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css](https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css)">
+    <script src="[https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js](https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js](https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js)"></script>
+
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js](https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js)"></script>
+    <!-- Robust Markdown Parser for Gemini / NotebookLM Output & Media -->
+    <script src="[https://cdn.jsdelivr.net/npm/marked/marked.min.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js)"></script>
     
     <script>
         tailwind.config = { 
@@ -21,7 +28,10 @@
                         accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, 
                         dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
                     }, 
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
                     animation: { 'fade-in': 'fadeIn 0.3s ease-out forwards' },
                     keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 } 
@@ -41,7 +51,7 @@
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
         html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
         html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
@@ -117,15 +127,108 @@
         .flashcard-front { transform: rotateY(0deg) translate3d(0,0,0); -webkit-transform: rotateY(0deg) translate3d(0,0,0); z-index: 2; -webkit-tap-highlight-color: transparent; }
         .flashcard-back { transform: rotateY(180deg) translate3d(0,0,0); -webkit-transform: rotateY(180deg) translate3d(0,0,0); }
 
-        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables & Media) --- */
-        .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
-        html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
-        .markdown-body p { margin-bottom: 1em; }
+        /* ====================================================================
+           STYLED MARKDOWN, MATH FORMULAE & ASCII FLOWCHART RENDER CLASSES
+           ==================================================================== */
+        .markdown-body { font-size: 0.925rem; line-height: 1.7; color: #1e293b; word-wrap: break-word; }
+        html.dark .markdown-body { color: #e2e8f0; }
+
+        .markdown-body h1 { font-size: 1.4rem; font-weight: 800; margin-top: 1.5em; margin-bottom: 0.6em; color: #0284c7; border-bottom: 2px solid #e0f2fe; padding-bottom: 0.3em; }
+        .markdown-body h2 { font-size: 1.25rem; font-weight: 800; margin-top: 1.4em; margin-bottom: 0.5em; color: #0284c7; border-bottom: 1px solid #e0f2fe; padding-bottom: 0.25em; }
+        .markdown-body h3 { font-size: 1.1rem; font-weight: 800; margin-top: 1.3em; margin-bottom: 0.5em; color: #0284c7; }
+        .markdown-body h4 { font-size: 0.98rem; font-weight: 800; margin-top: 1.1em; margin-bottom: 0.4em; color: #0369a1; text-transform: uppercase; letter-spacing: 0.02em; }
+        .markdown-body h5, .markdown-body h6 { font-size: 0.9rem; font-weight: 700; margin-top: 1em; margin-bottom: 0.4em; color: #0284c7; }
+        
+        html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; border-color: #1e293b; }
+        html.dark .markdown-body h4, html.dark .markdown-body h5, html.dark .markdown-body h6 { color: #7dd3fc; }
+
+        .markdown-body p { margin-bottom: 0.9em; }
         .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
         .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body ul ul, .markdown-body ol ul { list-style-type: circle; margin-top: 0.35em; margin-bottom: 0.35em; }
+        .markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-alpha; margin-top: 0.35em; margin-bottom: 0.35em; }
+        .markdown-body li { margin-bottom: 0.35em; }
+        .markdown-body li > p { margin-bottom: 0.35em; }
+
         .markdown-body strong { font-weight: 800; color: #0f172a; }
-        html.dark .markdown-body strong { color: #f8fafc; }
+        html.dark .markdown-body strong { color: #ffffff; }
+        .markdown-body em { font-style: italic; }
+
+        .markdown-body hr { border: 0; border-top: 2px dashed #cbd5e1; margin: 1.75rem 0; }
+        html.dark .markdown-body hr { border-top-color: #334155; }
+
+        .markdown-body blockquote {
+            border-left: 4px solid #0ea5e9;
+            background: #f0f9ff;
+            padding: 0.85rem 1.15rem;
+            border-radius: 0 0.75rem 0.75rem 0;
+            margin: 1rem 0;
+            color: #0c4a6e;
+            font-style: italic;
+        }
+        html.dark .markdown-body blockquote {
+            background: rgba(14, 165, 233, 0.1);
+            color: #bae6fd;
+            border-left-color: #38bdf8;
+        }
+
+        /* ASCII Flowcharts & Code Blocks */
+        .markdown-body pre {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            background-color: #f8fafc;
+            color: #0f172a;
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid #cbd5e1;
+            overflow-x: auto;
+            white-space: pre;
+            margin: 1.25rem 0;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+        }
+        html.dark .markdown-body pre {
+            background-color: #020617;
+            color: #38bdf8;
+            border-color: #1e293b;
+        }
+        .markdown-body code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84em;
+            background-color: #f1f5f9;
+            color: #0284c7;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e2e8f0;
+        }
+        html.dark .markdown-body code {
+            background-color: #1e293b;
+            color: #38bdf8;
+            border-color: #334155;
+        }
+        .markdown-body pre code {
+            background: transparent !important;
+            color: inherit !important;
+            padding: 0 !important;
+            border: none !important;
+            font-size: inherit !important;
+        }
+
+        /* KaTeX Math Display & Inline Overrides */
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.75rem 0.5rem;
+            margin: 0.85rem 0 !important;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+        html.dark .katex-display {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: #1e293b;
+        }
+        .katex { font-size: 1.05em; }
         
         /* Media Specifics */
         .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
@@ -134,13 +237,15 @@
         html.dark .markdown-body audio, html.dark .markdown-body video { border-color: #334155; }
         
         /* Table Specifics */
-        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
+        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 10px; border: 1px solid #cbd5e1; background: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
         html.dark .markdown-table-wrapper { border-color: #334155; background: #0f172a; }
-        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
-        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
+        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 520px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 0.85rem; vertical-align: top; }
         html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
         .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
         html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
+        .markdown-body tr:nth-child(even) td { background-color: rgba(241, 245, 249, 0.4); }
+        html.dark .markdown-body tr:nth-child(even) td { background-color: rgba(30, 41, 59, 0.3); }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -310,13 +415,67 @@
         window.zoomOutCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].zoomOut(); };
         window.resetZoomCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].reset(); };
 
-        // --- MARKDOWN & AUTO-VIDEO RENDERER ---
-        window.renderMarkdown = function(text) {
+        // ====================================================================
+        // 🟢 MATH (KaTeX) + MARKDOWN + ASCII FLOWCHART + MEDIA RENDER ENGINE
+        // ====================================================================
+        window.renderMathAndMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
             
-            let processedText = text;
+            // 1. Strip invisible zero-width spaces (\u200B, \uFEFF) that break NotebookLM numbered lists
+            let processedText = String(text).replace(/[\u200B-\u200D\uFEFF]/g, '');
 
-            // 1. Auto-detect YouTube links in Markdown: [Title](youtube_url)
+            // 2. Protect fenced code blocks (``` ... ```) so math inside ASCII diagrams isn't touched
+            const codeBlocks = [];
+            processedText = processedText.replace(/```[\s\S]*?```/g, (match) => {
+                const token = `@@CODEBLOCK_${codeBlocks.length}@@`;
+                codeBlocks.push(match);
+                return token;
+            });
+
+            // 3. Extract & render LaTeX math expressions BEFORE marked.parse() eats backslashes
+            const mathBlocks = [];
+            const storeMath = (latex, displayMode) => {
+                const token = `@@MATH_${mathBlocks.length}@@`;
+                let rendered = latex;
+                if (typeof katex !== 'undefined') {
+                    try {
+                        rendered = katex.renderToString(latex.trim(), {
+                            displayMode: displayMode,
+                            throwOnError: false,
+                            strict: false
+                        });
+                    } catch (e) {
+                        rendered = `<code>${latex}</code>`;
+                    }
+                }
+                mathBlocks.push(rendered);
+                return token;
+            };
+
+            // 3A. Display Math: \\[ ... \\] or \[ ... \]
+            processedText = processedText.replace(/\\\\\[([\s\S]*?)\\\\\]|\\\[([\s\S]*?)\\\]/g, (m, g1, g2) => {
+                return storeMath(g1 !== undefined ? g1 : g2, true);
+            });
+
+            // 3B. Display Math: $$ ... $$
+            processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (m, g1) => {
+                return storeMath(g1, true);
+            });
+
+            // 3C. Inline Math: \\( ... \\) or \( ... \)
+            processedText = processedText.replace(/\\\\\(([\s\S]*?)\\\\\)|\\\(([\s\S]*?)\\\)/g, (m, g1, g2) => {
+                return storeMath(g1 !== undefined ? g1 : g2, false);
+            });
+
+            // 3D. Inline Math: $ ... $ (single line, non-empty)
+            processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (m, g1) => {
+                return storeMath(g1, false);
+            });
+
+            // 4. Restore fenced code blocks before Markdown parsing
+            processedText = processedText.replace(/@@CODEBLOCK_(\d+)@@/g, (m, idx) => codeBlocks[Number(idx)]);
+
+            // 5. Auto-detect YouTube links in Markdown: [Title](youtube_url)
             const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
             processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -329,7 +488,7 @@
                         </div>`;
             });
 
-            // 2. Auto-detect Raw YouTube links
+            // 6. Auto-detect Raw YouTube links
             const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
             processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -342,7 +501,7 @@
                         </div>`;
             });
 
-            // 3. Auto-detect Direct Website Video links in Markdown: [Title](https://.../video.mp4|.webm|.ogg)
+            // 7. Auto-detect Direct Website Video links: [Title](https://.../video.mp4|.webm|.ogg)
             const vidMarkdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(?:mp4|webm|ogg)(?:\?[^\s\)]*)?)\)/gi;
             processedText = processedText.replace(vidMarkdownRegex, (match, title, videoUrl) => {
                 const uniqueId = 'vid-' + Math.random().toString(36).substring(2, 11);
@@ -355,9 +514,36 @@
                         </div>`;
             });
 
-            const rawHtml = marked.parse(processedText);
-            return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+            // 8. Parse Markdown to HTML
+            let rawHtml = typeof marked !== 'undefined' ? marked.parse(processedText) : processedText;
+
+            // 9. Wrap tables in responsive container
+            rawHtml = rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+
+            // 10. Restore rendered KaTeX math blocks
+            rawHtml = rawHtml.replace(/@@MATH_(\d+)@@/g, (m, idx) => mathBlocks[Number(idx)]);
+
+            return rawHtml;
         };
+
+        // Helper for inline math in question stems and MCQ options
+        window.formatStemOrOption = function(str) {
+            if (!str) return "";
+            let s = String(str).replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            if (typeof katex !== 'undefined') {
+                s = s.replace(/\\\\\(([\s\S]*?)\\\\\)|\\\(([\s\S]*?)\\\)/g, (m, g1, g2) => {
+                    try { return katex.renderToString((g1 !== undefined ? g1 : g2).trim(), { throwOnError: false }); } catch (e) { return m; }
+                });
+                s = s.replace(/\$([^\$\n]+?)\$/g, (m, g1) => {
+                    try { return katex.renderToString(g1.trim(), { throwOnError: false }); } catch (e) { return m; }
+                });
+            }
+            return s;
+        };
+
+        // Bind both renderMarkdown and sharedRenderMarkdown (so app-shell.js uses this math-aware engine too)
+        window.renderMarkdown = window.renderMathAndMarkdown;
+        window.sharedRenderMarkdown = window.renderMathAndMarkdown;
 
         // --- TOGGLE YOUTUBE EMBED PLAYER ---
         window.toggleYT = function(containerId, videoId) {
@@ -366,7 +552,7 @@
             if (container.classList.contains('hidden')) {
                 container.classList.remove('hidden');
                 if (container.innerHTML.trim() === '') {
-                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="[https://www.youtube.com/embed/$](https://www.youtube.com/embed/$){videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
                 }
             } else {
                 container.classList.add('hidden');
@@ -416,7 +602,7 @@
 
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
+            form.action = `[https://docs.google.com/forms/d/e/$](https://docs.google.com/forms/d/e/$){window.REPORT_CONFIG.formID}/formResponse`;
             form.target = iframeName;
             form.style.display = 'none';
 
@@ -843,7 +1029,7 @@
             let bodyHtml = `
                 <div class="mb-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Question Reference (${qId})</span>
-                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '')}</div>
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${window.formatStemOrOption(q.stem)}</div>
                 </div>
             `;
 
@@ -854,12 +1040,12 @@
                     <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
                             <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
-                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
+                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown, LaTeX Math & Flowcharts Supported</span>
                         </div>
                         <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url) &nbsp;|&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Math: \\(inline\\) or \\[block\\] &nbsp;|&nbsp; Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url)</p>
                         </div>
-                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
+                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm font-mono text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from NotebookLM or Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
                             <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Answer</button>
                         </div>
@@ -871,7 +1057,7 @@
                             <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Live Student Preview</span>
                         </div>
                         <div id="admin-preview-modal-${qId}" class="flex-1 w-full p-6 overflow-y-auto custom-scrollbar markdown-body">
-                            ${window.renderMarkdown(liveAns)}
+                            ${window.renderMathAndMarkdown(liveAns)}
                         </div>
                     </div>
                 </div>`;
@@ -882,7 +1068,7 @@
                         <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">Detailed Explanation</span>
                     </div>
                     <div class="p-6 markdown-body">
-                        ${window.renderMarkdown(liveAns)}
+                        ${window.renderMathAndMarkdown(liveAns)}
                     </div>
                 </div>`;
             }
@@ -897,7 +1083,7 @@
 
         window.updatePreviewModal = function(qId) {
             const text = document.getElementById(`admin-ans-modal-${qId}`).value;
-            document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMarkdown(text);
+            document.getElementById(`admin-preview-modal-${qId}`).innerHTML = window.renderMathAndMarkdown(text);
         }
 
         window.populateTable = function() {
@@ -916,7 +1102,7 @@
                 let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
-                let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
+                let qHtml = ''; const cleanStem = window.formatStemOrOption(item.stem); 
 
                 if (item.type === 'MCQ') {
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
@@ -924,7 +1110,7 @@
                          item.options.forEach((option, idx) => {
                             const optionLetter = window.optionLetters[idx] || '-';
                             const isCorrect = optionLetter === String(item.ans_key || '').trim().toUpperCase();
-                            const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
+                            const cleanOption = window.formatStemOrOption(option);
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
@@ -1262,7 +1448,7 @@
             document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
         }
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
-        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
+        window.openChatGPT = function() { window.open('[https://chat.openai.com/](https://chat.openai.com/)', '_blank'); window.closeModal(); }
 
         // ==========================================
         // DECK VIEW (SYNCHRONIZED WITH TABLE FILTERS)
@@ -1294,7 +1480,7 @@
 
         window.updatePreviewDeck = function(qId) {
             const text = document.getElementById(`admin-ans-deck-${qId}`).value;
-            document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
+            document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMathAndMarkdown(text);
         };
 
         // Filters Deck View directly from unified window.filterState
@@ -1554,7 +1740,7 @@
             const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
             const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
 
-            const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
+            const cleanStem = window.formatStemOrOption(q.stem);
             let questionHtml = ''; let optsHtml = '';
 
             const bookmarked = window.isBookmarked(q.q);
@@ -1576,22 +1762,22 @@
                     panelContent = `
                     <div class="flex flex-col gap-4">
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
-                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
+                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown, LaTeX Math & Flowchart Editor</label>
                             <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url) &nbsp;|&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Math: \\(inline\\) or \\[block\\] &nbsp;|&nbsp; Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url)</p>
                             </div>
-                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
+                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-mono h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from NotebookLM or Gemini here...">${liveAns}</textarea>
                             <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
                         </div>
                         <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
                             <label class="text-[10px] font-black text-green-600 dark:text-green-500 uppercase tracking-widest mb-3 block">Live Student Preview</label>
-                            <div id="admin-preview-deck-${q.q}" class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                            <div id="admin-preview-deck-${q.q}" class="markdown-body">${window.renderMathAndMarkdown(liveAns)}</div>
                         </div>
                     </div>`;
                 } else {
                     panelContent = `
                     <div class="bg-green-50 dark:bg-green-900/10 p-5 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm">
-                        <div class="markdown-body">${window.renderMarkdown(liveAns)}</div>
+                        <div class="markdown-body">${window.renderMathAndMarkdown(liveAns)}</div>
                     </div>`;
                 }
 
@@ -1612,7 +1798,7 @@
                     const normAnsKey = String(q.ans_key || '').trim().toUpperCase();
                     optsHtml = `<div class="space-y-3 pb-2">${q.options.map((opt, i) => { 
                         const letter = window.optionLetters[i] || '-'; 
-                        const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
+                        const cleanOpt = window.formatStemOrOption(opt);
                         
                         const status = window.deckStatus[q.q];
                         let btnClass = "deck-option-btn group";
@@ -1816,6 +2002,10 @@
         }
 
         window.onload = async () => { 
+            // Ensure math-aware renderer stays active even if app-shell.js overwrote window.renderMarkdown on DOMContentLoaded
+            window.renderMarkdown = window.renderMathAndMarkdown;
+            window.sharedRenderMarkdown = window.renderMathAndMarkdown;
+
             if (localStorage.getItem('theme') === 'dark') {
                 const icon = document.getElementById('theme-icon');
                 if(icon) icon.innerText = '☀️';
@@ -1829,14 +2019,14 @@
     </script>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js)";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js)";
+        import { getDatabase, ref, set, update, onValue, remove } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js)";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
             authDomain: "mbbs-profs-prep48c.firebaseapp.com",
-            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
+            databaseURL: "[https://mbbs-profs-prep48c-default-rtdb.firebaseio.com](https://mbbs-profs-prep48c-default-rtdb.firebaseio.com)",
             projectId: "mbbs-profs-prep48c",
             storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
             messagingSenderId: "378639777472",
@@ -1859,7 +2049,7 @@
                     const enrichedBookmark = {
                         ...bookmarkData,
                         collegeCode: window.COLLEGE_CODE || 'deoghar',
-                        subjectCode: window.SUBJECT_CODE || 'ENT',
+                        subjectCode: window.SUBJECT_CODE || 'CFM',
                         current_step: 1,
                         next_review_date: Date.now()
                     };

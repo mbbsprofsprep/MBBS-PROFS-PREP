@@ -5,21 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="dynamic-page-title">MBBS PROFS PREP - Exam Review</title>
     
-    <!-- Google Fonts: Plus Jakarta Sans (UI/Body), Merriweather (Serif Accents), JetBrains Mono (ASCII Diagrams/Code) -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    
-    <!-- Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Panzoom for Flashcard Images -->
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
-    
-    <!-- Marked.js for Markdown Parsing -->
+    <!-- Robust Markdown Parser for Gemini Output & Media -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-    <!-- KaTeX for Mathematical Formulae Rendering -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
     
     <script>
         tailwind.config = { 
@@ -31,11 +21,7 @@
                         accent: { yellow: '#ffc107', yellowHover: '#e0a800' }, 
                         dark: { bg: '#020617', surface: '#0f172a', border: '#1e293b' } 
                     }, 
-                    fontFamily: { 
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        serif: ['Merriweather', 'serif'],
-                        mono: ['JetBrains Mono', 'monospace']
-                    }, 
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
                     animation: { 'fade-in': 'fadeIn 0.3s ease-out forwards' },
                     keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 } 
@@ -55,7 +41,7 @@
         .table-container::-webkit-scrollbar-track, .multiselect-menu::-webkit-scrollbar-track { background: transparent; }
         html.dark .table-container::-webkit-scrollbar-thumb, html.dark .multiselect-menu::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #020617; }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
         html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
@@ -131,136 +117,16 @@
         .flashcard-front { transform: rotateY(0deg) translate3d(0,0,0); -webkit-transform: rotateY(0deg) translate3d(0,0,0); z-index: 2; -webkit-tap-highlight-color: transparent; }
         .flashcard-back { transform: rotateY(180deg) translate3d(0,0,0); -webkit-transform: rotateY(180deg) translate3d(0,0,0); }
 
-        /* ==========================================================================
-           ENHANCED MARKDOWN, MATH (KaTeX), ASCII FLOWCHART & TYPOGRAPHY STYLES
-           ========================================================================== */
-        .markdown-body { 
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 0.925rem; 
-            line-height: 1.75; 
-            color: #1e293b; 
-            word-wrap: break-word;
-        }
-        html.dark .markdown-body { color: #e2e8f0; }
-
-        /* Headings Hierarchy (H1 - H6) */
-        .markdown-body h1 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5em; margin-bottom: 0.75em; color: #0369a1; border-bottom: 2px solid #e0f2fe; padding-bottom: 0.35em; }
-        .markdown-body h2 { font-size: 1.3rem; font-weight: 800; margin-top: 1.4em; margin-bottom: 0.65em; color: #0284c7; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
-        .markdown-body h3 { font-size: 1.15rem; font-weight: 800; margin-top: 1.3em; margin-bottom: 0.6em; color: #0284c7; display: flex; align-items: center; gap: 0.4rem; }
-        .markdown-body h4 { font-size: 1.02rem; font-weight: 700; margin-top: 1.2em; margin-bottom: 0.5em; color: #0f172a; background: #f0f9ff; border-left: 3.5px solid #0ea5e9; padding: 0.35rem 0.75rem; border-radius: 0 0.5rem 0.5rem 0; }
-        .markdown-body h5 { font-size: 0.95rem; font-weight: 700; margin-top: 1em; margin-bottom: 0.4em; color: #334155; }
-        .markdown-body h6 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1em; margin-bottom: 0.4em; color: #64748b; }
-
-        html.dark .markdown-body h1 { color: #38bdf8; border-bottom-color: #1e293b; }
-        html.dark .markdown-body h2 { color: #38bdf8; border-bottom-color: #1e293b; }
-        html.dark .markdown-body h3 { color: #38bdf8; }
-        html.dark .markdown-body h4 { color: #f8fafc; background: rgba(14, 165, 233, 0.12); border-left-color: #38bdf8; }
-        html.dark .markdown-body h5 { color: #cbd5e1; }
-        html.dark .markdown-body h6 { color: #94a3b8; }
-
-        .markdown-body h1:first-child, .markdown-body h2:first-child, .markdown-body h3:first-child, .markdown-body h4:first-child { margin-top: 0; }
-
-        /* Paragraphs, Bold, Italic, Links */
+        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables & Media) --- */
+        .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
+        html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
         .markdown-body p { margin-bottom: 1em; }
-        .markdown-body strong { font-weight: 700; color: #0f172a; }
-        html.dark .markdown-body strong { color: #ffffff; }
-        .markdown-body em { font-style: italic; }
-        .markdown-body a { color: #0284c7; text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
-        html.dark .markdown-body a { color: #38bdf8; }
-
-        /* Lists & Multi-level Nested Lists */
-        .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; padding-left: 0.25em; }
-        .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; padding-left: 0.25em; }
-        .markdown-body ul ul, .markdown-body ol ul { list-style-type: circle; margin-top: 0.35em; margin-bottom: 0.35em; }
-        .markdown-body ul ul ul, .markdown-body ol ul ul { list-style-type: square; }
-        .markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-alpha; margin-top: 0.35em; margin-bottom: 0.35em; }
-        .markdown-body li { margin-bottom: 0.35em; }
-        .markdown-body li > p { margin-bottom: 0.4em; }
-
-        /* Horizontal Rule (---) */
-        .markdown-body hr { border: 0; height: 1px; background: #cbd5e1; margin: 1.75rem 0; }
-        html.dark .markdown-body hr { background: #334155; }
-
-        /* Blockquotes */
-        .markdown-body blockquote {
-            margin: 1rem 0;
-            padding: 0.75rem 1rem;
-            border-left: 4px solid #0ea5e9;
-            background-color: #f8fafc;
-            border-radius: 0 0.5rem 0.5rem 0;
-            color: #475569;
-            font-style: italic;
-        }
-        html.dark .markdown-body blockquote {
-            background-color: #1e293b;
-            border-left-color: #38bdf8;
-            color: #cbd5e1;
-        }
-
-        /* ASCII Flowcharts & Code Blocks (<pre><code>) */
-        .markdown-body pre {
-            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 0.8rem;
-            line-height: 1.45;
-            background-color: #0f172a;
-            color: #f8fafc;
-            padding: 1.1rem 1.25rem;
-            border-radius: 0.75rem;
-            overflow-x: auto;
-            margin: 1.25rem 0;
-            border: 1px solid #1e293b;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.15);
-            white-space: pre;
-            tab-size: 4;
-        }
-        html.dark .markdown-body pre {
-            background-color: #020617;
-            border-color: #334155;
-            color: #e2e8f0;
-        }
-        .markdown-body pre code {
-            font-family: inherit;
-            font-size: inherit;
-            background: transparent !important;
-            color: inherit !important;
-            padding: 0 !important;
-            border: none !important;
-            white-space: pre;
-        }
-
-        /* Inline Code (`code`) */
-        .markdown-body :not(pre) > code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82em;
-            background-color: #f1f5f9;
-            color: #0284c7;
-            padding: 0.15em 0.4em;
-            border-radius: 0.375rem;
-            border: 1px solid #e2e8f0;
-            font-weight: 600;
-        }
-        html.dark .markdown-body :not(pre) > code {
-            background-color: #1e293b;
-            color: #38bdf8;
-            border-color: #334155;
-        }
-
-        /* KaTeX Math Formulae Adjustments */
-        .markdown-body .katex { font-size: 1.05em; }
-        .markdown-body .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 0.75rem 0.5rem;
-            margin: 0.85rem 0;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-        }
-        html.dark .markdown-body .katex-display {
-            background: rgba(15, 23, 42, 0.7);
-            border-color: #1e293b;
-        }
-
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body strong { font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body strong { color: #f8fafc; }
+        
         /* Media Specifics */
         .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
         html.dark .markdown-body img { border-color: #334155; }
@@ -268,17 +134,13 @@
         html.dark .markdown-body audio, html.dark .markdown-body video { border-color: #334155; }
         
         /* Table Specifics */
-        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin: 1.25em 0 1.5em 0; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
         html.dark .markdown-table-wrapper { border-color: #334155; background: #0f172a; }
-        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 550px; }
-        .markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 11px 14px; font-size: 0.85rem; vertical-align: top; }
-        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #1e293b; }
-        .markdown-body th { background-color: #f0f9ff; font-weight: 800; color: #0c4a6e; text-transform: none; }
-        html.dark .markdown-body th { background-color: #1e293b; color: #38bdf8; }
-        .markdown-body tbody tr:nth-child(even) { background-color: #f8fafc; }
-        html.dark .markdown-body tbody tr:nth-child(even) { background-color: rgba(30, 41, 59, 0.4); }
-        .markdown-body tbody tr:hover { background-color: #f0f9ff; }
-        html.dark .markdown-body tbody tr:hover { background-color: rgba(14, 165, 233, 0.08); }
+        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
+        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
+        .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
     </style>
 </head>
 <body class="bg-brand-50 dark:bg-dark-bg transition-colors duration-300 relative flex flex-col min-h-screen" onclick="window.closeAllDropdowns(event)">
@@ -416,14 +278,6 @@
         window.qnaData = [];
         window.displayData = [];
 
-        // Configure Marked.js options
-        if (typeof marked !== 'undefined') {
-            marked.setOptions({
-                gfm: true,
-                breaks: true
-            });
-        }
-
         // Instantly update UI Headers before data even loads
         document.addEventListener("DOMContentLoaded", () => {
             const titleEl = document.getElementById('dynamic-page-title');
@@ -456,86 +310,13 @@
         window.zoomOutCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].zoomOut(); };
         window.resetZoomCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].reset(); };
 
-        // ====================================================================
-        // 🧮 UNIVERSAL MATH (KaTeX) + MARKDOWN + MEDIA RENDERER
-        // ====================================================================
-        window.renderMathSegment = function(tex, displayMode) {
-            if (typeof katex !== 'undefined') {
-                try {
-                    return katex.renderToString(tex.trim(), {
-                        displayMode: displayMode,
-                        throwOnError: false,
-                        strict: false
-                    });
-                } catch (err) {
-                    console.warn("KaTeX error:", err);
-                    return tex;
-                }
-            }
-            return tex;
-        };
-
-        // Formats inline question stems & MCQ options with KaTeX and Bold support
-        window.formatQuestionText = function(text) {
-            if (!text) return "";
-            // 1. Strip invisible zero-width spaces from NotebookLM/Gemini copy-pastes
-            let s = String(text).replace(/[\u200B-\u200D\uFEFF]/g, '');
-
-            // 2. Render Display Math: \\[ ... \\], \[ ... \], $$ ... $$
-            s = s.replace(/\\\\?\[([\s\S]*?)\\\\?\]/g, (_, math) => window.renderMathSegment(math, true));
-            s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => window.renderMathSegment(math, true));
-
-            // 3. Render Inline Math: \\( ... \\), \( ... \), $ ... $
-            s = s.replace(/\\\\?\(([\s\S]*?)\\\\?\)/g, (_, math) => window.renderMathSegment(math, false));
-            s = s.replace(/\$([^\$\n]+?)\$/g, (_, math) => window.renderMathSegment(math, false));
-
-            // 4. Fallback if bare \text{...} exists outside math delimiters
-            s = s.replace(/\\text\{([^}]+)\}/g, '$1');
-
-            // 5. Render Markdown bold & italic
-            s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            return s;
-        };
-
-        // Full Markdown + KaTeX + ASCII Diagram + Media Renderer for Answer Panels
+        // --- MARKDOWN & AUTO-VIDEO RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
             
-            // 1. Clean invisible zero-width characters (\u200b, \uFEFF) that break Markdown lists & ASCII alignment
-            let processedText = String(text).replace(/[\u200B-\u200D\uFEFF]/g, '');
+            let processedText = text;
 
-            // 2. Protect Code Blocks (```...``` and `...`) before running Math or Video regexes
-            const codeBlocks = [];
-            processedText = processedText.replace(/```[\s\S]*?```|`[^`\n]+`/g, (match) => {
-                const id = `@@CODE_BLOCK_${codeBlocks.length}@@`;
-                codeBlocks.push(match);
-                return id;
-            });
-
-            // 3. Extract & Render LaTeX Math to Protected Placeholders (so Marked.js doesn't mangle _, *, \, or |)
-            const mathBlocks = [];
-            const stashMath = (mathStr, isDisplay) => {
-                const id = `@@MATH_BLOCK_${mathBlocks.length}@@`;
-                mathBlocks.push(window.renderMathSegment(mathStr, isDisplay));
-                return id;
-            };
-
-            // 3a. Display Math: \\[ ... \\] or \[ ... \]
-            processedText = processedText.replace(/\\\\?\[([\s\S]*?)\\\\?\]/g, (_, math) => stashMath(math, true));
-            // 3b. Display Math: $$ ... $$
-            processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => stashMath(math, true));
-            // 3c. Inline Math: \\( ... \\) or \( ... \)
-            processedText = processedText.replace(/\\\\?\(([\s\S]*?)\\\\?\)/g, (_, math) => stashMath(math, false));
-            // 3d. Inline Math: $ ... $ (avoiding currency like $50 and $100)
-            processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (match, math) => {
-                if (/^\s*\d/.test(math) && !/[\\^_{}=+\-*/]/.test(math)) return match;
-                return stashMath(math, false);
-            });
-
-            // 4. Restore Code Blocks so Marked.js can parse ``` into <pre><code>
-            processedText = processedText.replace(/@@CODE_BLOCK_(\d+)@@/g, (_, idx) => codeBlocks[Number(idx)]);
-
-            // 5. Auto-detect YouTube links in Markdown: [Title](youtube_url)
+            // 1. Auto-detect YouTube links in Markdown: [Title](youtube_url)
             const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
             processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -548,7 +329,7 @@
                         </div>`;
             });
 
-            // 6. Auto-detect Raw YouTube links
+            // 2. Auto-detect Raw YouTube links
             const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
             processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
@@ -561,7 +342,7 @@
                         </div>`;
             });
 
-            // 7. Auto-detect Direct Website Video links in Markdown: [Title](https://.../video.mp4|.webm|.ogg)
+            // 3. Auto-detect Direct Website Video links in Markdown: [Title](https://.../video.mp4|.webm|.ogg)
             const vidMarkdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(?:mp4|webm|ogg)(?:\?[^\s\)]*)?)\)/gi;
             processedText = processedText.replace(vidMarkdownRegex, (match, title, videoUrl) => {
                 const uniqueId = 'vid-' + Math.random().toString(36).substring(2, 11);
@@ -574,18 +355,8 @@
                         </div>`;
             });
 
-            // 8. Parse Markdown to HTML
-            let htmlOutput = marked.parse(processedText);
-
-            // 9. Wrap tables in responsive container
-            htmlOutput = htmlOutput
-                .replace(/<table>/g, '<div class="markdown-table-wrapper"><table>')
-                .replace(/<\/table>/g, '</table></div>');
-
-            // 10. Restore Rendered KaTeX Math Blocks
-            htmlOutput = htmlOutput.replace(/@@MATH_BLOCK_(\d+)@@/g, (_, idx) => mathBlocks[Number(idx)]);
-
-            return htmlOutput;
+            const rawHtml = marked.parse(processedText);
+            return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
         // --- TOGGLE YOUTUBE EMBED PLAYER ---
@@ -595,7 +366,7 @@
             if (container.classList.contains('hidden')) {
                 container.classList.remove('hidden');
                 if (container.innerHTML.trim() === '') {
-                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="[https://www.youtube.com/embed/$](https://www.youtube.com/embed/$){videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    container.innerHTML = `<iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${videoId}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
                 }
             } else {
                 container.classList.add('hidden');
@@ -645,7 +416,7 @@
 
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = `[https://docs.google.com/forms/d/e/$](https://docs.google.com/forms/d/e/$){window.REPORT_CONFIG.formID}/formResponse`;
+            form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
             form.target = iframeName;
             form.style.display = 'none';
 
@@ -1072,7 +843,7 @@
             let bodyHtml = `
                 <div class="mb-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">Question Reference (${qId})</span>
-                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${window.formatQuestionText(q.stem)}</div>
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '')}</div>
                 </div>
             `;
 
@@ -1083,12 +854,12 @@
                     <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
                             <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
-                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown, LaTeX & Media</span>
+                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Markdown & Media Supported</span>
                         </div>
                         <div class="px-5 pt-3 pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Math: \\(x\\) or $x$ &nbsp;|&nbsp; Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url)</p>
+                            <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url) &nbsp;|&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
                         </div>
-                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm font-mono text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini / NotebookLM here...">${liveAns}</textarea>
+                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
                             <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Answer</button>
                         </div>
@@ -1145,8 +916,7 @@
                 let cell1 = row.insertCell(); cell1.className = 'px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle'; cell1.innerHTML = item.q;
                 let cell2 = row.insertCell(); cell2.className = 'px-6 py-4 align-top';
                 
-                let qHtml = ''; 
-                const cleanStem = window.formatQuestionText(item.stem); 
+                let qHtml = ''; const cleanStem = item.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, ''); 
 
                 if (item.type === 'MCQ') {
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
@@ -1154,7 +924,7 @@
                          item.options.forEach((option, idx) => {
                             const optionLetter = window.optionLetters[idx] || '-';
                             const isCorrect = optionLetter === String(item.ans_key || '').trim().toUpperCase();
-                            const cleanOption = window.formatQuestionText(option);
+                            const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
@@ -1492,7 +1262,7 @@
             document.getElementById('modal-title').textContent = title; document.getElementById('modal-body-content').innerHTML = bodyHtml; document.getElementById('modal-footer-buttons').innerHTML = footerHtml; document.getElementById('modalIcon').innerHTML = iconHtml; modal.classList.remove('hidden'); 
         }
         window.closeModal = function() { document.getElementById('actionModal').classList.add('hidden'); }
-        window.openChatGPT = function() { window.open('[https://chat.openai.com/](https://chat.openai.com/)', '_blank'); window.closeModal(); }
+        window.openChatGPT = function() { window.open('https://chat.openai.com/', '_blank'); window.closeModal(); }
 
         // ==========================================
         // DECK VIEW (SYNCHRONIZED WITH TABLE FILTERS)
@@ -1784,7 +1554,7 @@
             const adminEmails = ["pankajmahto109@gmail.com", "educateindiainstitute@gmail.com", "indrajeet91434@gmail.com", "pankajkumarmahto1009@gmail.com"];
             const isAdmin = window.currentUserObj && window.currentUserObj.email && adminEmails.includes(window.currentUserObj.email.toLowerCase());
 
-            const cleanStem = window.formatQuestionText(q.stem);
+            const cleanStem = q.stem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
             let questionHtml = ''; let optsHtml = '';
 
             const bookmarked = window.isBookmarked(q.q);
@@ -1806,11 +1576,11 @@
                     panelContent = `
                     <div class="flex flex-col gap-4">
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
-                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown & LaTeX Editor</label>
+                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
                             <div class="pb-1 mb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Math: \\(x\\) or $x$ &nbsp;|&nbsp; Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url)</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Image: ![alt](url) &nbsp;|&nbsp; YouTube: [Title](yt_url) &nbsp;|&nbsp; Video: [Title](mp4_url) &nbsp;|&nbsp; Audio: &lt;audio controls src="url"&gt;&lt;/audio&gt;</p>
                             </div>
-                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-mono h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini / NotebookLM here...">${liveAns}</textarea>
+                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
                             <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Answer</button>
                         </div>
                         <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
@@ -1820,7 +1590,7 @@
                     </div>`;
                 } else {
                     panelContent = `
-                    <div class="bg-green-50/60 dark:bg-green-900/10 p-5 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm">
+                    <div class="bg-green-50 dark:bg-green-900/10 p-5 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm">
                         <div class="markdown-body">${window.renderMarkdown(liveAns)}</div>
                     </div>`;
                 }
@@ -1842,7 +1612,7 @@
                     const normAnsKey = String(q.ans_key || '').trim().toUpperCase();
                     optsHtml = `<div class="space-y-3 pb-2">${q.options.map((opt, i) => { 
                         const letter = window.optionLetters[i] || '-'; 
-                        const cleanOpt = window.formatQuestionText(opt);
+                        const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
                         
                         const status = window.deckStatus[q.q];
                         let btnClass = "deck-option-btn group";
@@ -2059,14 +1829,14 @@
     </script>
 
     <script type="module">
-        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js)";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js)";
-        import { getDatabase, ref, set, update, onValue, remove } from "[https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js](https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js)";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
             authDomain: "mbbs-profs-prep48c.firebaseapp.com",
-            databaseURL: "[https://mbbs-profs-prep48c-default-rtdb.firebaseio.com](https://mbbs-profs-prep48c-default-rtdb.firebaseio.com)",
+            databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
             projectId: "mbbs-profs-prep48c",
             storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
             messagingSenderId: "378639777472",

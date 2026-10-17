@@ -310,14 +310,14 @@
         window.zoomOutCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].zoomOut(); };
         window.resetZoomCard = function(qId) { if (window[`panzoom_${qId}`]) window[`panzoom_${qId}`].reset(); };
 
-        // --- MARKDOWN & AUTO-VIDEO RENDERER ---
+      // --- MARKDOWN, AUTO-VIDEO & UNIVERSAL DOCUMENT RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No answer provided yet.</em>";
             
             let processedText = text;
 
             // 1. Auto-detect YouTube links in Markdown: [Title](youtube_url)
-            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
+            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/\vert{}(?:v\vert{}e(?:mbed)?\vert{}shorts)\/\vert{}\S*?[?&]v=)\vert{}youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
             processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
                 return `<div class="yt-container my-4">
@@ -355,8 +355,57 @@
                         </div>`;
             });
 
+            // 4. Auto-detect Direct Document Links in Markdown: [Title](https://.../file.pdf|.doc|.docx|.ppt|.pptx|.xls|.xlsx|.csv|.txt|.rtf|.odt|.odp|.ods)
+            const docMarkdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(pdf|docx?|pptx?|xlsx?|csv|txt|rtf|od[tps])(?:\?[^\s\)]*)?)\)/gi;
+            processedText = processedText.replace(docMarkdownRegex, (match, title, docUrl, ext) => {
+                return window.buildDocEmbedHtml(title, docUrl, ext.toLowerCase());
+            });
+
+            // 5. Auto-detect Google Drive / Docs / Slides / Sheets Links in Markdown: [Title](https://drive.google.com/... or https://docs.google.com/...)
+            const gDriveMarkdownRegex = /\[([^\]]+)\]\((https?:\/\/(?:drive\vert{}docs)\.google\.com\/(?:file\vert{}document\vert{}presentation\vert{}spreadsheets)\/d\/([a-zA-Z0-9_-]+)[^\s\)]*)\)/gi;
+            processedText = processedText.replace(gDriveMarkdownRegex, (match, title, docUrl) => {
+                let docType = 'gdrive';
+                if (docUrl.includes('/document/')) docType = 'gdoc';
+                else if (docUrl.includes('/presentation/')) docType = 'gslides';
+                else if (docUrl.includes('/spreadsheets/')) docType = 'gsheets';
+                return window.buildDocEmbedHtml(title, docUrl, docType);
+            });
+
+            // 6. Auto-detect Raw Document URLs pasted without [Title](url)
+            const docRawRegex = /(^|\s)(https?:\/\/[^\s\)]+\.(pdf|docx?|pptx?|xlsx?|csv|txt|rtf|od[tps])(?:\?[^\s\)]*)?)/gi;
+            processedText = processedText.replace(docRawRegex, (match, space, docUrl, ext) => {
+                const fileName = decodeURIComponent(docUrl.split('/').pop().split('?')[0]) || 'Document';
+                return `${space}${window.buildDocEmbedHtml(fileName, docUrl, ext.toLowerCase())}`;
+            });
+
             const rawHtml = marked.parse(processedText);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
+        };
+
+        // --- HELPER TO BUILD LAZY-LOADED DOCUMENT CARD ---
+        window.buildDocEmbedHtml = function(title, docUrl, ext) {
+            const uniqueId = 'doc-' + Math.random().toString(36).substring(2, 11);
+            let icon = '📄';
+            let badge = ext.toUpperCase();
+
+            if (ext === 'pdf') { icon = '📕'; badge = 'PDF'; }
+            else if (['doc', 'docx', 'odt', 'rtf', 'gdoc'].includes(ext)) { icon = '📘'; badge = ext === 'gdoc' ? 'GOOGLE DOC' : 'WORD'; }
+            else if (['ppt', 'pptx', 'odp', 'gslides'].includes(ext)) { icon = '📙'; badge = ext === 'gslides' ? 'SLIDES' : 'PPT'; }
+            else if (['xls', 'xlsx', 'ods', 'csv', 'gsheets'].includes(ext)) { icon = '📗'; badge = ext === 'gsheets' ? 'SHEETS' : 'EXCEL'; }
+            else if (ext === 'gdrive') { icon = '📁'; badge = 'DRIVE FILE'; }
+
+            return `<div class="doc-container my-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="window.toggleDocument('${uniqueId}', '${docUrl}', '${ext}')" class="flex items-center gap-2 text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 font-bold text-sm bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 px-4 py-2.5 rounded-xl transition-colors border border-amber-200 dark:border-amber-800/50 flex-1 sm:flex-initial shadow-sm">
+                                <span>${icon}</span>
+                                <span class="text-left line-clamp-1 flex-1">View ${badge}: ${title}</span>
+                            </button>
+                            <a href="${docUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2.5 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm no-underline" title="Open or Download Original File">
+                                <span>↗️ Open</span>
+                            </a>
+                        </div>
+                        <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 w-full"></div>
+                    </div>`;
         };
 
         // --- TOGGLE YOUTUBE EMBED PLAYER ---
@@ -382,6 +431,46 @@
                 container.classList.remove('hidden');
                 if (container.innerHTML.trim() === '') {
                     container.innerHTML = `<video controls autoplay class="w-full max-h-[500px] m-0 rounded-xl outline-none"><source src="${videoUrl}">Your browser does not support HTML5 video.</video>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }
+        };
+// --- TOGGLE UNIVERSAL DOCUMENT VIEWER (LAZY-LOADED) ---
+        window.toggleDocument = function(containerId, docUrl, ext) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    let embedUrl = '';
+
+                    // 1. Google Drive / Docs / Slides / Sheets native preview
+                    const gDriveMatch = docUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (gDriveMatch && (docUrl.includes('drive.google.com') || docUrl.includes('docs.google.com'))) {
+                        const fileId = gDriveMatch[1];
+                        if (docUrl.includes('/document/')) {
+                            embedUrl = `https://docs.google.com/document/d/${fileId}/preview`;
+                        } else if (docUrl.includes('/presentation/')) {
+                            embedUrl = `https://docs.google.com/presentation/d/${fileId}/preview`;
+                        } else if (docUrl.includes('/spreadsheets/')) {
+                            embedUrl = `https://docs.google.com/spreadsheets/d/${fileId}/preview`;
+                        } else {
+                            embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                        }
+                    } 
+                    // 2. Microsoft Office formats (.doc, .docx, .ppt, .pptx, .xls, .xlsx) via Office Web Viewer
+                    else if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext)) {
+                        embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(docUrl)}`;
+                    } 
+                    // 3. PDF, OpenDocument, Text & CSV via Google Docs Viewer (mobile + desktop compatible)
+                    else {
+                        embedUrl = `https://docs.google.com/gview?url=${encodeURIComponent(docUrl)}&embedded=true`;
+                    }
+
+                    container.innerHTML = `<iframe src="${embedUrl}" class="w-full h-[500px] md:h-[650px] border-0" allow="autoplay" loading="lazy"></iframe>`;
                 }
             } else {
                 container.classList.add('hidden');

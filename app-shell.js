@@ -466,8 +466,7 @@ const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXs
 window.ADMIN_EMAILS = [
     "pankajmahto109@gmail.com",
     "educateindiainstitute@gmail.com",
-    "indrajeet91434@gmail.com",
-    "pankajkumarmahto1009@gmail.com"
+    "indrajeet91434@gmail.com"
 ];
 
 window.globalNeuroRecallEnabled = false; // Controlled by Admin via Firebase settings/global/showNeuroRecall

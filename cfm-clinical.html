@@ -100,14 +100,15 @@
         html.dark .deck-drawer-content { background: #0f172a; border-left: 1px solid #1e293b; }
         .deck-drawer.open .deck-drawer-content { transform: translateX(0); }
         
-        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; overflow-y: auto; }
-        .deck-nav-btn { aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 18px; overflow-y: auto; }
+        .deck-nav-btn { position: relative; overflow: visible; aspect-ratio: 1; border-radius: 8px; font-weight: 600; font-size: 11px; background: #f3f4f6; color: #1e293b; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .deck-nav-btn:active { transform: scale(0.95); }
         html.dark .deck-nav-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
         .deck-nav-btn.active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
         .deck-nav-btn.correct { background: #22c55e; color: white; border-color: #16a34a; }
         .deck-nav-btn.wrong { background: #ef4444; color: white; border-color: #dc2626; }
 
-        /* --- STYLED MARKDOWN RENDER CLASSES --- */
+        /* --- STYLED MARKDOWN RENDER CLASSES (Responsive Tables & Multimedia) --- */
         .markdown-body { font-size: 0.9rem; line-height: 1.6; color: inherit; }
         .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 1.5em; margin-bottom: 0.5em; color: #0284c7; }
         html.dark .markdown-body h1, html.dark .markdown-body h2, html.dark .markdown-body h3 { color: #38bdf8; }
@@ -116,8 +117,21 @@
         .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
         .markdown-body strong { font-weight: 800; color: #0f172a; }
         html.dark .markdown-body strong { color: #f8fafc; }
+
+        /* Media Specifics */
         .markdown-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
         html.dark .markdown-body img { border-color: #334155; }
+        .markdown-body audio, .markdown-body video { width: 100%; max-width: 100%; margin: 1rem 0; border-radius: 0.5rem; outline: none; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        html.dark .markdown-body audio, html.dark .markdown-body video { border-color: #334155; }
+
+        /* Table Specifics */
+        .markdown-table-wrapper { overflow-x: auto; width: 100%; margin-bottom: 1.5em; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
+        html.dark .markdown-table-wrapper { border-color: #334155; background: #0f172a; }
+        .markdown-body table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 12px; font-size: 0.85rem; }
+        html.dark .markdown-body th, html.dark .markdown-body td { border-color: #334155; }
+        .markdown-body th { background-color: #f1f5f9; font-weight: 800; color: #0f172a; }
+        html.dark .markdown-body th { background-color: #1e293b; color: #f8fafc; }
         
         /* Drag handle formatting */
         .sortable-ghost { opacity: 0.4; background-color: #f0f9ff; }
@@ -158,12 +172,16 @@
                 <div class="md:col-span-4 flex items-center gap-2">
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                        <input type="text" id="searchInput" onkeyup="window.filterTable()" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
+                        <input type="text" id="searchInput" oninput="window.filterTable(); window.syncDeckWithFilters();" placeholder="Search..." class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-dark-surface placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 sm:text-sm transition duration-150 ease-in-out">
                     </div>
+                    <!-- SAVED / BOOKMARKED FILTER BUTTON (TABLE VIEW) -->
+                    <button type="button" id="btn-filter-saved" onclick="window.toggleSavedFilter()" class="px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 transition-all shrink-0 shadow-sm" title="Filter Bookmarked Cases">
+                        <span>🔖</span>
+                        <span class="hidden sm:inline">Saved</span>
+                    </button>
                     <!-- ADMIN ONLY ANKI IMPORT BUTTON -->
-                    <button id="admin-anki-btn" onclick="document.getElementById('ankiFileInput').click()" class="hidden px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors items-center gap-2 shadow-sm whitespace-nowrap" title="Import Anki .txt file">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        📥 Import Anki
+                    <button id="admin-anki-btn" onclick="document.getElementById('ankiFileInput').click()" class="hidden px-3.5 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0" title="Import Anki .txt file">
+                        <span>📥 Anki</span>
                     </button>
                     <!-- HIDDEN FILE INPUT -->
                     <input type="file" id="ankiFileInput" accept=".txt,.csv" class="hidden" onchange="window.processAnkiImport(event)" />
@@ -196,10 +214,10 @@
     </div>
 
     <!-- GENERIC UTILITY MODAL -->
-    <div id="actionModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto">
+    <div id="actionModal" class="fixed inset-0 z-[10020] hidden overflow-y-auto">
         <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onclick="window.closeModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-200 dark:border-slate-700">
+            <div class="relative transform overflow-hidden rounded-xl bg-white dark:bg-dark-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-700">
                 <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div id="modalIcon" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30 sm:mx-0 sm:h-10 sm:w-10"></div>
@@ -223,36 +241,53 @@
                     <h3 id="clinicalModalTitle" class="text-lg font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">➕ Add New Clinical Case</h3>
                     <button onclick="document.getElementById('uploadClinicalModal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">✕</button>
                 </div>
-                
-               <!-- ADD THIS RIGHT BEFORE THE "Case Scenario" TEXTAREA -->
-<div class="mb-4">
-    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Custom Case ID (Leave blank to auto-generate)</label>
-    <input type="text" id="clin-q-id" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-bold text-brand-600 dark:text-brand-400" placeholder="e.g. ENT-001">
-</div>
 
-                <div class="p-6 bg-white dark:bg-slate-900 space-y-5">
+                <div class="p-6 bg-white dark:bg-slate-900 space-y-5 max-h-[82vh] overflow-y-auto custom-scrollbar">
+                    <!-- CASE ID WITH LIVE COLLISION CHECK & AUTO-SUGGEST -->
                     <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Case Scenario / Question Stem</label>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Custom Case ID (Leave blank to auto-generate)</label>
+                            <button type="button" onclick="window.fillSuggestedCaseId()" class="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
+                                ⚡ Suggest Next ID
+                            </button>
+                        </div>
+                        <input type="text" id="clin-q-id" oninput="window.checkCaseIdAvailability()" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-bold text-brand-600 dark:text-brand-400" placeholder="e.g. CFM-001">
+                        <div id="clin-id-status" class="mt-1.5 text-xs font-bold hidden"></div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Case Scenario / Question Stem (For MCQ, include A) B) C) D) on new lines)</label>
                         <textarea id="clin-q-stem" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="4" placeholder="Describe the clinical presentation..."></textarea>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Topic / System</label>
-                            <input type="text" id="clin-q-chap" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. Trauma, Retina">
+                            <input type="text" id="clin-q-chap" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. Epidemiology, Nutrition">
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Format</label>
-                            <select id="clin-q-type" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
+                            <select id="clin-q-type" onchange="window.toggleMcqKeyField()" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
                                 <option value="Theory">Clinical Case (Subjective)</option>
                                 <option value="MCQ">MCQ</option>
                             </select>
                         </div>
+                        <div id="clin-ans-key-wrapper" class="hidden">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Correct Option Key</label>
+                            <select id="clin-q-anskey" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-bold text-green-600 dark:text-green-400">
+                                <option value="">-- Select Key --</option>
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                                <option value="E">Option E</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Model Answer / Explanation (Markdown)</label>
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Model Answer / Explanation (Markdown, YouTube, Video, Audio & Docs Supported)</label>
                         <textarea id="clin-q-ans" class="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar" rows="5" placeholder="Provide the diagnosis and management plan..."></textarea>
                     </div>
-                    <button id="saveClinicalBtn" onclick="window.saveClinicalQuestion(this)" class="w-full py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-colors uppercase tracking-wider">Publish to Database</button>
+                    <button id="saveClinicalBtn" onclick="window.saveClinicalQuestion(this, false)" class="w-full py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-colors uppercase tracking-wider">Publish to Database</button>
                 </div>
             </div>
         </div>
@@ -283,7 +318,7 @@
         window.globalUserStatus = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
         window.currentUserObj = null;
         window.accessLevel = 'guest'; 
-        window.filterState = { types: new Set(), chapters: new Set(), exams: new Set() };
+        window.filterState = { types: new Set(), chapters: new Set(), exams: new Set(), savedOnly: false };
         window.isDataLoaded = false;
         window.userBookmarks = {}; 
         window.initialViewConfigured = false;
@@ -298,7 +333,7 @@
         window.COLLEGE_NAME = "AIIMS " + window.COLLEGE_CODE.replace(/-/g, ' ').toUpperCase();
         
         // 🟢 SETTING TO CFM
-        window.SUBJECT_CODE ="CFM"; 
+        window.SUBJECT_CODE = "CFM"; 
         
         window.qnaData = [];
         window.displayData = [];
@@ -320,25 +355,103 @@
             return rawId.replace(/[\.#$\[\]]/g, '').replace(/\s+/g, '_');
         };
 
-               // --- ANKI IMPORT LOGIC (ADMIN ONLY) ---
+        // --- SMART CASE ID GENERATOR & COLLISION DETECTOR ---
+        window.getNextAvailableCaseId = function(baseInput) {
+            const existingIds = new Set(window.qnaData.map(x => String(x.q).toUpperCase()));
+            let prefix = `${window.SUBJECT_CODE}-`;
+            let padLength = 3;
+
+            if (baseInput && baseInput.trim()) {
+                const match = baseInput.trim().match(/^(.*?)(\d+)$/);
+                if (match) {
+                    prefix = match[1];
+                    padLength = match[2].length;
+                } else {
+                    prefix = baseInput.trim().replace(/-+$/, '') + '-';
+                }
+            }
+
+            let maxNum = 0;
+            const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const prefixRegex = new RegExp(`^${escapedPrefix}(\\d+)$`, 'i');
+
+            window.qnaData.forEach(item => {
+                const m = String(item.q).match(prefixRegex);
+                if (m) {
+                    const n = parseInt(m[1], 10);
+                    if (n > maxNum) maxNum = n;
+                }
+            });
+
+            let nextNum = maxNum + 1;
+            let candidate = `${prefix}${String(nextNum).padStart(padLength, '0')}`;
+            while (existingIds.has(candidate.toUpperCase())) {
+                nextNum++;
+                candidate = `${prefix}${String(nextNum).padStart(padLength, '0')}`;
+            }
+            return candidate;
+        };
+
+        window.fillSuggestedCaseId = function() {
+            const inputEl = document.getElementById('clin-q-id');
+            const suggested = window.getNextAvailableCaseId(inputEl.value);
+            inputEl.value = suggested;
+            window.checkCaseIdAvailability();
+        };
+
+        window.checkCaseIdAvailability = function() {
+            const inputEl = document.getElementById('clin-q-id');
+            const statusEl = document.getElementById('clin-id-status');
+            const btn = document.getElementById('saveClinicalBtn');
+            if (!inputEl || !statusEl) return;
+
+            const val = inputEl.value.trim();
+            const editId = btn ? btn.getAttribute('data-edit-id') : null;
+
+            if (!val) {
+                statusEl.classList.add('hidden');
+                return;
+            }
+
+            const existing = window.qnaData.find(x => String(x.q).toLowerCase() === val.toLowerCase());
+            statusEl.classList.remove('hidden');
+
+            if (existing && (!editId || editId.toLowerCase() !== val.toLowerCase())) {
+                const nextId = window.getNextAvailableCaseId(val);
+                statusEl.className = "mt-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800/50";
+                statusEl.innerHTML = `<span>⚠️ ID "${existing.q}" already exists!</span> <button type="button" onclick="document.getElementById('clin-q-id').value='${nextId}'; window.checkCaseIdAvailability();" class="underline font-extrabold hover:text-amber-800 dark:hover:text-amber-200">Use ${nextId} instead</button>`;
+            } else {
+                statusEl.className = "mt-1.5 text-xs font-bold text-green-600 dark:text-green-400 px-1";
+                statusEl.innerHTML = `✅ Case ID "${val}" is available.`;
+            }
+        };
+
+        window.toggleMcqKeyField = function() {
+            const type = document.getElementById('clin-q-type').value;
+            const wrapper = document.getElementById('clin-ans-key-wrapper');
+            if (wrapper) {
+                wrapper.classList.toggle('hidden', type !== 'MCQ');
+            }
+        };
+
+        // --- ANKI IMPORT LOGIC (ADMIN ONLY - WITH COLLISION PROTECTION) ---
         window.processAnkiImport = async function(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. Prompt for Topic
             const customTopicInput = prompt("Enter the Topic / System name for this Anki import:", "General Clinical");
             if (customTopicInput === null) { event.target.value = ''; return; }
             const finalTopic = customTopicInput.trim() || "General Clinical";
 
-            // 2. Prompt for ID Prefix
-            const prefixInput = prompt("Enter a Prefix for the Question IDs:", "ENT-ANKI");
+            const prefixInput = prompt("Enter a Prefix for the Question IDs:", `${window.SUBJECT_CODE}-ANKI`);
             if (prefixInput === null) { event.target.value = ''; return; }
-            const idPrefix = prefixInput.trim() || "ENT-ANKI";
+            const idPrefix = prefixInput.trim() || `${window.SUBJECT_CODE}-ANKI`;
 
-            // 3. Prompt for Starting Number
             const startNumInput = prompt(`Enter the starting number for these cases (e.g., if you type 1, it will be ${idPrefix}-1):`, "1");
             if (startNumInput === null) { event.target.value = ''; return; }
-            const startNum = parseInt(startNumInput) || 1;
+            let currentNum = parseInt(startNumInput) || 1;
+
+            const existingIds = new Set(window.qnaData.map(x => String(x.q).toUpperCase()));
 
             window.showModal("Importing Anki Deck...", `<div class="py-6 text-center"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="text-sm font-bold text-slate-500">Reading file and syncing to Firebase...</p></div>`, "", "");
 
@@ -358,7 +471,7 @@
                         if (parts.length < 2) {
                             parts = line.split('\t');
                         }
-                        if (parts.length < 2) continue; // Skip malformed lines
+                        if (parts.length < 2) continue;
 
                         let frontText = parts[0].trim().replace(/&#59;/g, ';');
                         let backText = parts.slice(1).join(';').trim().replace(/&#59;/g, ';');
@@ -390,8 +503,15 @@
                             stem = frontText.replace(/<br\s*\/?>/gi, '\n').trim();
                         }
 
-                        // Generate incremental ID using User's choices
-                        const qId = `${idPrefix}-${startNum + successCount}`;
+                        // Automatically skip already-used IDs so imports never overwrite existing cases
+                        let qId = `${idPrefix}-${currentNum}`;
+                        while (existingIds.has(qId.toUpperCase())) {
+                            currentNum++;
+                            qId = `${idPrefix}-${currentNum}`;
+                        }
+                        existingIds.add(qId.toUpperCase());
+                        currentNum++;
+
                         const order = Date.now() + successCount; 
 
                         const payload = {
@@ -420,7 +540,7 @@
 
                     window.showModal(
                         "Import Complete! 🎉", 
-                        `<p class="text-slate-600 dark:text-slate-300 font-medium">Successfully processed and imported <b>${successCount}</b> questions starting at <b>${idPrefix}-${startNum}</b> under the topic: <b>${finalTopic}</b>.</p>`, 
+                        `<p class="text-slate-600 dark:text-slate-300 font-medium">Successfully processed and imported <b>${successCount}</b> questions under the topic: <b>${finalTopic}</b> (existing IDs were automatically protected).</p>`, 
                         `<button onclick="window.closeModal()" class="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg border-none hover:bg-green-600 transition-colors">Done</button>`, 
                         `📥`
                     );
@@ -436,21 +556,24 @@
         };
 
         // --- QUESTION EDITOR LOGIC ---
-                window.openAddClinicalModal = function() {
-            document.getElementById('clin-q-id').value = ''; // Clear ID
-            document.getElementById('clin-q-stem').value = '';
-            document.getElementById('clin-q-chap').value = '';
-            document.getElementById('clin-q-type').value = 'Theory';
-            document.getElementById('clin-q-ans').value = '';
-
-            const titleEl = document.getElementById('clinicalModalTitle');
-            if (titleEl) titleEl.innerHTML = `➕ Add New Clinical Case`;
-
+        window.openAddClinicalModal = function() {
             const btn = document.getElementById('saveClinicalBtn');
             if (btn) {
                 btn.innerText = "Publish to Database";
                 btn.removeAttribute('data-edit-id');
             }
+
+            document.getElementById('clin-q-id').value = window.getNextAvailableCaseId(`${window.SUBJECT_CODE}-001`);
+            document.getElementById('clin-q-stem').value = '';
+            document.getElementById('clin-q-chap').value = '';
+            document.getElementById('clin-q-type').value = 'Theory';
+            document.getElementById('clin-q-anskey').value = '';
+            document.getElementById('clin-q-ans').value = '';
+            window.toggleMcqKeyField();
+            window.checkCaseIdAvailability();
+
+            const titleEl = document.getElementById('clinicalModalTitle');
+            if (titleEl) titleEl.innerHTML = `➕ Add New Clinical Case`;
 
             document.getElementById('uploadClinicalModal').classList.remove('hidden');
         };
@@ -458,6 +581,12 @@
         window.editClinicalQuestion = function(qId) {
             const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
             if(!q) return;
+
+            const btn = document.getElementById('saveClinicalBtn');
+            if (btn) {
+                btn.innerText = "Update Case in Database";
+                btn.setAttribute('data-edit-id', qId);
+            }
 
             let stemText = q.stem;
             if (q.type === 'MCQ' && q.options) {
@@ -467,35 +596,39 @@
                 });
             }
 
-            document.getElementById('clin-q-id').value = q.q; // Populate the editable ID
+            document.getElementById('clin-q-id').value = q.q;
             document.getElementById('clin-q-stem').value = stemText;
             document.getElementById('clin-q-chap').value = (Array.isArray(q.chapter) ? q.chapter[0] : q.chapter) || '';
             document.getElementById('clin-q-type').value = q.type || 'Theory';
+            document.getElementById('clin-q-anskey').value = q.ans_key || '';
             document.getElementById('clin-q-ans').value = window.liveAnswers[qId] ? window.liveAnswers[qId].text : '';
+            window.toggleMcqKeyField();
+            window.checkCaseIdAvailability();
 
             const titleEl = document.getElementById('clinicalModalTitle');
             if (titleEl) titleEl.innerHTML = `✏️ Edit Clinical Case <span class="text-sm font-bold text-slate-400 ml-2">(${qId})</span>`;
 
-            const btn = document.getElementById('saveClinicalBtn');
-            if (btn) {
-                btn.innerText = "Update Case in Database";
-                btn.setAttribute('data-edit-id', qId);
-            }
-
             document.getElementById('uploadClinicalModal').classList.remove('hidden');
         };
 
-
-        // --- MARKDOWN RENDERER ---
+        // --- UNIVERSAL MULTIMEDIA & DOCUMENT MARKDOWN RENDERER ---
         window.renderMarkdown = function(text) {
             if (!text) return "<em class='text-slate-400'>No explanation provided yet.</em>";
             
             let processedText = text;
-            const ytMarkdownRegex = /\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
+
+            // 0. Auto-convert Google Drive Image syntax: ![Alt](https://drive.google.com/file/d/FILE_ID/...)
+            const gDriveImgRegex = /!\[([^\]]*)\]\(https?:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)[^\)]*\)/gi;
+            processedText = processedText.replace(gDriveImgRegex, (match, alt, fileId) => {
+                return `![${alt || 'Clinical Image'}](https://lh3.googleusercontent.com/d/${fileId})`;
+            });
+
+            // 1. Auto-detect YouTube links in Markdown: [Title](youtube_url)
+            const ytMarkdownRegex = /(?<!\!)\[([^\]]+)\]\((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\)]*\)/g;
             processedText = processedText.replace(ytMarkdownRegex, (match, title, videoId) => {
                 const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
                 return `<div class="yt-container my-4">
-                            <button onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                            <button type="button" onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
                                 <span class="yt-title text-left line-clamp-1 flex-1">▶ Play: ${title}</span>
                             </button>
@@ -503,10 +636,139 @@
                         </div>`;
             });
 
+            // 2. Auto-detect Raw YouTube links
+            const ytRawRegex = /(^|\s)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
+            processedText = processedText.replace(ytRawRegex, (match, space, videoId) => {
+                const uniqueId = 'yt-' + Math.random().toString(36).substring(2, 11);
+                return `${space}<div class="yt-container my-4">
+                            <button type="button" onclick="window.toggleYT('${uniqueId}', '${videoId}')" class="flex items-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2.5 rounded-xl transition-colors border border-red-100 dark:border-red-900/50 w-full sm:w-auto shadow-sm">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                <span class="yt-title text-left line-clamp-1 flex-1">▶ Play YouTube Video</span>
+                            </button>
+                            <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 relative bg-slate-900 w-full" style="padding-top: 56.25%;"></div>
+                        </div>`;
+            });
+
+            // 3. Auto-detect Direct Video links in Markdown: [Title](https://.../video.mp4|.webm|.ogg|.mov|.m4v)
+            const vidMarkdownRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(?:mp4|webm|ogg|mov|m4v)(?:\?[^\s\)]*)?)\)/gi;
+            processedText = processedText.replace(vidMarkdownRegex, (match, title, videoUrl) => {
+                return window.buildVideoEmbedHtml(title, videoUrl);
+            });
+
+            // 4. Auto-detect Raw Direct Video URLs
+            const vidRawRegex = /(^|\s)(https?:\/\/[^\s\)]+\.(?:mp4|webm|ogg|mov|m4v)(?:\?[^\s\)]*)?)/gi;
+            processedText = processedText.replace(vidRawRegex, (match, space, videoUrl) => {
+                const fileName = decodeURIComponent(videoUrl.split('/').pop().split('?')[0]) || 'Clinical Video';
+                return `${space}${window.buildVideoEmbedHtml(fileName, videoUrl)}`;
+            });
+
+            // 5. Auto-detect Direct Audio links in Markdown: [Title](https://.../audio.mp3|.wav|.m4a|.aac|.flac)
+            const audMarkdownRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(?:mp3|wav|m4a|aac|flac)(?:\?[^\s\)]*)?)\)/gi;
+            processedText = processedText.replace(audMarkdownRegex, (match, title, audioUrl) => {
+                return window.buildAudioEmbedHtml(title, audioUrl);
+            });
+
+            // 6. Auto-detect Raw Direct Audio URLs
+            const audRawRegex = /(^|\s)(https?:\/\/[^\s\)]+\.(?:mp3|wav|m4a|aac|flac)(?:\?[^\s\)]*)?)/gi;
+            processedText = processedText.replace(audRawRegex, (match, space, audioUrl) => {
+                const fileName = decodeURIComponent(audioUrl.split('/').pop().split('?')[0]) || 'Audio Clip';
+                return `${space}${window.buildAudioEmbedHtml(fileName, audioUrl)}`;
+            });
+
+            // 7. Auto-detect Direct Document Links in Markdown: [Title](https://.../file.pdf|.doc|.docx|.ppt|.pptx|.xls|.xlsx|.csv|.txt|.rtf|.odt|.odp|.ods)
+            const docMarkdownRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s\)]+\.(pdf|docx?|pptx?|xlsx?|csv|txt|rtf|od[tps])(?:\?[^\s\)]*)?)\)/gi;
+            processedText = processedText.replace(docMarkdownRegex, (match, title, docUrl, ext) => {
+                return window.buildDocEmbedHtml(title, docUrl, ext.toLowerCase());
+            });
+
+            // 8. Auto-detect Google Drive / Docs / Slides / Sheets Links in Markdown
+            const gDriveMarkdownRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/(?:drive|docs)\.google\.com\/(?:file|document|presentation|spreadsheets)\/d\/([a-zA-Z0-9_-]+)[^\s\)]*)\)/gi;
+            processedText = processedText.replace(gDriveMarkdownRegex, (match, title, docUrl) => {
+                let docType = 'gdrive';
+                if (docUrl.includes('/document/')) docType = 'gdoc';
+                else if (docUrl.includes('/presentation/')) docType = 'gslides';
+                else if (docUrl.includes('/spreadsheets/')) docType = 'gsheets';
+                return window.buildDocEmbedHtml(title, docUrl, docType);
+            });
+
+            // 9. Auto-detect Raw Document URLs
+            const docRawRegex = /(^|\s)(https?:\/\/[^\s\)]+\.(pdf|docx?|pptx?|xlsx?|csv|txt|rtf|od[tps])(?:\?[^\s\)]*)?)/gi;
+            processedText = processedText.replace(docRawRegex, (match, space, docUrl, ext) => {
+                const fileName = decodeURIComponent(docUrl.split('/').pop().split('?')[0]) || 'Document';
+                return `${space}${window.buildDocEmbedHtml(fileName, docUrl, ext.toLowerCase())}`;
+            });
+
+            // 10. Auto-detect Raw Google Drive / Docs / Slides / Sheets URLs
+            const gDriveRawRegex = /(^|\s)(https?:\/\/(?:drive|docs)\.google\.com\/(?:file|document|presentation|spreadsheets)\/d\/([a-zA-Z0-9_-]+)[^\s\)]*)/gi;
+            processedText = processedText.replace(gDriveRawRegex, (match, space, docUrl) => {
+                let docType = 'gdrive';
+                let label = 'Google Drive File';
+                if (docUrl.includes('/document/')) { docType = 'gdoc'; label = 'Google Doc'; }
+                else if (docUrl.includes('/presentation/')) { docType = 'gslides'; label = 'Google Slides'; }
+                else if (docUrl.includes('/spreadsheets/')) { docType = 'gsheets'; label = 'Google Sheet'; }
+                return `${space}${window.buildDocEmbedHtml(label, docUrl, docType)}`;
+            });
+
             const rawHtml = marked.parse(processedText);
             return rawHtml.replace(/<table>/g, '<div class="markdown-table-wrapper"><table>').replace(/<\/table>/g, '</table></div>');
         };
 
+        // --- HELPER: BUILD VIDEO CARD ---
+        window.buildVideoEmbedHtml = function(title, videoUrl) {
+            const uniqueId = 'vid-' + Math.random().toString(36).substring(2, 11);
+            return `<div class="vid-container my-4">
+                        <button type="button" onclick="window.toggleWebVideo('${uniqueId}', '${videoUrl}')" class="flex items-center gap-2 text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-bold text-sm bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 px-4 py-2.5 rounded-xl transition-colors border border-brand-200 dark:border-brand-800/50 w-full sm:w-auto shadow-sm">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="vid-title text-left line-clamp-1 flex-1">🎬 Play Video: ${title}</span>
+                        </button>
+                        <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 bg-slate-900 w-full"></div>
+                    </div>`;
+        };
+
+        // --- HELPER: BUILD AUDIO CARD ---
+        window.buildAudioEmbedHtml = function(title, audioUrl) {
+            const uniqueId = 'aud-' + Math.random().toString(36).substring(2, 11);
+            return `<div class="aud-container my-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="window.toggleWebAudio('${uniqueId}', '${audioUrl}')" class="flex items-center gap-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-bold text-sm bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 px-4 py-2.5 rounded-xl transition-colors border border-purple-200 dark:border-purple-800/50 flex-1 sm:flex-initial shadow-sm">
+                                <span>🔊</span>
+                                <span class="text-left line-clamp-1 flex-1">Listen: ${title}</span>
+                            </button>
+                            <a href="${audioUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2.5 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm no-underline" title="Open Audio File">
+                                <span>↗️ Open</span>
+                            </a>
+                        </div>
+                        <div id="${uniqueId}" class="hidden mt-3"></div>
+                    </div>`;
+        };
+
+        // --- HELPER: BUILD DOCUMENT CARD ---
+        window.buildDocEmbedHtml = function(title, docUrl, ext) {
+            const uniqueId = 'doc-' + Math.random().toString(36).substring(2, 11);
+            let icon = '📄';
+            let badge = ext.toUpperCase();
+
+            if (ext === 'pdf') { icon = '📕'; badge = 'PDF'; }
+            else if (['doc', 'docx', 'odt', 'rtf', 'gdoc'].includes(ext)) { icon = '📘'; badge = ext === 'gdoc' ? 'GOOGLE DOC' : 'WORD'; }
+            else if (['ppt', 'pptx', 'odp', 'gslides'].includes(ext)) { icon = '📙'; badge = ext === 'gslides' ? 'SLIDES' : 'PPT'; }
+            else if (['xls', 'xlsx', 'ods', 'csv', 'gsheets'].includes(ext)) { icon = '📗'; badge = ext === 'gsheets' ? 'SHEETS' : 'EXCEL'; }
+            else if (ext === 'gdrive') { icon = '📁'; badge = 'DRIVE FILE'; }
+
+            return `<div class="doc-container my-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="window.toggleDocument('${uniqueId}', '${docUrl}', '${ext}')" class="flex items-center gap-2 text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 font-bold text-sm bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 px-4 py-2.5 rounded-xl transition-colors border border-amber-200 dark:border-amber-800/50 flex-1 sm:flex-initial shadow-sm">
+                                <span>${icon}</span>
+                                <span class="text-left line-clamp-1 flex-1">View ${badge}: ${title}</span>
+                            </button>
+                            <a href="${docUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2.5 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm no-underline" title="Open or Download Original File">
+                                <span>↗️ Open</span>
+                            </a>
+                        </div>
+                        <div id="${uniqueId}" class="hidden mt-3 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 w-full"></div>
+                    </div>`;
+        };
+
+        // --- TOGGLE PLAYERS (LAZY-LOADED) ---
         window.toggleYT = function(containerId, videoId) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -518,6 +780,61 @@
             } else {
                 container.classList.add('hidden');
                 container.innerHTML = ''; 
+            }
+        };
+
+        window.toggleWebVideo = function(containerId, videoUrl) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    container.innerHTML = `<video controls autoplay class="w-full max-h-[500px] m-0 rounded-xl outline-none"><source src="${videoUrl}">Your browser does not support HTML5 video.</video>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }
+        };
+
+        window.toggleWebAudio = function(containerId, audioUrl) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    container.innerHTML = `<audio controls autoplay class="w-full m-0 rounded-xl outline-none"><source src="${audioUrl}">Your browser does not support HTML5 audio.</audio>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }
+        };
+
+        window.toggleDocument = function(containerId, docUrl, ext) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (container.innerHTML.trim() === '') {
+                    let embedUrl = '';
+                    const gDriveMatch = docUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (gDriveMatch && (docUrl.includes('drive.google.com') || docUrl.includes('docs.google.com'))) {
+                        const fileId = gDriveMatch[1];
+                        if (docUrl.includes('/document/')) embedUrl = `https://docs.google.com/document/d/${fileId}/preview`;
+                        else if (docUrl.includes('/presentation/')) embedUrl = `https://docs.google.com/presentation/d/${fileId}/preview`;
+                        else if (docUrl.includes('/spreadsheets/')) embedUrl = `https://docs.google.com/spreadsheets/d/${fileId}/preview`;
+                        else embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                    } else if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext)) {
+                        embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(docUrl)}`;
+                    } else {
+                        embedUrl = `https://docs.google.com/gview?url=${encodeURIComponent(docUrl)}&embedded=true`;
+                    }
+                    container.innerHTML = `<iframe src="${embedUrl}" class="w-full h-[500px] md:h-[650px] border-0" allow="autoplay" loading="lazy"></iframe>`;
+                }
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = '';
             }
         };
 
@@ -564,7 +881,7 @@
             window.populateFilters(); 
             window.populateDeckFilters(); 
             window.populateTable();
-            
+            window.syncAllFilterUI();
             if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
 
             if (!window.initialViewConfigured) {
@@ -572,6 +889,58 @@
                 if (window.innerWidth < 768 && !window.isDeckMode) {
                     window.toggleDeckMode();
                 }
+            }
+        };
+
+        // --- TWO-WAY FILTER SYNCHRONIZATION ENGINE (TABLE <-> DECK) ---
+        window.syncAllFilterUI = function() {
+            const isSavedOnly = window.filterState.savedOnly;
+
+            // 1. Sync Saved Filter Buttons & Checkbox
+            const tableSavedBtn = document.getElementById('btn-filter-saved');
+            if (tableSavedBtn) {
+                tableSavedBtn.className = isSavedOnly
+                    ? "px-3.5 py-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0 shadow-sm ring-2 ring-amber-400/30"
+                    : "px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 transition-all shrink-0 shadow-sm";
+            }
+
+            const deckHeaderSavedBtn = document.getElementById('deck-header-saved-btn');
+            if (deckHeaderSavedBtn) {
+                deckHeaderSavedBtn.className = isSavedOnly
+                    ? "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-extrabold transition-colors shadow-sm"
+                    : "flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-amber-400 transition-colors";
+            }
+
+            const deckSavedChk = document.getElementById('deck-chk-saved');
+            if (deckSavedChk) deckSavedChk.checked = isSavedOnly;
+
+            // 2. Sync Table View Checkboxes & Deck View Checkboxes
+            ['types', 'chapters', 'exams'].forEach(filterSetKey => {
+                const set = window.filterState[filterSetKey];
+                document.querySelectorAll(`.table-filter-checkbox[data-filter-key="${filterSetKey}"]`).forEach(cb => {
+                    cb.checked = set.has(cb.value);
+                });
+                document.querySelectorAll(`.deck-filter-checkbox[data-filter-key="${filterSetKey}"]`).forEach(cb => {
+                    cb.checked = set.has(cb.value);
+                });
+            });
+
+            // 3. Update Table View Dropdown Button Texts
+            window.updateButtonText('typeSelect', window.filterState.types, 'Format');
+            window.updateButtonText('chapterSelect', window.filterState.chapters, 'Topic');
+            window.updateButtonText('examSelect', window.filterState.exams, 'Source');
+        };
+
+        window.toggleSavedFilter = function(forceState) {
+            if (!window.currentUserObj) {
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to filter your saved bookmarks.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            }
+
+            window.filterState.savedOnly = (typeof forceState === 'boolean') ? forceState : !window.filterState.savedOnly;
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
             }
         };
 
@@ -592,6 +961,7 @@
                 q: item.q,
                 type: item.type || "Clinical",
                 text: cleanStem, 
+                stemHtml: item.stem || "Saved Case",
                 subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " Clinical - " + chapterString,
                 url: window.location.href,
                 timestamp: new Date().toISOString()
@@ -632,6 +1002,11 @@
                 const dBtn = document.getElementById(`bmk-deck-${item.q}`);
                 if (dBtn) { dBtn.className = `${deckBase} ${activeColors}`; dBtn.innerHTML = activeText; }
             });
+
+            if (window.filterState.savedOnly) {
+                window.filterTable();
+                if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+            }
         };
 
         window.getUniqueValues = function(key) {
@@ -659,15 +1034,38 @@
             if (!event.target.closest('.multiselect-container')) { document.querySelectorAll('.multiselect-menu').forEach(menu => menu.classList.remove('show')); }
         }
 
-        window.handleCheckboxChange = function(id, value, filterSetKey, label) {
+        window.handleCheckboxChange = function(id, value, filterSetKey, label, isChecked) {
             const set = window.filterState[filterSetKey];
-            if (set.has(value)) set.delete(value); else set.add(value);
-            window.updateButtonText(id, set, label);
+            if (typeof isChecked === 'boolean') {
+                if (isChecked) set.add(value); else set.delete(value);
+            } else {
+                if (set.has(value)) set.delete(value); else set.add(value);
+            }
+            window.syncAllFilterUI();
             window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
         }
+
+        window.handleDeckCheckboxChange = function(cb) {
+            const filterSetKey = cb.getAttribute('data-filter-key');
+            if (!filterSetKey || !window.filterState[filterSetKey]) return;
+            if (cb.checked) {
+                window.filterState[filterSetKey].add(cb.value);
+            } else {
+                window.filterState[filterSetKey].delete(cb.value);
+            }
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
+        };
 
         window.updateButtonText = function(id, set, label) {
             const btnText = document.getElementById(id + 'Text');
+            if (!btnText) return;
             if (set.size === 0) { btnText.textContent = `All ${label}s`; btnText.className = "text-slate-400 dark:text-slate-500"; } 
             else { btnText.textContent = `${set.size} ${label}(s) Selected`; btnText.className = "text-brand-600 dark:text-brand-400 font-semibold"; }
         }
@@ -675,7 +1073,9 @@
         window.createMultiSelect = function(containerId, dropdownId, label, items, filterSetKey) {
             const container = document.getElementById(containerId);
             let listHtml = '';
-            items.forEach(item => { listHtml += `<label class="multiselect-option"><input type="checkbox" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}')"><span>${item}</span></label>`; });
+            items.forEach(item => { 
+                listHtml += `<label class="multiselect-option"><input type="checkbox" class="table-filter-checkbox" data-filter-key="${filterSetKey}" value="${item}" onchange="window.handleCheckboxChange('${dropdownId}', this.value, '${filterSetKey}', '${label}', this.checked)"><span>${item}</span></label>`; 
+            });
             container.innerHTML = `<div class="multiselect-container"><button type="button" class="multiselect-btn" onclick="window.toggleDropdown('${dropdownId}')"><span id="${dropdownId}Text" class="text-slate-400 dark:text-slate-500">All ${label}s</span><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="${dropdownId}Menu" class="multiselect-menu">${listHtml}</div></div>`;
         }
 
@@ -684,6 +1084,26 @@
             window.createMultiSelect('chapterFilterWrapper', 'chapterSelect', 'Topic', window.getUniqueValues('chapter'), 'chapters');
             window.createMultiSelect('examFilterWrapper', 'examSelect', 'Source', window.getUniqueValues('exam'), 'exams');
         }
+
+        window.askAI = function(button, item) {
+            let textToCopy; 
+            const cleanStem = item.stem.replace(/<[^>]*>/g, ""); 
+            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+            const chapterString = chArray.join(", "); 
+            
+            if (item.type === 'MCQ') {
+                const optionsList = item.options ? item.options.map((opt, i) => `${window.optionLetters[i] || '-'}) ${opt}`).join('\n') : "Options not available";
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Clinical Exam. Please explain this clinical MCQ:\n\nCase: ${cleanStem}\nOpts:\n${optionsList}\nKey: ${item.ans_key}`;
+            } else { 
+                textToCopy = `I am studying for a ${window.SUBJECT_CODE} Clinical Exam. Please provide a structured clinical diagnosis and management plan:\n\n"${cleanStem}"\nTopic: ${chapterString}`; 
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    window.showModal("Copied to Clipboard!", `<p class="text-sm text-slate-500 dark:text-slate-400">The clinical case is ready.</p>`, `<button onclick="window.open('https://chat.openai.com/', '_blank'); window.closeModal();" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Go to ChatGPT</button>`, `✅`);
+                });
+            }
+        };
 
         window.openAnswerModal = function(qId) {
             const q = window.qnaData.find(x => x.q === qId) || window.displayData.find(x => x.q === qId);
@@ -706,8 +1126,9 @@
                     <div class="flex flex-col h-full border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                         <div class="bg-brand-50 dark:bg-slate-800/50 px-5 py-3 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center shrink-0">
                             <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase tracking-widest">Admin Editor</span>
+                            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-300 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide">Multimedia & Docs Supported</span>
                         </div>
-                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown from Gemini here...">${liveAns}</textarea>
+                        <textarea id="admin-ans-modal-${qId}" oninput="window.updatePreviewModal('${qId}')" class="flex-1 w-full p-5 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Paste your markdown, YouTube, video, audio, or document links here...">${liveAns}</textarea>
                         <div class="p-4 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800 shrink-0">
                             <button onclick="window.saveAdminAnswer('${qId}', this, 'modal')" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-sm uppercase tracking-wider">Publish Case Notes</button>
                         </div>
@@ -774,7 +1195,9 @@
                     qHtml += `<span class="block font-semibold mb-2 text-slate-900 dark:text-white">${cleanStem}</span><div class="space-y-1 mb-2">`;
                     if (item.options && Array.isArray(item.options)) {
                          item.options.forEach((option, idx) => {
-                            const optionLetter = window.optionLetters[idx] || '-'; const isCorrect = optionLetter === item.ans_key; const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
+                            const optionLetter = window.optionLetters[idx] || '-';
+                            const isCorrect = optionLetter === String(item.ans_key || '').trim().toUpperCase();
+                            const cleanOption = option.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\\text{([^}]+)}/g, '$1').replace(/\$/g, '');
                             qHtml += isCorrect ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${optionLetter}) ${cleanOption}</span></div>` : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${optionLetter}) ${cleanOption}</div>`;
                         });
                     }
@@ -836,6 +1259,7 @@
 
                 cell_ai.innerHTML = `
                     <div class="flex flex-col gap-1.5 items-center justify-center">
+                        <button onclick="window.askAI(this, window.displayData[${index}])" class="w-full max-w-[80px] bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border border-green-500/20 hover:bg-green-500 hover:text-white transition-colors">AI Help</button>
                         <button id="bmk-table-${item.q}" onclick="window.toggleBookmark(this, ${index})" class="w-full max-w-[80px] ${bmkClass} font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase tracking-wide flex items-center justify-center gap-1 border hover:opacity-80 transition-colors">${bmkText}</button>
                     </div>`;
             });
@@ -864,9 +1288,9 @@
                         const newIndex = evt.newIndex;
                         
                         // Prevent sorting if filters are active
-                        if(document.getElementById("searchInput").value || window.filterState.types.size > 0 || window.filterState.chapters.size > 0 || window.filterState.exams.size > 0) {
+                        if(document.getElementById("searchInput").value || window.filterState.savedOnly || window.filterState.types.size > 0 || window.filterState.chapters.size > 0 || window.filterState.exams.size > 0) {
                             alert("Reordering is disabled while filters or search are active. Clear them to reorder.");
-                            window.populateTable(); // Revert UI
+                            window.populateTable();
                             return;
                         }
 
@@ -875,29 +1299,24 @@
                         let nextOrder = 0;
 
                         if (newIndex === 0) {
-                            // Moved to very top
                             const nextDataIndex = rows[1]?.getAttribute('data-index');
                             nextOrder = window.displayData[nextDataIndex]?.order || Date.now();
                             prevOrder = nextOrder - 10000;
                         } else if (newIndex === rows.length - 1) {
-                            // Moved to very bottom
                             const prevDataIndex = rows[rows.length - 2]?.getAttribute('data-index');
                             prevOrder = window.displayData[prevDataIndex]?.order || Date.now();
                             nextOrder = prevOrder + 10000;
                         } else {
-                            // Moved between two items
                             const prevDataIndex = rows[newIndex - 1]?.getAttribute('data-index');
                             const nextDataIndex = rows[newIndex + 1]?.getAttribute('data-index');
                             prevOrder = window.displayData[prevDataIndex]?.order || Date.now();
                             nextOrder = window.displayData[nextDataIndex]?.order || Date.now();
                         }
 
-                        // Calculate middle order
                         const newOrder = (prevOrder + nextOrder) / 2;
                         const movedDataIndex = itemEl.getAttribute('data-index');
                         const movedItem = window.displayData[movedDataIndex];
                         
-                        // Update Firebase implicitly
                         try {
                             const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
                             const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${movedItem.q}`);
@@ -910,10 +1329,13 @@
                     }
                 });
             }
+
+            window.filterTable();
         }
 
         window.filterTable = function() {
-            const searchText = document.getElementById("searchInput").value.toLowerCase();
+            const searchInputEl = document.getElementById("searchInput");
+            const searchText = searchInputEl ? searchInputEl.value.toLowerCase() : "";
             const table = document.getElementById("qnaTable");
             if(!table) return;
             const tr = table.getElementsByTagName("tr");
@@ -925,18 +1347,28 @@
                 if(!item) continue;
 
                 let showRow = true;
-                if (searchText) {
-                    let rowText = (tr[i].cells[1].textContent || "") + (tr[i].cells[3].textContent || "");
+
+                // 1. Saved / Bookmarked Filter Check
+                if (window.filterState.savedOnly && !window.isBookmarked(item.q)) {
+                    showRow = false;
+                }
+
+                // 2. Search Text Check
+                if (showRow && searchText) {
+                    let rowText = (tr[i].cells[0].textContent || "") + " " + (tr[i].cells[1].textContent || "") + " " + (tr[i].cells[3].textContent || "") + " " + (tr[i].cells[4].textContent || "");
                     if (rowText.toLowerCase().indexOf(searchText) === -1) showRow = false;
                 }
                 
+                // 3. Format/Type Filter Check
                 if (showRow && window.filterState.types.size > 0 && !window.filterState.types.has(item.type)) showRow = false;
                 
+                // 4. Topic/Chapter Filter Check
                 if (showRow && window.filterState.chapters.size > 0) {
                     const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
                     if(!chArray.some(ch => window.filterState.chapters.has(ch))) showRow = false;
                 }
                 
+                // 5. Source/Exam Filter Check
                 if (showRow && window.filterState.exams.size > 0) {
                     let hasExamMatch = false;
                     if (Array.isArray(item.examBatch)) {
@@ -964,7 +1396,7 @@
             } 
             else if (name) { 
                 const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
-                let message = window.motivationalMessages[randomIndex].replace(/[Name]/g, name);
+                let message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
                 window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `💪`); 
             }
         }
@@ -995,10 +1427,17 @@
                         </div>
                     </div>
                     
-                    <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        <span id="deck-counter">1/1</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <!-- QUICK SAVED FILTER BUTTON IN DECK HEADER -->
+                        <button id="deck-header-saved-btn" onclick="window.toggleSavedFilter()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-amber-400 transition-colors" title="Show Saved Bookmarks Only">
+                            <span>🔖</span>
+                            <span class="hidden sm:inline">Saved</span>
+                        </button>
+                        <button onclick="window.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <span id="deck-counter">1/1</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg" id="deck-card-container"></div>
@@ -1011,7 +1450,13 @@
                 <div id="deck-nav-drawer" class="deck-drawer">
                     <div class="deck-drawer-bg" onclick="window.toggleDeckDrawer(null)"></div>
                     <div class="deck-drawer-content">
-                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between text-slate-800 dark:text-white"><span>Navigator</span><button onclick="window.toggleDeckDrawer(null)" class="border-none bg-transparent">✕</button></div>
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between items-center text-slate-800 dark:text-white">
+                            <div>
+                                <span>Navigator</span>
+                                <span class="block text-[10px] font-semibold text-amber-500">🔖 = Bookmarked</span>
+                            </div>
+                            <button onclick="window.toggleDeckDrawer(null)" class="border-none bg-transparent text-lg">✕</button>
+                        </div>
                         <div class="nav-grid" id="deck-nav-grid"></div>
                     </div>
                 </div>
@@ -1021,7 +1466,7 @@
                     <div class="deck-drawer-content">
                         <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                             <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
-                            <button onclick="window.resetDeckFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
+                            <button onclick="window.resetAllFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-100 dark:border-brand-800">RESET</button>
                         </div>
                         <div class="p-5 overflow-y-auto flex-1 custom-scrollbar" id="deck-filter-content"></div>
                         <div class="p-4 border-t border-slate-200 dark:border-slate-700">
@@ -1077,38 +1522,82 @@
             document.getElementById(`admin-preview-deck-${qId}`).innerHTML = window.renderMarkdown(text);
         };
 
+        // Filters Deck View directly from unified window.filterState
         window.syncDeckWithFilters = function() {
-            const getChecked = (category) => { return Array.from(document.querySelectorAll(`.deck-filter-checkbox[data-category="${category}"]:checked`)).map(cb => cb.value); };
-            const selectedChapters = getChecked('chapter');
-            const selectedTypes = getChecked('type');
-            const search = document.getElementById("searchInput").value.toLowerCase();
+            const searchInputEl = document.getElementById("searchInput");
+            const search = searchInputEl ? searchInputEl.value.toLowerCase() : "";
 
             window.activeDeckQuestions = window.displayData.filter(q => {
                 let show = true;
+
+                // 1. Saved / Bookmarked Only Filter
+                if (window.filterState.savedOnly && !window.isBookmarked(q.q)) {
+                    show = false;
+                }
+
+                // 2. Search Text Filter
+                let examText = Array.isArray(q.examBatch) ? q.examBatch.join(" ") : (q.examBatch || "");
                 const chArray = Array.isArray(q.chapter) ? q.chapter : [q.chapter];
                 let chapterText = chArray.join(" ");
-                let rowText = (q.stem || "") + " " + chapterText;
-                
-                if (search && rowText.toLowerCase().indexOf(search) === -1) show = false;
-                if (show && selectedTypes.length > 0 && !selectedTypes.includes(q.type)) show = false;
-                if (show && selectedChapters.length > 0 && !(chArray.some(ch => selectedChapters.includes(ch)))) show = false;
+                let rowText = (q.q || "") + " " + (q.stem || "") + " " + chapterText + " " + examText;
+                if (show && search && rowText.toLowerCase().indexOf(search) === -1) show = false;
+
+                // 3. Format/Type Filter
+                if (show && window.filterState.types.size > 0 && !window.filterState.types.has(q.type)) show = false;
+
+                // 4. Topic/Chapter Filter
+                if (show && window.filterState.chapters.size > 0 && !chArray.some(ch => window.filterState.chapters.has(ch))) show = false;
+
+                // 5. Source/Exam Filter
+                if (show && window.filterState.exams.size > 0) {
+                    if (Array.isArray(q.examBatch)) {
+                        if (!q.examBatch.some(e => window.filterState.exams.has(e))) show = false;
+                    } else {
+                        if (!window.filterState.exams.has(q.examBatch)) show = false;
+                    }
+                }
+
                 return show;
             });
             
             window.deckIndex = 0;
             const sub = document.getElementById('deck-subtitle');
-            if (sub) sub.innerText = window.activeDeckQuestions.length === window.displayData.length ? `${window.activeDeckQuestions.length} Cases` : `${window.activeDeckQuestions.length} Filtered`;
+            if (sub) {
+                if (window.filterState.savedOnly) {
+                    sub.innerText = `${window.activeDeckQuestions.length} Saved Bookmarks`;
+                } else {
+                    sub.innerText = window.activeDeckQuestions.length === window.displayData.length ? `${window.activeDeckQuestions.length} Cases` : `${window.activeDeckQuestions.length} Filtered`;
+                }
+            }
             window.renderDeckCard();
         }
 
         window.populateDeckFilters = function() {
-            let allChapters = window.qnaData.flatMap(q => Array.isArray(q.chapter) ? q.chapter : [q.chapter]);
+            let allChapters = window.qnaData.flatMap(q => Array.isArray(q.chapter) ? q.chapter : [q.chapter]).filter(Boolean);
+            let allBatches = [];
+            window.qnaData.forEach(q => {
+                if (Array.isArray(q.examBatch)) allBatches.push(...q.examBatch);
+                else if (q.examBatch) allBatches.push(q.examBatch);
+            });
+
             const naturalSort = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
             const chapters = [...new Set(allChapters)].sort(naturalSort);
             const types = [...new Set(window.qnaData.map(q => q.type).filter(Boolean))].sort(naturalSort);
+            const batches = [...new Set(allBatches)].sort(naturalSort);
             
             const container = document.getElementById('deck-filter-content');
-            const buildGroup = (label, category, opts) => {
+
+            const savedFilterBlock = `
+                <div class="mb-5 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div class="font-bold text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 px-1">Quick Filter</div>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 cursor-pointer transition-colors">
+                        <input type="checkbox" id="deck-chk-saved" onchange="window.toggleSavedFilter(this.checked)" ${window.filterState.savedOnly ? 'checked' : ''} class="w-4 h-4 text-amber-500 rounded border-amber-300 focus:ring-amber-500 outline-none">
+                        <span class="text-sm font-extrabold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">🔖 Saved Cases Only</span>
+                    </label>
+                </div>
+            `;
+
+            const buildGroup = (label, filterSetKey, opts) => {
                 if (!opts || opts.length === 0) return '';
                 return `
                 <details class="mb-4 group filter-group" open>
@@ -1119,17 +1608,32 @@
                     <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar px-2 pb-2 mt-1">
                         ${opts.map(opt => `
                         <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                            <input type="checkbox" value="${opt}" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900 outline-none" data-category="${category}">
+                            <input type="checkbox" value="${opt}" onchange="window.handleDeckCheckboxChange(this)" class="deck-filter-checkbox mt-1 w-4 h-4 text-brand-500 rounded border-slate-300 dark:border-slate-600 focus:ring-brand-500 bg-slate-50 dark:bg-slate-900 outline-none" data-filter-key="${filterSetKey}">
                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white leading-snug">${opt}</span>
                         </label>`).join('')}
                     </div>
                 </details>`;
             };
             
-            if(container) container.innerHTML = buildGroup('Topic', 'chapter', chapters) + buildGroup('Format', 'type', types);
+            if(container) container.innerHTML = savedFilterBlock + buildGroup('Topic', 'chapters', chapters) + buildGroup('Format', 'types', types) + buildGroup('Source', 'exams', batches);
         }
 
-        window.resetDeckFilters = function() { document.querySelectorAll('.deck-filter-checkbox').forEach(cb => cb.checked = false); window.syncDeckWithFilters(); }
+        window.resetAllFilters = function() {
+            window.filterState.types.clear();
+            window.filterState.chapters.clear();
+            window.filterState.exams.clear();
+            window.filterState.savedOnly = false;
+
+            const searchInputEl = document.getElementById("searchInput");
+            if (searchInputEl) searchInputEl.value = "";
+
+            window.syncAllFilterUI();
+            window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') {
+                window.syncDeckWithFilters();
+            }
+        };
+        window.resetDeckFilters = window.resetAllFilters;
 
         window.renderDeckCard = function() {
             const container = document.getElementById('deck-card-container');
@@ -1145,8 +1649,24 @@
                 document.getElementById('deck-counter').innerText = `🔒`; return;
             }
 
+            if (window.accessLevel === 'free' && window.deckIndex === window.activeDeckQuestions.length && window.activeDeckQuestions.length > 0) {
+                container.innerHTML = `
+                    <div class="deck-card glass-card flex flex-col items-center justify-center text-center p-8 h-full">
+                        <div class="w-24 h-24 bg-brand-100 dark:bg-brand-900/30 text-brand-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-inner border border-brand-200 dark:border-brand-800">🔒</div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3">End of Free Preview</h2>
+                        <p class="text-slate-500 dark:text-slate-400 mb-8 font-medium">You've completed the free clinical cases. Upgrade to Pro to unlock all cases in this deck.</p>
+                        <a href="checkout.html" class="px-10 py-4 bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all w-full max-w-xs block">Upgrade to Pro</a>
+                    </div>`;
+                document.getElementById('deck-counter').innerText = `🔒`; return;
+            }
+
             if (window.activeDeckQuestions.length === 0) { 
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400"><div class="text-4xl mb-4 opacity-50">🔍</div><p class="font-bold text-slate-600 dark:text-slate-400">No cases match these filters.</p></div>`; 
+                container.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 text-center p-6">
+                        <div class="text-4xl mb-4 opacity-50">${window.filterState.savedOnly ? '🔖' : '🔍'}</div>
+                        <p class="font-bold text-slate-600 dark:text-slate-300 mb-2">${window.filterState.savedOnly ? 'No saved bookmarks match these filters.' : 'No cases match these filters.'}</p>
+                        <button onclick="window.resetAllFilters(); window.toggleDeckDrawer(null);" class="mt-3 px-5 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl shadow-md hover:bg-brand-600 transition-colors border-none">Reset Filters</button>
+                    </div>`; 
                 document.getElementById('deck-counter').innerText = '0/0'; 
                 return; 
             }
@@ -1179,8 +1699,8 @@
                     panelContent = `
                     <div class="flex flex-col gap-4">
                         <div class="bg-brand-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
-                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor</label>
-                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown from Gemini here...">${liveAns}</textarea>
+                            <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 block">Markdown Editor (Multimedia & Docs Supported)</label>
+                            <textarea id="admin-ans-deck-${q.q}" oninput="window.updatePreviewDeck('${q.q}')" class="w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-48 focus:ring-2 focus:ring-brand-500 outline-none custom-scrollbar dark:text-white" placeholder="Paste markdown, YouTube, video, audio, or document links here...">${liveAns}</textarea>
                             <button onclick="window.saveAdminAnswer('${q.q}', this, 'deck')" class="mt-3 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 uppercase tracking-wider">Publish Case Notes</button>
                         </div>
                         <div class="bg-white dark:bg-dark-surface p-4 rounded-xl border border-green-200 dark:border-green-900/50 shadow-sm">
@@ -1225,6 +1745,7 @@
             if (q.type === 'MCQ') {
                 questionHtml = `<div class="mb-4"><h2 class="text-xl font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</h2></div>`;
                 if (q.options) { 
+                    const normAnsKey = String(q.ans_key || '').trim().toUpperCase();
                     optsHtml = `<div class="space-y-3 pb-2">${q.options.map((opt, i) => { 
                         const letter = window.optionLetters[i] || '-'; 
                         const cleanOpt = opt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -1233,11 +1754,11 @@
                         let btnClass = "deck-option-btn group";
                         let disabledAttr = status ? "disabled" : ""; 
 
-                        if (status && letter === q.ans_key) {
+                        if (status && letter === normAnsKey) {
                             btnClass += " deck-opt-correct";
                         }
 
-                        return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${q.ans_key}')" class="${btnClass}" ${disabledAttr}><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
+                        return `<button onclick="window.checkDeckAnswer(this, '${letter}', '${normAnsKey}')" class="${btnClass}" ${disabledAttr}><div class="flex items-start gap-3"><span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">${letter}</span><span class="text-slate-700 dark:text-slate-200 font-medium pt-0.5 text-left w-full">${cleanOpt}</span></div></button>`; 
                     }).join('')}</div>`; 
                 }
                 optsHtml += ansBlockHtml;
@@ -1253,6 +1774,7 @@
                     <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${q.q}</span>
                     <div class="flex gap-2">
                         <button id="bmk-deck-${q.q}" onclick="window.toggleBookmark(this, ${realIndex})" class="px-3 py-1.5 rounded-lg ${bmkClass} text-xs font-bold border shadow-sm transition-colors">${bmkText}</button>
+                        <button onclick="window.askAI(this, window.displayData[${realIndex}])" class="px-3 py-1.5 rounded-lg bg-green-500/10 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-500 hover:text-white border border-green-500/20 shadow-sm flex items-center gap-1.5 transition-colors">Ask AI</button>
                     </div>
                 </div>
             `;
@@ -1289,19 +1811,36 @@
             }
         }
 
+        // --- NAVIGATOR DRAWER WITH BOOKMARK RIBBON BADGE ---
         window.toggleDeckDrawer = function(type) {
             const nav = document.getElementById('deck-nav-drawer');
             const filt = document.getElementById('deck-filter-drawer');
             if (nav) nav.classList.remove('open'); if (filt) filt.classList.remove('open');
             if (type === 'nav') {
                 document.getElementById('deck-nav-grid').innerHTML = window.activeDeckQuestions.map((q, i) => {
-                    const st = window.deckStatus[q.q]; let cls = "deck-nav-btn";
-                    if (st === 'correct') cls += " correct"; if (st === 'wrong') cls += " wrong"; if (i === window.deckIndex) cls += " active";
-                    return `<button onclick="window.deckIndex=${i}; window.toggleDeckDrawer(null); window.renderDeckCard();" class="${cls} border-none outline-none">${q.q}</button>`;
+                    const st = window.deckStatus[q.q];
+                    let cls = "deck-nav-btn";
+                    if (st === 'correct') cls += " correct";
+                    if (st === 'wrong') cls += " wrong";
+                    if (i === window.deckIndex) cls += " active";
+
+                    const isSaved = window.isBookmarked(q.q);
+                    if (isSaved) cls += " ring-2 ring-amber-400/60";
+
+                    const bookmarkBadge = isSaved
+                        ? `<span class="absolute -top-1.5 -right-1.5 z-10 text-amber-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] pointer-events-none" title="Bookmarked">
+                               <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                           </span>`
+                        : '';
+
+                    return `<button onclick="window.deckIndex=${i}; window.toggleDeckDrawer(null); window.renderDeckCard();" class="${cls} outline-none">${q.q}${bookmarkBadge}</button>`;
                 }).join('');
                 nav.classList.add('open');
             }
-            if (type === 'filter') filt.classList.add('open');
+            if (type === 'filter') {
+                window.syncAllFilterUI();
+                filt.classList.add('open');
+            }
         }
 
         window.deckNext = function() { 
@@ -1323,6 +1862,7 @@
                 fab.innerHTML = '📋';
                 fab.title = "Switch to Table View";
                 if(eyeFab) eyeFab.style.display = 'none'; 
+                window.syncAllFilterUI();
                 window.syncDeckWithFilters(); 
             } else {
                 if (mainContent) mainContent.style.display = 'block';
@@ -1330,6 +1870,8 @@
                 fab.innerHTML = '🎴'; 
                 fab.title = "Switch to Deck View";
                 if(eyeFab) eyeFab.style.display = 'flex'; 
+                window.syncAllFilterUI();
+                window.filterTable();
             }
         }
 
@@ -1378,31 +1920,83 @@
             }
         };
 
-                // --- UNIFIED SAVE FUNCTION FOR ADDING & EDITING CLINICAL QUESTIONS ---
-        window.saveClinicalQuestion = async function(btn) {
-            let customId = document.getElementById('clin-q-id').value.trim(); // Grab custom ID
+        // --- COLLISION RESOLUTION HELPERS ---
+        window.resolveCaseIdCollision = function(mode, newId) {
+            window.closeModal();
+            const btn = document.getElementById('saveClinicalBtn');
+            if (mode === 'auto' && newId) {
+                document.getElementById('clin-q-id').value = newId;
+                window.checkCaseIdAvailability();
+                window.saveClinicalQuestion(btn, true);
+            } else if (mode === 'overwrite') {
+                window.saveClinicalQuestion(btn, true);
+            } else if (mode === 'rename') {
+                const input = document.getElementById('clin-q-id');
+                if (input) { input.focus(); input.select(); }
+            }
+        };
+
+        // --- UNIFIED SAVE FUNCTION FOR ADDING & EDITING CLINICAL QUESTIONS (WITH DUPLICATE GUARD) ---
+        window.saveClinicalQuestion = async function(btn, forceOverwrite = false) {
+            let customId = document.getElementById('clin-q-id').value.trim();
             const stem = document.getElementById('clin-q-stem').value.trim();
             const chap = document.getElementById('clin-q-chap').value.trim() || 'General Clinical';
             const type = document.getElementById('clin-q-type').value;
+            const ansKeyInput = document.getElementById('clin-q-anskey') ? document.getElementById('clin-q-anskey').value.trim().toUpperCase() : '';
             const ans = document.getElementById('clin-q-ans').value.trim();
 
             if (!stem) return alert("Case Scenario is required!");
 
-            const originalText = btn.innerText;
             const editId = btn.getAttribute('data-edit-id');
-            
+            const finalQId = customId || (editId ? editId : window.getNextAvailableCaseId(`${window.SUBJECT_CODE}-001`));
+
+            // Check if finalQId already exists in window.qnaData
+            const existingCase = window.qnaData.find(x => String(x.q).toLowerCase() === finalQId.toLowerCase());
+            const isColliding = existingCase && (!editId || editId.toLowerCase() !== finalQId.toLowerCase());
+
+            if (isColliding && !forceOverwrite) {
+                const suggestedId = window.getNextAvailableCaseId(finalQId);
+                const previewStem = existingCase.stem ? existingCase.stem.substring(0, 120) + (existingCase.stem.length > 120 ? '...' : '') : 'Existing Case';
+
+                const bodyHtml = `
+                    <div class="text-left space-y-3 mt-1">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">Case ID <b class="text-red-500">${existingCase.q}</b> is already in use:</p>
+                        <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs italic text-slate-600 dark:text-slate-400">
+                            "${previewStem}"
+                        </div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">How would you like to proceed?</p>
+                    </div>
+                `;
+                const footerHtml = `
+                    <div class="flex flex-col gap-2 w-full">
+                        <button type="button" onclick="window.resolveCaseIdCollision('auto', '${suggestedId}')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition-colors border-none">
+                            ⚡ Save as Next Available ID (${suggestedId})
+                        </button>
+                        <button type="button" onclick="window.resolveCaseIdCollision('rename')" class="w-full py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors border-none">
+                            ✏️ Let Me Pick Another ID
+                        </button>
+                        <button type="button" onclick="window.resolveCaseIdCollision('overwrite')" class="w-full py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors">
+                            ⚠️ Overwrite Existing ${existingCase.q}
+                        </button>
+                    </div>
+                `;
+                window.showModal("Duplicate Case ID Detected", bodyHtml, footerHtml, "⚠️");
+                return;
+            }
+
+            const originalText = btn.innerText;
             btn.innerText = editId ? "Updating..." : "Publishing to Cloud...";
             btn.disabled = true;
             btn.classList.add('opacity-75');
 
             try {
-                // If they left the ID blank, auto-generate one or keep the original editId
-                const finalQId = customId || (editId ? editId : "CLIN-" + Math.floor(Math.random() * 90000 + 10000));
-                
-                const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${finalQId}`);
+                const targetKey = existingCase && isColliding ? existingCase.q : finalQId;
+                const qRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${targetKey}`);
                 
                 // Preserve sequence order logic
-                const existingOrder = editId ? (window.qnaData.find(x => x.q === editId)?.order || Date.now()) : Date.now();
+                const existingOrder = editId
+                    ? (window.qnaData.find(x => x.q === editId)?.order || Date.now())
+                    : (existingCase && isColliding ? (existingCase.order || Date.now()) : Date.now());
 
                 const payload = {
                     stem: stem,
@@ -1426,26 +2020,27 @@
                             match[5].trim().replace(/<br\s*\/?>/gi, '\n')
                         ];
                     }
+                    if (ansKeyInput) {
+                        payload.ans_key = ansKeyInput;
+                    }
                 }
 
-                // If editing and the user changed the ID, we must delete the old one first to avoid duplicates
-                if (editId && editId !== finalQId) {
+                // If editing and the user changed the ID, delete the old key first
+                if (editId && editId !== targetKey) {
                     const oldRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${editId}`);
                     await remove(oldRef);
                 }
 
-                // Save or Update the new node
-                if (editId && editId === finalQId) {
+                if (editId && editId === targetKey) {
                     await update(qRef, payload);
                 } else {
-                    await set(qRef, payload); // Using SET for new creation or when migrating to a new ID
+                    await set(qRef, payload);
                 }
 
-                // Manage answers safely based on whether creating or editing
-                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${finalQId}/answer`);
+                const answerRef = ref(window.db, `clinical_data/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}/${targetKey}/answer`);
                 if (ans !== "") {
                     await set(answerRef, ans);
-                } else if (ans === "" && editId) {
+                } else if (ans === "" && (editId || forceOverwrite)) {
                     await remove(answerRef); 
                 }
 
@@ -1459,7 +2054,7 @@
                     btn.classList.remove('opacity-75');
                     
                     document.getElementById('uploadClinicalModal').classList.add('hidden');
-                }, 1500);
+                }, 1200);
 
             } catch (error) {
                 alert("Operation Failed: " + error.message);
@@ -1468,7 +2063,6 @@
                 btn.classList.remove('opacity-75');
             }
         };
-
 
         // --- UNIFIED SAVE FUNCTION FOR ADMIN ANSWERS (Notes Edits) ---
         window.saveAdminAnswer = async function(qId, btn, context) {
@@ -1519,10 +2113,20 @@
                 const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${uniqueId}`);
                 if (isSaved) {
                     await remove(dbRef);
-                    if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+                    if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Case removed from your cloud bookmarks.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
                 } else {
-                    await set(dbRef, bookmarkData);
-                    if (window.showModal) window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+                    const enrichedBookmark = {
+                        ...bookmarkData,
+                        collegeCode: window.COLLEGE_CODE || 'deoghar',
+                        subjectCode: window.SUBJECT_CODE || 'CFM',
+                        current_step: 1,
+                        next_review_date: Date.now()
+                    };
+                    if (window.liveAnswers && bookmarkData.q && window.liveAnswers[bookmarkData.q] && window.liveAnswers[bookmarkData.q].text) {
+                        enrichedBookmark.explanation = window.liveAnswers[bookmarkData.q].text;
+                    }
+                    await set(dbRef, enrichedBookmark);
+                    if (window.showModal) window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Case saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
                 }
             } catch (e) {
                 console.error(e);
@@ -1611,10 +2215,10 @@
                     window.qnaData = Object.keys(data).map(key => {
                         return {
                             q: key, 
-                            stem: data[key].stem,
-                            chapter: [data[key].chapter],
-                            type: data[key].type,
-                            examBatch: "Clinical Wards",
+                            stem: data[key].stem || "",
+                            chapter: Array.isArray(data[key].chapter) ? data[key].chapter : [data[key].chapter || "General Clinical"],
+                            type: data[key].type || "Theory",
+                            examBatch: data[key].examBatch || "Clinical Wards",
                             options: data[key].options || null,
                             ans_key: data[key].ans_key || "",
                             order: data[key].order || 0 
@@ -1645,6 +2249,7 @@
                 if (isAdmin) {
                     window.globalUserStatus = { isVIP: true, daysLeft: 999, validUntil: 'Lifetime Access', expired: false };
                     window.accessLevel = 'premium';
+                    if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                     if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                 } else {
                     onValue(ref(db, 'users/' + user.uid + '/subscription'), (s) => {
@@ -1657,6 +2262,7 @@
                         }
                         window.globalUserStatus = sub; 
                         window.accessLevel = sub.isVIP ? 'premium' : 'free';
+                        if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                         if(window.userPanelApp && window.userPanelApp.isOpen && window.userPanelApp.viewMode === 'menu') window.userPanelApp.renderState();
                     });
                 }
@@ -1671,6 +2277,7 @@
                 window.globalUserStatus = { isVIP: false, daysLeft: 0 }; 
                 window.accessLevel = 'guest';
                 
+                if(typeof window.processDataForAccess === 'function' && window.isDataLoaded) window.processDataForAccess();
                 if(window.userPanelApp && window.userPanelApp.isOpen) window.userPanelApp.renderState(); 
             }
         });

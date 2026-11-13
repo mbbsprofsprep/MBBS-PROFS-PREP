@@ -1834,3 +1834,694 @@ window.toggleTheme = function() {
     if (icon) icon.innerText = d ? '☀️' : '🌙';
     if (typeof window.update3D === 'function') window.update3D();
 };
+// ====================================================
+// 12. THE MULTI-VIEW USER PANEL APP (WITH ADMIN TOGGLE & 3D BOOKMARKS)
+// ====================================================
+window.userPanelApp = {
+    isOpen: false,
+    authMode: 'login',
+    viewMode: 'menu',
+
+    els: function() {
+        return {
+            drawer: document.getElementById('user-panel-drawer'),
+            backdrop: document.getElementById('user-panel-backdrop'),
+            body: document.getElementById('user-panel-body'),
+            footer: document.getElementById('user-panel-footer')
+        };
+    },
+
+    toggle: function() { this.isOpen ? this.close() : this.open(); },
+
+    open: function() {
+        this.isOpen = true;
+        this.viewMode = 'menu';
+        this.renderState();
+        const e = this.els();
+        if (e.drawer) e.drawer.classList.remove('-translate-x-full');
+        if (e.backdrop) e.backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    },
+
+    close: function() {
+        this.isOpen = false;
+        const e = this.els();
+        if (e.drawer) e.drawer.classList.add('-translate-x-full');
+        if (e.backdrop) e.backdrop.classList.add('opacity-0', 'pointer-events-none');
+    },
+
+    setView: function(view) {
+        this.viewMode = view;
+        this.renderState();
+    },
+
+    renderState: function() {
+        const user = window.currentUserObj;
+        const pData = window.currentUserProfileData || {};
+        const els = this.els();
+        if (!els.body || !els.footer) return;
+
+        const legalFooterHtml = `
+            <div class="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-full px-2 mb-2 mt-4">
+                <a href="legal.html?page=about" class="hover:text-brand-500 transition-colors">About Us</a> • 
+                <a href="legal.html?page=contact" class="hover:text-brand-500 transition-colors">Contact</a> • 
+                <a href="legal.html?page=terms" class="hover:text-brand-500 transition-colors">Terms</a> • 
+                <a href="legal.html?page=privacy" class="hover:text-brand-500 transition-colors">Privacy</a> • 
+                <a href="legal.html?page=refunds" class="hover:text-brand-500 transition-colors">Refunds</a>
+            </div>`;
+
+        if (user) {
+            const totalSaved = Object.keys(window.userBookmarks || {}).length;
+            const dueCount = window.getDueBookmarksCount();
+            const isAdmin = window.isUserAdmin(user);
+            const canUseNeuro = window.canAccessNeuroRecall();
+
+            if (this.viewMode === 'menu') {
+                let badgeHtml = '';
+                let daysHtml = '';
+                if (window.globalUserStatus && window.globalUserStatus.isVIP) {
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-brand-200 dark:border-brand-800">PRO / VIP ACCESS</span>`;
+                    const fd = window.globalUserStatus.validUntil === 'Lifetime Access' ? 'Lifetime Access' : new Date(window.globalUserStatus.validUntil).toLocaleDateString('en-US');
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex flex-col items-center"><span class="text-2xl font-black text-green-600 dark:text-green-400">${window.globalUserStatus.daysLeft === 999 ? '∞' : window.globalUserStatus.daysLeft}</span><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days Left</span><span class="text-[10px] font-medium text-slate-400 mt-1">Valid until ${fd}</span></div>`;
+                } else if (window.globalUserStatus && window.globalUserStatus.expired) {
+                    const daysAgo = Math.abs(window.globalUserStatus.daysLeft);
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200 dark:border-red-800">EXPIRED</span>`;
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-red-600 dark:text-red-400">Oops! Your subscription ended ${daysAgo} days ago.</span><a onclick="window.openSecureCheckout(event)" class="mt-2 text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded-lg shadow-sm cursor-pointer">Renew Now</a></div>`;
+                } else {
+                    badgeHtml = `<span class="px-3 py-1 mt-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-slate-300 dark:border-slate-700">FREE PLAN</span>`;
+                    daysHtml = `<div class="w-full mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex flex-col items-center text-center"><span class="text-xs font-bold text-blue-600 dark:text-blue-400">Membership Required</span><a onclick="window.openSecureCheckout(event)" class="mt-2 text-xs font-bold bg-brand-500 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-brand-600 cursor-pointer">Unlock QBank</a></div>`;
+                }
+
+                const nameToDisplay = user.displayName || pData.fullName || "User";
+                const initial = (user.email || "U").charAt(0).toUpperCase();
+
+                const adminNeuroControlHtml = isAdmin ? `
+                    <div class="p-3.5 bg-amber-50/80 dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-between shadow-sm">
+                        <div>
+                            <div class="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Admin Control: Neuro-Recall</div>
+                            <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">${window.globalNeuroRecallEnabled ? '🟢 Visible to All Students' : '🔒 Admin-Only (Hidden for Students)'}</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" ${window.globalNeuroRecallEnabled ? 'checked' : ''} onchange="window.toggleGlobalNeuroRecall()">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                ` : '';
+
+                const neuroRecallCardHtml = canUseNeuro ? `
+                    <a onclick="window.neuroRecallApp.open('${dueCount > 0 ? 'due' : 'all'}')" class="flex items-center justify-between p-4 bg-gradient-to-r from-sky-500 to-brand-600 text-white rounded-2xl cursor-pointer transition-all shadow-md hover:shadow-lg group">
+                        <div class="flex items-center gap-3.5 font-extrabold text-sm">
+                            <span class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🧠</span>
+                            <div>
+                                <div>Neuro-Recall Flashcards</div>
+                                <div class="text-[10px] font-semibold text-sky-100">${dueCount} Due Today • ${totalSaved} Saved</div>
+                            </div>
+                        </div>
+                        <span class="text-white/80 text-xs font-bold bg-white/20 px-2.5 py-1 rounded-full">Practice ❯</span>
+                    </a>
+                ` : '';
+
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm">
+                        <div class="w-20 h-20 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-3xl font-bold text-brand-600 dark:text-brand-400 mb-3 shadow-md border border-brand-100 dark:border-slate-700">${initial}</div>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-center w-full truncate px-2 text-sm">${nameToDisplay}</h3>
+                        <p class="text-xs text-slate-500 truncate w-full text-center mt-1">${user.email}</p>
+                        ${badgeHtml}
+                        ${daysHtml}
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        ${adminNeuroControlHtml}
+                        ${neuroRecallCardHtml}
+                        <a onclick="window.userPanelApp.setView('bookmarks')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-yellow/50 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-accent-yellow/10 dark:bg-slate-800 flex items-center justify-center text-accent-yellow text-xl group-hover:scale-110 transition-transform">🔖</span> Bookmarks & Saved (${totalSaved})</div><span class="text-slate-400 text-xs">❯</span></a>
+                        <a onclick="window.userPanelApp.setView('edit_profile')" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-500 text-xl group-hover:scale-110 transition-transform">👤</span> My Profile</div><span class="text-slate-400 text-xs">❯</span></a>
+                        <a onclick="window.openSecureCheckout(event)" class="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer transition-all shadow-sm hover:shadow group"><div class="flex items-center gap-4 text-slate-700 dark:text-slate-300 font-semibold text-sm"><span class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-slate-800 flex items-center justify-center text-purple-500 text-xl group-hover:scale-110 transition-transform">💳</span> Subscription & Billing</div><span class="text-slate-400 text-xs">❯</span></a>
+                    </div>`;
+                els.footer.innerHTML = `${legalFooterHtml}<button onclick="window.firebaseSignOut()" class="w-full py-3.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2 mt-2 border border-red-200 dark:border-red-800 shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout</button>`;
+
+            } else if (this.viewMode === 'bookmarks') {
+                const bookmarkEntries = Object.entries(window.userBookmarks || {}).sort((a, b) => new Date(b[1].timestamp) - new Date(a[1].timestamp));
+                let bookmarksHtml = '';
+
+                if (bookmarkEntries.length === 0) {
+                    bookmarksHtml = `<div class="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4"><span class="text-5xl mb-4 opacity-70">🔖</span><h4 class="font-bold text-lg text-slate-700 dark:text-slate-300">No Saved Questions Yet</h4><p class="text-sm text-slate-500 mt-2 px-4 leading-relaxed">Questions you bookmark inside the QBank will automatically sync here.</p><button onclick="window.userPanelApp.setView('menu')" class="mt-6 px-6 py-2.5 bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-lg font-bold text-sm hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors border border-brand-200 dark:border-brand-800">Go Back</button></div>`;
+                } else {
+                    const launchBannerHtml = canUseNeuro ? `
+                        <button onclick="window.neuroRecallApp.open('${dueCount > 0 ? 'due' : 'all'}')" class="w-full mt-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-sky-500 to-brand-600 text-white font-extrabold text-sm shadow-lg shadow-sky-500/20 flex items-center justify-between hover:opacity-95 transition-all">
+                            <span class="flex items-center gap-2"><span>⚡</span> Start Fullscreen Neuro-Recall</span>
+                            <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full">${dueCount} Due / ${totalSaved} Total</span>
+                        </button>` : '';
+
+                    bookmarksHtml = `${launchBannerHtml}<div class="space-y-5 mt-3 pb-10">`;
+
+                    bookmarkEntries.forEach(([bmKey, bm], idx) => {
+                        const richText = window.formatInlineMathAndBold(bm.stemHtml || bm.text || 'Saved Question');
+                        const step = bm.current_step || 1;
+                        const isDue = Date.now() >= (bm.next_review_date || 0);
+                        const cardDomId = `bm-card-${idx}`;
+
+                        if (!canUseNeuro) {
+                            let optionsHtml = '';
+                            if (bm.type === 'MCQ' && bm.options) {
+                                optionsHtml = `<div class="mt-4 space-y-2.5">`;
+                                bm.options.forEach((opt, oIdx) => {
+                                    const letter = String.fromCharCode(65 + oIdx);
+                                    const isCorrect = String(bm.ans_key || '').toUpperCase() === letter;
+                                    let btnClass = "w-full text-left p-3.5 rounded-xl border transition-colors flex items-start gap-3 shadow-sm";
+                                    if (isCorrect) btnClass += " bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold";
+                                    else btnClass += " bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
+                                    let formattedOpt = window.formatInlineMathAndBold(opt);
+                                    const letterBadgeClass = isCorrect ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700" : "bg-white dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600";
+                                    const letterBadge = `<span class="flex-shrink-0 w-7 h-7 rounded-lg ${letterBadgeClass} text-xs font-bold flex items-center justify-center border">${letter}</span>`;
+                                    optionsHtml += `<div class="${btnClass}">${letterBadge}<span class="pt-0.5 text-sm font-medium leading-snug">${formattedOpt}</span></div>`;
+                                });
+                                optionsHtml += `</div>`;
+                            }
+                            bookmarksHtml += `
+                                <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 relative group transition-all shadow-sm">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800">${bm.subject || 'QBank'}</div>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">${new Date(bm.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white mb-2 leading-relaxed bm-flip-card">${richText}</div>${optionsHtml}
+                                    <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                        <button onclick="window.deleteBookmark('${bmKey}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors uppercase tracking-wide">🗑️ Remove</button>
+                                        <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-4 py-2.5 rounded-xl border border-brand-200 dark:border-brand-800">Review ➝</a>
+                                    </div>
+                                </div>`;
+                            return;
+                        }
+
+                        let frontOptionsHtml = '';
+                        let backAnswerHtml = '';
+
+                        if (bm.type === 'MCQ' && bm.options) {
+                            frontOptionsHtml = `<div class="mt-3 space-y-2">`;
+                            bm.options.forEach((opt, oIdx) => {
+                                const letter = String.fromCharCode(65 + oIdx);
+                                let formattedOpt = window.formatInlineMathAndBold(opt);
+                                frontOptionsHtml += `
+                                    <div onclick="document.getElementById('${cardDomId}').classList.add('is-flipped')" class="w-full text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-brand-400 text-slate-700 dark:text-slate-300 flex items-start gap-2.5 cursor-pointer transition-colors">
+                                        <span class="w-6 h-6 rounded-md bg-white dark:bg-slate-700 text-slate-500 text-xs font-bold flex items-center justify-center border border-slate-200 dark:border-slate-600 shrink-0">${letter}</span>
+                                        <span class="text-xs font-medium leading-snug pt-0.5">${formattedOpt}</span>
+                                    </div>`;
+                            });
+                            frontOptionsHtml += `</div>`;
+
+                            const correctLetter = String(bm.ans_key || 'A').toUpperCase();
+                            const ansIdx = Math.max(0, correctLetter.charCodeAt(0) - 65);
+                            const correctOptText = bm.options[ansIdx] ? window.formatInlineMathAndBold(bm.options[ansIdx]) : `Option ${correctLetter}`;
+                            backAnswerHtml = `
+                                <div class="p-3.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 font-bold text-xs mb-3">
+                                    ✅ Correct Answer: ${correctLetter}) ${correctOptText}
+                                </div>`;
+                        }
+
+                        const ansImageBack = bm.ans_image ? `<img src="${bm.ans_image}" alt="Answer Card">` : '';
+                        const savedExpl = bm.explanation
+                            ? `<div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed markdown-body mt-2">${window.sharedRenderMarkdown(bm.explanation)}</div>`
+                            : `<p class="text-xs text-slate-400 italic mt-2">Open in Fullscreen Neuro-Recall to view live synced notes.</p>`;
+
+                        bookmarksHtml += `
+                            <div class="bm-flip-scene">
+                                <div id="${cardDomId}" class="bm-flip-card">
+                                    <div class="bm-flip-front p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex justify-between items-start gap-2 mb-3">
+                                                <span class="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-widest bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800 truncate">${bm.subject || 'QBank'}</span>
+                                                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md border shrink-0 ${isDue ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}">⚡ Lvl ${step}</span>
+                                            </div>
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white mb-2 leading-relaxed">${richText}</div>${frontOptionsHtml}
+                                        </div>
+                                        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                            <button onclick="window.deleteBookmark('${bmKey}')" class="text-[10px] font-bold text-red-500 hover:text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors uppercase tracking-wide">
+                                                🗑️ Remove
+                                            </button>
+                                            <button onclick="document.getElementById('${cardDomId}').classList.add('is-flipped')" class="text-xs font-extrabold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 px-3.5 py-2 rounded-xl border border-brand-200 dark:border-brand-800 transition-colors">
+                                                🔄 Flip Card
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="bm-flip-back p-5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-400 dark:border-brand-600 shadow-md flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-brand-500">🧠 Flashcard Back (${bm.q || ''})</span>
+                                                <button onclick="document.getElementById('${cardDomId}').classList.remove('is-flipped')" class="text-xs font-bold text-slate-400 hover:text-slate-600">✕ Flip Back</button>
+                                            </div>
+                                            ${backAnswerHtml}
+                                            ${ansImageBack}${savedExpl}
+                                        </div>
+                                        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+                                            <button onclick="document.getElementById('${cardDomId}').classList.remove('is-flipped')" class="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl">
+                                                🔙 Question
+                                            </button>
+                                            <a href="${bm.url || '#'}" class="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-3.5 py-2 rounded-xl border border-brand-200 dark:border-brand-800">
+                                                Open Source ➝
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                    bookmarksHtml += `</div>`;
+                }
+
+                els.body.innerHTML = `
+                    <div class="mb-2">
+                        <div class="flex items-center justify-between mb-4 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                            <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-1">${canUseNeuro ? 'Saved Flashcards' : 'Saved Items'}</h3>
+                        <p class="text-xs text-slate-500 font-medium">${canUseNeuro ? 'Tap any card to flip it in 3D or launch Neuro-Recall.' : 'Quickly access your saved questions synced from the cloud.'}</p>
+                        ${bookmarksHtml}
+                    </div>`;
+                els.footer.innerHTML = ``;
+
+            } else if (this.viewMode === 'edit_profile') {
+                const currentYear = pData.joinYear || '';
+                const isS = (v, t) => (v === t) ? 'selected' : '';
+                els.body.innerHTML = `
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 dark:bg-dark-bg z-10 py-2 border-b border-slate-200 dark:border-slate-800">
+                            <button onclick="window.userPanelApp.setView('menu')" class="p-2 -ml-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-6">Edit Profile</h3>
+                        <div class="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Full Name</label><input type="text" id="edit-name" value="${pData.fullName || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">College Name</label><input type="text" id="edit-college" value="${pData.college || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            <div><label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Join Year / Batch</label><select id="edit-join-year" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"><option value="">Select</option><option value="2025 Batch" ${isS(currentYear, '2025 Batch')}>2025 Batch</option><option value="2024 Batch" ${isS(currentYear, '2024 Batch')}>2024 Batch</option><option value="2023 Batch" ${isS(currentYear, '2023 Batch')}>2023 Batch</option><option value="2022 Batch" ${isS(currentYear, '2022 Batch')}>2022 Batch</option><option value="2021 Batch" ${isS(currentYear, '2021 Batch')}>2021 Batch (Intern)</option><option value="Post-Grad / JR" ${isS(currentYear, 'Post-Grad / JR')}>Post-Grad / JR</option></select></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">City</label><input type="text" id="edit-city" value="${pData.city || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone</label><input type="tel" id="edit-phone" value="${pData.phone || ''}" class="w-full mt-1 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" /></div>
+                            </div>
+                            <button onclick="window.saveEditedProfile(this)" class="w-full py-4 mt-6 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all">Save Changes</button>
+                        </div>
+                    </div>`;
+                els.footer.innerHTML = ``;
+            }
+        } else {
+            if (this.authMode === 'login') {
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-[calc(100vh-250px)]">
+                        <img src="${APP_LOGO_URL}" class="w-20 h-20 rounded-2xl shadow-xl ring-4 ring-offset-4 ring-brand-400/30 mb-6 object-cover" alt="Logo">
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Welcome Back</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Log in to sync your progress.</p>
+                        <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                        <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <input type="email" id="login-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <div class="relative w-full">
+                                <input type="password" id="login-pass" placeholder="Password" class="w-full pl-4 pr-10 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                                <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                            </div>
+                            <div class="text-right w-full pt-1"><button onclick="window.handleForgotPass()" class="text-[10px] font-bold text-brand-500 uppercase tracking-wider hover:text-brand-600 transition-colors">Forgot Password?</button></div>
+                        </div>
+                        <button onclick="window.handleEmailLogin(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30 active:scale-95 transition-all hover:bg-brand-600">Sign In</button>
+                        <div class="text-center mt-6"><span class="text-sm text-slate-500">Don't have an account?</span> <button onclick="window.toggleAuthMode('register')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Create One</button></div>
+                    </div>`;
+            } else {
+                els.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-start min-h-[calc(100vh-250px)] pb-4">
+                        <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-offset-2 ring-brand-400/50 mb-4 object-cover mt-2" alt="Logo">
+                        <h3 class="text-xl font-black text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
+                        <p class="text-sm text-slate-500 mb-6">Join the community.</p>
+                        <div id="auth-error-msg" class="hidden w-full bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl mb-4 text-center font-bold"></div>
+                        <div class="w-full space-y-3 mb-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <select id="reg-country" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-shadow font-medium"><option value="">Select Country</option><option value="India" selected>India</option></select>
+                            <input type="text" id="reg-city" placeholder="City" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="email" id="reg-email" placeholder="Email Address" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <input type="password" id="reg-pass" placeholder="Create Password (Min 6)" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            <div class="grid grid-cols-2 gap-3">
+                                <select id="reg-join-year" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm outline-none font-medium focus:ring-2 focus:ring-brand-500 transition-shadow"><option value="">Batch</option><option value="2025 Batch">2025 Batch</option><option value="2024 Batch">2024 Batch</option><option value="2023 Batch">2023 Batch</option><option value="2022 Batch">2022 Batch</option><option value="Intern">Intern</option><option value="JR/SR">JR / SR</option></select>
+                                <input type="text" id="reg-college" placeholder="College Name" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                            </div>
+                            <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none text-sm dark:text-white font-medium focus:ring-2 focus:ring-brand-500 transition-shadow" />
+                        </div>
+                        <button onclick="window.handleEmailSignUp(this)" class="w-full py-4 rounded-xl text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700">Create Account</button>
+                        <div class="text-center mt-6"><span class="text-sm text-slate-500">Already have an account?</span><button onclick="window.toggleAuthMode('login')" class="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline ml-1">Sign In</button></div>
+                    </div>`;
+            }
+            els.footer.innerHTML = legalFooterHtml;
+        }
+    }
+};
+
+// ====================================================
+// 13. AUTO-PATCH REVIEW & CLINICAL PAGES ON DOM LOAD
+// ====================================================
+document.addEventListener('DOMContentLoaded', () => {
+    window.renderMarkdown = window.sharedRenderMarkdown;
+
+    if (typeof window.toggleBookmark === 'function') {
+        window.toggleBookmark = async function(btn, index) {
+            if (!window.currentUserObj) {
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            }
+
+            const item = (window.MPP_overrideQObj && index === -1)
+                ? window.MPP_overrideQObj
+                : window.displayData[index];
+            if (!item) return;
+
+            const uniqueId = window.getUniqueQuestionId(item.q);
+            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+            const chapterString = chArray.length > 0 ? chArray[0] : 'General';
+
+            const bookmarkData = {
+                q: item.q,
+                type: item.type || "General",
+                text: item.stem || "Saved Question",
+                stemHtml: item.stem || "Saved Question",
+                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
+
+            if (item.options) bookmarkData.options = item.options;
+            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
+            if (item.ans_image) bookmarkData.ans_image = item.ans_image;
+            if (item.img) bookmarkData.img = item.img;
+
+            const isSaved = window.isBookmarked(item.q);
+            if (window.executeBookmarkToggle) {
+                window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
+            }
+        };
+    }
+
+    if (typeof window.submitReportToForm === 'function' && window.REPORT_CONFIG) {
+        window.submitReportToForm = function(qid, btn) {
+            const descEl = document.getElementById('report-desc');
+            const desc = descEl ? descEl.value : "";
+            if (btn) { btn.innerText = "Sending..."; btn.disabled = true; }
+
+            const iframeName = 'hidden_iframe_' + Date.now();
+            const iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `https://docs.google.com/forms/d/e/${window.REPORT_CONFIG.formID}/formResponse`;
+            form.target = iframeName;
+            form.style.display = 'none';
+
+            const inputs = [
+                { name: window.REPORT_CONFIG.entryID_QID, value: `${qid} | ${window.location.href}` },
+                { name: window.REPORT_CONFIG.entryID_Type, value: window.selectedReportType || "Other" },
+                { name: window.REPORT_CONFIG.entryID_Desc, value: desc }
+            ];
+
+            inputs.forEach(data => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = data.name;
+                input.value = data.value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+
+            setTimeout(() => {
+                const bodyEl = document.getElementById('modal-body-content');
+                const footerEl = document.getElementById('modal-footer-buttons');
+                if (bodyEl) {
+                    bodyEl.innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl border border-green-200 dark:border-green-800">✅</div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Report Sent!</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Thank you. We will review this shortly.</p>
+                        </div>`;
+                }
+                if (footerEl) {
+                    footerEl.innerHTML = `<button onclick="window.closeModal()" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-colors">Close</button>`;
+                }
+                setTimeout(() => { iframe.remove(); form.remove(); }, 2000);
+            }, 1000);
+        };
+    }
+
+    if (typeof window.handleSecretClick === 'function') {
+        window.handleSecretClick = function() {
+            if (!window.isUserAdmin()) {
+                if (window.showModal) {
+                    window.showModal("Access Denied", "<p class='text-red-500 font-semibold'>This tool is strictly restricted to administrators only.</p>", `<button onclick="window.closeModal()" class="w-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white font-bold py-3 rounded-xl border-none">Close</button>`, `🚫`);
+                }
+                return;
+            }
+            window.showModal("Welcome Admin!", `<p class="text-slate-700 dark:text-slate-300 font-medium">Enter authorization code:</p><input type="text" id="nameInput" class="w-full border dark:border-slate-700 p-3 rounded-xl bg-white dark:bg-slate-800 dark:text-white mt-3 focus:outline-none">`, `<button onclick="window.handleNameSubmission()" class="w-full bg-brand-500 text-white font-bold px-3 py-3 rounded-xl border-none">Execute</button>`, `☕️`);
+        };
+    }
+
+    if (typeof window.handleNameSubmission === 'function') {
+        window.handleNameSubmission = function() {
+            const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
+            const lowerName = name.toLowerCase();
+            if (lowerName === (window.SECRET_CODE || "777pankaj").toLowerCase() || lowerName === "777pankaj") {
+                window.closeModal();
+                if (typeof window.copyForChatGPT === 'function') window.copyForChatGPT();
+            } else if (lowerName === "777calm") {
+                window.closeModal();
+                if (typeof window.downloadDataAsJSON === 'function') window.downloadDataAsJSON();
+            } else if (name && Array.isArray(window.motivationalMessages)) {
+                const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
+                const message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
+                window.showModal("Motivation!", `<p class="font-semibold text-slate-900 dark:text-white">${message}</p>`, `<button onclick="window.closeModal()" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl border-none">Back to Study</button>`, `💪`);
+            }
+        };
+    }
+
+    const clinIdInput = document.getElementById('clin-q-id');
+    if (clinIdInput && window.SUBJECT_CODE) {
+        clinIdInput.placeholder = `e.g. ${window.SUBJECT_CODE}-001`;
+    }
+});
+
+// ====================================================
+// 14. CENTRALIZED FIREBASE SYNC, NEURAL BOOKMARKS & 2-DEVICE GUARD
+// ====================================================
+(async function initCentralizedFirebaseSync() {
+    try {
+        const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+        const { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+        const { getDatabase, ref, set, update, onValue, remove } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+        setTimeout(() => {
+            let fbApp;
+            try { fbApp = getApp(); } catch (e) { return; }
+            const auth = getAuth(fbApp);
+            const db = getDatabase(fbApp);
+            window.db = db;
+
+            // Hook handleEmailLogin so Admin credentials also sign into the MedPYQ Bridge automatically
+            const origEmailLogin = window.handleEmailLogin;
+            if (typeof origEmailLogin === 'function') {
+                window.handleEmailLogin = function(btn) {
+                    const eEl = document.getElementById('login-email');
+                    const pEl = document.getElementById('login-pass');
+                    if (eEl && pEl && window.ADMIN_EMAILS.includes(eEl.value.toLowerCase().trim())) {
+                        try {
+                            localStorage.setItem('medpyq_bridge_creds', JSON.stringify({
+                                e: eEl.value.trim(),
+                                p: pEl.value
+                            }));
+                        } catch (err) {}
+                    }
+                    return origEmailLogin(btn);
+                };
+            }
+
+            // 1. Listen to Global Neuro-Recall Public Toggle
+            onValue(ref(db, 'settings/global/showNeuroRecall'), (snap) => {
+                window.globalNeuroRecallEnabled = Boolean(snap.val());
+                window.updateNeuroDueBadges();
+                if (window.userPanelApp && window.userPanelApp.isOpen) {
+                    window.userPanelApp.renderState();
+                }
+            });
+
+            // 2. Boot the Teen Patti + Multi-Topic + MedPYQ Bridge Engine on all Review & Clinical pages
+            if (window.SUBJECT_CODE && typeof window.MPP_initCrossExamTeenPattiEngine === 'function') {
+                window.MPP_initCrossExamTeenPattiEngine(db, auth);
+            }
+
+            // 3. Upgrade executeBookmarkToggle to preserve full HTML stems (<img>/<table>) & Spaced-Repetition metadata
+            window.executeBookmarkToggle = async function(uniqueId, bookmarkData, isSaved) {
+                try {
+                    const dbRef = ref(db, `users/${window.currentUserObj.uid}/bookmarks/${uniqueId}`);
+                    if (isSaved) {
+                        await remove(dbRef);
+                        if (window.showModal) window.showModal("Removed", `<p class="text-sm text-slate-500 dark:text-slate-400">Question removed from your saved items.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 rounded-lg font-bold text-slate-700 dark:text-slate-300 border-none">Close</button>`, `🗑️`);
+                    } else {
+                        const fullItem = (window.qnaData || window.displayData || []).find(x => x && x.q === bookmarkData.q) || window.MPP_overrideQObj;
+                        const enrichedBookmark = {
+                            ...bookmarkData,
+                            text: (fullItem && fullItem.stem) ? fullItem.stem : bookmarkData.text,
+                            stemHtml: (fullItem && fullItem.stem) ? fullItem.stem : (bookmarkData.stemHtml || bookmarkData.text),
+                            ans_image: (fullItem && fullItem.ans_image) ? fullItem.ans_image : (bookmarkData.ans_image || null),
+                            img: (fullItem && fullItem.img) ? fullItem.img : (bookmarkData.img || null),
+                            collegeCode: window.COLLEGE_CODE || 'deoghar',
+                            subjectCode: window.SUBJECT_CODE || '',
+                            current_step: 1,
+                            next_review_date: Date.now()
+                        };
+                        if (window.liveAnswers && bookmarkData.q && window.liveAnswers[bookmarkData.q] && window.liveAnswers[bookmarkData.q].text) {
+                            enrichedBookmark.explanation = window.liveAnswers[bookmarkData.q].text;
+                        }
+                        await set(dbRef, enrichedBookmark);
+
+                        if (window.showModal) {
+                            if (window.canAccessNeuroRecall()) {
+                                window.showModal(
+                                    "Added to Neuro-Recall! 🧠",
+                                    `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved as a 3D Spaced-Repetition Flashcard (with images & math preserved).</p>`,
+                                    `<div class="flex gap-2 w-full"><button onclick="window.closeModal(); window.neuroRecallApp.open('due');" class="flex-1 py-2.5 bg-sky-500 text-white rounded-xl font-bold border-none text-xs">Practice Now ⚡</button><button onclick="window.closeModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold border-none text-xs">Keep Studying</button></div>`,
+                                    `☁️`
+                                );
+                            } else {
+                                window.showModal("Cloud Synced!", `<p class="text-sm text-slate-500 dark:text-slate-400">Question saved to your account. Access it from any device.</p>`, `<button onclick="window.closeModal()" class="w-full py-2 bg-brand-500 text-white rounded-lg font-bold border-none">Awesome</button>`, `☁️`);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Error syncing bookmark: " + e.message);
+                }
+            };
+
+            // 4. Upgrade deleteBookmark
+            window.deleteBookmark = async function(qIdOrKey) {
+                if (!window.currentUserObj) return;
+                if (!confirm("Remove this question from your saved items?")) return;
+
+                let targetKey = qIdOrKey;
+                if (window.userBookmarks && !window.userBookmarks[qIdOrKey]) {
+                    const foundKey = Object.keys(window.userBookmarks).find(key => window.userBookmarks[key].q === qIdOrKey);
+                    if (foundKey) targetKey = foundKey;
+                }
+
+                if (window.userBookmarks && window.userBookmarks[targetKey]) {
+                    delete window.userBookmarks[targetKey];
+                }
+                if (window.userPanelApp && window.userPanelApp.isOpen) {
+                    window.userPanelApp.renderState();
+                }
+                if (typeof window.updateBookmarkUI === 'function') {
+                    window.updateBookmarkUI();
+                }
+                window.updateNeuroDueBadges();
+
+                try {
+                    await remove(ref(db, `users/${window.currentUserObj.uid}/bookmarks/${targetKey}`));
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to remove bookmark from cloud: " + e.message);
+                }
+            };
+
+            // 5. Upgrade Forgot Password handler
+            window.handleForgotPass = () => {
+                const e = document.getElementById('login-email') ? document.getElementById('login-email').value.trim() : "";
+                if (!e) return window.showAuthError("Enter email first");
+                sendPasswordResetEmail(auth, e)
+                    .then(() => {
+                        const errDiv = document.getElementById('auth-error-msg');
+                        if (errDiv) {
+                            errDiv.innerText = "Reset link sent! Check your inbox.";
+                            errDiv.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200');
+                            errDiv.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+                        }
+                    })
+                    .catch(err => {
+                        if (err.code === 'auth/user-not-found') {
+                            window.showAuthError("Your email is not registered with us, please register.");
+                        } else {
+                            window.showAuthError(err.message);
+                        }
+                    });
+            };
+
+            // 6. Ensure sign-out always clears local session token
+            window.firebaseSignOut = () => {
+                localStorage.removeItem('my_session_token');
+                signOut(auth).then(() => window.location.reload());
+            };
+
+            // 7. Listen to Auth & Bookmarks
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    onValue(ref(db, 'users/' + user.uid + '/bookmarks'), (snapshot) => {
+                        window.userBookmarks = snapshot.exists() ? snapshot.val() : {};
+                        window.updateNeuroDueBadges();
+                    });
+                } else {
+                    window.updateNeuroDueBadges();
+                }
+
+                // Multi-version (standard vs ed8) shared answer fallback for Pathology & Microbiology
+                if (user && window.VERSION_CODE && window.COLLEGE_CODE && window.SUBJECT_CODE) {
+                    const baseAnswersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}`);
+                    const versionAnswersRef = ref(db, `answers/${window.COLLEGE_CODE}/${window.SUBJECT_CODE}_${window.VERSION_CODE}`);
+                    let baseAns = {};
+                    let verAns = {};
+                    const mergeAnswers = () => {
+                        window.liveAnswers = { ...baseAns, ...verAns };
+                        if (window.displayData && window.displayData.length > 0) {
+                            if (typeof window.populateTable === 'function') window.populateTable();
+                            if (window.isDeckMode && typeof window.renderDeckCard === 'function') window.renderDeckCard();
+                        }
+                    };
+                    onValue(baseAnswersRef, (s) => { baseAns = s.val() || {}; mergeAnswers(); });
+                    onValue(versionAnswersRef, (s) => { verAns = s.val() || {}; mergeAnswers(); });
+                }
+
+                // Enforce 2-Device Session Limit on all non-index pages
+                const isIndexPage = Boolean(document.getElementById('view-institutes'));
+                if (isIndexPage || !user || window.isUserAdmin(user)) return;
+
+                try {
+                    const sessionsRef = ref(db, 'users/' + user.uid + '/active_sessions');
+                    const myToken = localStorage.getItem('my_session_token') || Math.random().toString(36).substring(2, 15);
+                    localStorage.setItem('my_session_token', myToken);
+
+                    await update(ref(db, 'users/' + user.uid), {
+                        ['active_sessions/' + myToken]: Date.now()
+                    });
+
+                    onValue(sessionsRef, (snap) => {
+                        const sessions = snap.val() || {};
+                        const sessionKeys = Object.keys(sessions);
+
+                        if (sessionKeys.length > 0 && !sessions[myToken]) {
+                            localStorage.removeItem('my_session_token');
+                            signOut(auth).then(() => {
+                                document.body.innerHTML = `
+                                    <div class="fixed inset-0 z-[50000] bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+                                        <div class="w-20 h-20 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center text-4xl mb-6 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]">🔒</div>
+                                        <h2 class="text-3xl font-black text-white mb-3">Session Terminated</h2>
+                                        <p class="text-slate-400 max-w-md mb-8 font-medium leading-relaxed">You logged into your account on a new device. To maintain your 2-device limit, this older session has been automatically signed out.</p>
+                                        <button onclick="window.location.reload()" class="px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 text-lg">Return to Login</button>
+                                    </div>
+                                `;
+                            });
+                            return;
+                        }
+
+                        if (sessionKeys.length > 2) {
+                            sessionKeys.sort((a, b) => sessions[a] - sessions[b]);
+                            const keysToRemove = sessionKeys.slice(0, sessionKeys.length - 2);
+                            keysToRemove.forEach(key => {
+                                remove(ref(db, 'users/' + user.uid + '/active_sessions/' + key));
+                            });
+                        }
+                    });
+                } catch (err) {
+                    console.error("Session guard error:", err);
+                }
+            });
+        }, 300);
+    } catch (e) {
+        // Ignore on static pages without Firebase
+    }
+})();

@@ -2525,3 +2525,1639 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ignore on static pages without Firebase
     }
 })();
+// ====================================================
+// 15. CROSS-FIREBASE TEEN PATTI DECK, MULTI-TOPIC LINKER & REAL-TIME EDITOR
+// ====================================================
+window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
+    try {
+        const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+        const { getAuth, signInWithEmailAndPassword, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+        const { getDatabase, ref, get, set, update, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+        // 1. Normalize Subject Slug so AIIMS Deoghar DGT1/DGM1 stay strictly isolated per subject & match MedPYQ
+        const SUBJECT_BRIDGE_MAP = {
+            'psm': 'cfm',
+            'cfm': 'cfm',
+            'community-medicine': 'cfm',
+            'ophthal': 'ophthalmology',
+            'ophthalmology': 'ophthalmology',
+            'pediatrics': 'paediatrics',
+            'paediatrics': 'paediatrics',
+            'anesthesiology': 'anaesthesia',
+            'anesthesia': 'anaesthesia',
+            'anaesthesia': 'anaesthesia',
+            'orthopedics': 'orthopaedics',
+            'orthopaedics': 'orthopaedics'
+        };
+        const rawSub = String(window.SUBJECT_CODE || 'cfm').toLowerCase().trim();
+        const activeSubjectSlug = SUBJECT_BRIDGE_MAP[rawSub] || rawSub;
+        const collegeCode = String(window.COLLEGE_CODE || 'deoghar').toLowerCase().trim();
+        const subjectCodeUpper = String(window.SUBJECT_CODE || 'CFM').toUpperCase().trim();
+
+        // 2. Global State for Teen Patti & Cross-Exam Lookup
+        window.MPP_state = {
+            subjectSlug: activeSubjectSlug,
+            overrideQid: null,
+            fanViewOpen: false,
+            activeTopicSlug: null,
+            adminTopFilter: 'all',
+            fanPosMap: {},
+            medpyqConnected: false
+        };
+        window.MPP_overrideQObj = null;
+        window.MPP_crossLinksMap = {};
+        window.MPP_crossClustersMap = {};
+        window.MPP_nodeTopicsMap = {};
+        window.MPP_crossLinksHistory = [];
+        window.MPP_allExamLookup = {}; // Stores MedPYQ + Clinical questions keyed by UPPER QID
+        window.MPP_questionEditsMap = {};
+        window.MPP_undoStack = [];
+        window.MPP_redoStack = [];
+        window.MPP_longPressTimer = null;
+        window.MPP_longPressTriggered = false;
+        window.MPP_editingAnchorQid = null;
+
+        // 3. Initialize Secondary Firebase App ("MedPYQBridge") for Cross-Project Admin Sync
+        const medpyqConfig = {
+            apiKey: "AIzaSyAp8tKgVyc6PC-yt0Nv4nOOtH8B8jCaSYE",
+            authDomain: "medpyq-elearning.firebaseapp.com",
+            databaseURL: "https://medpyq-elearning-default-rtdb.firebaseio.com",
+            projectId: "medpyq-elearning"
+        };
+
+        let medpyqApp = getApps().find(a => a.name === "MedPYQBridge");
+        if (!medpyqApp) {
+            medpyqApp = initializeApp(medpyqConfig, "MedPYQBridge");
+        }
+        const medpyqAuth = getAuth(medpyqApp);
+        const medpyqDb = getDatabase(medpyqApp);
+        window.medpyqDb = medpyqDb;
+        window.medpyqAuth = medpyqAuth;
+
+        window.MPP_updateBridgeBadgeUI = function() {
+            const badge = document.getElementById('mpp-bridge-status-badge');
+            if (!badge) return;
+            if (window.MPP_state.medpyqConnected) {
+                badge.className = "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full cursor-pointer bg-emerald-100 text-emerald-700 border border-emerald-300";
+                badge.innerHTML = "🟢 MedPYQ Connected";
+            } else {
+                badge.className = "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full cursor-pointer bg-amber-100 text-amber-700 border border-amber-300";
+                badge.innerHTML = "⚡ Connect MedPYQ Bridge";
+            }
+        };
+
+        window.MPP_promptBridgeAuth = async function() {
+            if (!window.isUserAdmin()) return;
+            const defaultEmail = (window.currentUserObj && window.currentUserObj.email) ? window.currentUserObj.email : "educateindiainstitute@gmail.com";
+            const email = prompt("MedPYQ Admin Email (for cross-project NEET-PG/INI-CET/CMS/FMGE sync):", defaultEmail);
+            if (!email) return;
+            const pass = prompt(`Enter password for ${email} on MedPYQ (saved locally so you only do this once):`);
+            if (!pass) return;
+            try {
+                await signInWithEmailAndPassword(medpyqAuth, email.trim(), pass);
+                localStorage.setItem('medpyq_bridge_creds', JSON.stringify({ e: email.trim(), p: pass }));
+                window.MPP_state.medpyqConnected = true;
+                window.MPP_updateBridgeBadgeUI();
+                await window.MPP_preloadMedPYQBanks();
+                alert("MedPYQ Bridge connected! All 4 PG exam banks are now synced.");
+            } catch (e) {
+                alert("MedPYQ Bridge login failed: " + e.message);
+            }
+        };
+
+        // Auto-authenticate MedPYQBridge for Admin in background
+        onAuthStateChanged(medpyqAuth, (mUser) => {
+            if (mUser) {
+                window.MPP_state.medpyqConnected = true;
+                window.MPP_updateBridgeBadgeUI();
+                if (window.isUserAdmin()) {
+                    window.MPP_preloadMedPYQBanks();
+                }
+            } else if (window.isUserAdmin()) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem('medpyq_bridge_creds') || 'null');
+                    if (cached && cached.e && cached.p) {
+                        signInWithEmailAndPassword(medpyqAuth, cached.e, cached.p).catch(() => {});
+                    }
+                } catch (e) {}
+            }
+        });
+
+        // 4. Exam Classifier & 5-Deck Color Coding
+        // AIIMS Profs (#0ea5e9 Sky), NEET-PG (#2563eb Blue), INI-CET (#9333ea Purple), CMS (#eab308 Gold), FMGE (#22c55e Green)
+        window.MPP_inferExamFromQid = function(qid) {
+            if (!qid) return 'aiims-profs';
+            const clean = String(qid).trim().toUpperCase();
+
+            // Check if it exists in current page's AIIMS qnaData
+            if (Array.isArray(window.qnaData) && window.qnaData.some(x => x && String(x.q).trim().toUpperCase() === clean)) {
+                return 'aiims-profs';
+            }
+            if (window.MPP_allExamLookup[clean] && window.MPP_allExamLookup[clean].examKey) {
+                return window.MPP_allExamLookup[clean].examKey;
+            }
+            if (/^[A-Z]{2,4}[TM]\d+/i.test(clean) || clean.includes('-')) {
+                // Matches AIIMS codes like DGT1, DGM1, KLT1, DLT1, CFM-001
+                if (!clean.startsWith('INI') && !clean.startsWith('CMS') && !clean.startsWith('FMGE')) {
+                    return 'aiims-profs';
+                }
+            }
+            if (clean.startsWith('INI') || clean.startsWith('IN')) return 'inicet';
+            if (clean.startsWith('CMS') || clean.startsWith('UPSC')) return 'upsc-cms';
+            if (clean.startsWith('FMGE') || clean.startsWith('F')) return 'fmge';
+            if (clean.startsWith('N')) return 'neet-pg';
+            return 'aiims-profs';
+        };
+
+        window.MPP_getExamBorderColor = function(qid) {
+            const ex = window.MPP_inferExamFromQid(qid);
+            if (ex === 'neet-pg') return '#2563eb';   // Royal Blue
+            if (ex === 'inicet') return '#9333ea';    // Purple
+            if (ex === 'upsc-cms') return '#eab308';  // Yellow/Gold
+            if (ex === 'fmge') return '#22c55e';      // Green
+            return '#0ea5e9';                         // Sky Blue (AIIMS Profs PYQ)
+        };
+
+        // 5. Preload MedPYQ 4 Exam Banks + Same-Subject Clinical Cases for Seamless Resolution
+        window.MPP_preloadMedPYQBanks = async function() {
+            if (!window.isUserAdmin()) return;
+            const pgExams = ['neet-pg', 'inicet', 'upsc-cms', 'fmge'];
+            await Promise.all(pgExams.map(async (ex) => {
+                try {
+                    const snap = await get(ref(medpyqDb, `question_banks/${ex}/${activeSubjectSlug}`));
+                    if (snap.exists()) {
+                        const raw = snap.val();
+                        const arr = (Array.isArray(raw) ? raw : Object.values(raw)).filter(Boolean);
+                        arr.forEach((item, idx) => {
+                            const uid = String(item.q || ("Q" + idx)).trim();
+                            const up = uid.toUpperCase();
+                            let fullYear = item.exam || ex.toUpperCase();
+                            if (item.year_paper) fullYear += " " + item.year_paper;
+                            const ch = Array.isArray(item.topic) ? item.topic : [item.topic || item.subject || ex.toUpperCase()];
+                            window.MPP_allExamLookup[up] = {
+                                q: uid,
+                                uid: uid,
+                                type: 'MCQ',
+                                stem: item.stem || "",
+                                options: Array.isArray(item.options) ? item.options : ["Option A", "Option B", "Option C", "Option D"],
+                                ans_key: item.ans_key || "A",
+                                chapter: ch,
+                                examBatch: fullYear,
+                                explanation: item.explanation || "",
+                                img: item.img || null,
+                                examKey: ex,
+                                isMedPYQ: true
+                            };
+                            if (item.explanation && (!window.liveAnswers || !window.liveAnswers[uid])) {
+                                if (!window.liveAnswers) window.liveAnswers = {};
+                                window.liveAnswers[uid] = { text: item.explanation };
+                            }
+                        });
+                    }
+                } catch (e) {}
+            }));
+
+            // Also subscribe to MedPYQ question_edits for this subject
+            try {
+                onValue(ref(medpyqDb, `question_edits/${activeSubjectSlug}/overrides`), (snap) => {
+                    const ovs = snap.val() || {};
+                    Object.keys(ovs).forEach(upKey => {
+                        if (window.MPP_allExamLookup[upKey]) {
+                            if (ovs[upKey].ans_key) window.MPP_allExamLookup[upKey].ans_key = ovs[upKey].ans_key;
+                            if (ovs[upKey].explanation !== undefined) {
+                                window.MPP_allExamLookup[upKey].explanation = ovs[upKey].explanation;
+                                if (!window.liveAnswers) window.liveAnswers = {};
+                                window.liveAnswers[window.MPP_allExamLookup[upKey].q] = { text: ovs[upKey].explanation };
+                            }
+                        }
+                    });
+                });
+            } catch (e) {}
+
+            if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
+                window.renderDeckCard();
+            }
+        };
+
+        // Also preload same-subject Clinical Cases from profsDb so Review <-> Clinical links work
+        onValue(ref(profsDb, `clinical_data/${collegeCode}/${subjectCodeUpper}`), (snap) => {
+            const data = snap.val() || {};
+            Object.keys(data).forEach(k => {
+                const up = String(k).trim().toUpperCase();
+                const d = data[k];
+                if (d && !window.MPP_allExamLookup[up]) {
+                    window.MPP_allExamLookup[up] = {
+                        q: k,
+                        uid: k,
+                        type: d.type || "Theory",
+                        stem: d.stem || "",
+                        options: d.options || null,
+                        ans_key: d.ans_key || "",
+                        chapter: Array.isArray(d.chapter) ? d.chapter : [d.chapter || "Clinical Case"],
+                        examBatch: d.examBatch || "Clinical Wards",
+                        explanation: d.answer || "",
+                        examKey: 'aiims-profs'
+                    };
+                    if (d.answer && (!window.liveAnswers || !window.liveAnswers[k])) {
+                        if (!window.liveAnswers) window.liveAnswers = {};
+                        window.liveAnswers[k] = { text: d.answer };
+                    }
+                }
+            });
+        });
+
+        // 6. Resolve Any QID (Subject-Isolated Local AIIMS JSON -> MedPYQ Lookup -> Fallback)
+        window.MPP_resolveQuestionByQid = function(qid) {
+            if (!qid) return null;
+            const clean = String(qid).trim();
+            const up = clean.toUpperCase();
+
+            // 1. Check current subject's local qnaData first (ensures ENT DGT1/DGM1 is strictly ENT's question)
+            if (Array.isArray(window.qnaData)) {
+                const localMatch = window.qnaData.find(x => x && String(x.q).trim().toUpperCase() === up);
+                if (localMatch) {
+                    const ov = window.MPP_questionEditsMap[up];
+                    if (ov) {
+                        if (ov.stem) localMatch.stem = ov.stem;
+                        if (ov.ans_key) localMatch.ans_key = ov.ans_key;
+                        if (Array.isArray(ov.options)) localMatch.options = ov.options;
+                    }
+                    return localMatch;
+                }
+            }
+
+            // 2. Check cross-exam & clinical lookup
+            if (window.MPP_allExamLookup[up]) {
+                const found = window.MPP_allExamLookup[up];
+                const ov = window.MPP_questionEditsMap[up];
+                if (ov) {
+                    if (ov.stem) found.stem = ov.stem;
+                    if (ov.ans_key) found.ans_key = ov.ans_key;
+                    if (Array.isArray(ov.options)) found.options = ov.options;
+                }
+                return found;
+            }
+
+            // 3. Fallback placeholder
+            const guessedExam = window.MPP_inferExamFromQid(clean);
+            return {
+                q: clean,
+                uid: clean,
+                type: 'MCQ',
+                stem: `Linked Question (${clean})`,
+                options: ["Option A", "Option B", "Option C", "Option D"],
+                ans_key: "A",
+                chapter: ["Linked Sub-Topic"],
+                examBatch: guessedExam.toUpperCase(),
+                examKey: guessedExam
+            };
+        };
+
+        // 7. Subscribe to Subject-Partitioned Cross-Links & Real-Time Question Edits in profsDb
+        window.MPP_makeTopicSlug = function(rawTitle, fallbackSeedQid) {
+            const clean = String(rawTitle || '').trim();
+            if (!clean || clean.toLowerCase() === 'linked concept') {
+                const seed = String(fallbackSeedQid || 'general').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+                return 'cluster-' + (seed || 'default');
+            }
+            return 'topic-' + clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        };
+
+        const ingestCrossLinksData = (val) => {
+            if (!val) return;
+            const rawNodes = val.nodes || {};
+            const normNodes = {};
+            Object.keys(rawNodes).forEach(k => {
+                const arr = Array.isArray(rawNodes[k]) ? rawNodes[k] : Object.values(rawNodes[k] || {});
+                normNodes[String(k).trim().toUpperCase()] = arr.map(x => String(x).trim()).filter(Boolean);
+            });
+
+            const rawClusters = val.clusters || {};
+            const normClusters = {};
+            Object.keys(rawClusters).forEach(slug => {
+                const cObj = rawClusters[slug];
+                if (cObj && cObj.qids) {
+                    const qArr = (Array.isArray(cObj.qids) ? cObj.qids : Object.values(cObj.qids)).map(x => String(x).trim()).filter(Boolean);
+                    if (qArr.length > 0) {
+                        normClusters[slug] = {
+                            slug: slug,
+                            title: String(cObj.title || 'Linked Concept').trim(),
+                            qids: qArr
+                        };
+                    }
+                }
+            });
+
+            const rawNodeTopics = val.node_topics || {};
+            const normNodeTopics = {};
+            Object.keys(rawNodeTopics).forEach(upKey => {
+                const sArr = (Array.isArray(rawNodeTopics[upKey]) ? rawNodeTopics[upKey] : Object.values(rawNodeTopics[upKey] || {}))
+                    .map(s => String(s).trim())
+                    .filter(s => Boolean(s) && Boolean(normClusters[s]));
+                if (sArr.length > 0) {
+                    normNodeTopics[String(upKey).trim().toUpperCase()] = sArr;
+                }
+            });
+
+            Object.keys(normNodes).forEach(upKey => {
+                if (!normNodeTopics[upKey] || normNodeTopics[upKey].length === 0) {
+                    const seq = normNodes[upKey];
+                    if (seq && seq.length > 1) {
+                        const seedSlug = window.MPP_makeTopicSlug('Linked Concept', seq[0]);
+                        if (!normClusters[seedSlug]) {
+                            normClusters[seedSlug] = { slug: seedSlug, title: 'Linked Concept', qids: seq };
+                        }
+                        normNodeTopics[upKey] = [seedSlug];
+                    }
+                }
+            });
+
+            window.MPP_crossLinksMap = { ...window.MPP_crossLinksMap, ...normNodes };
+            window.MPP_crossClustersMap = { ...window.MPP_crossClustersMap, ...normClusters };
+            window.MPP_nodeTopicsMap = { ...window.MPP_nodeTopicsMap, ...normNodeTopics };
+
+            if (val.history) {
+                const rawHist = val.history;
+                window.MPP_crossLinksHistory = (Array.isArray(rawHist) ? rawHist : Object.values(rawHist)).filter(Boolean).slice(0, 10);
+            }
+
+            const modalEl = document.getElementById('mpp-admin-link-modal');
+            if (modalEl && !modalEl.classList.contains('hidden')) {
+                window.MPP_renderTopicChips();
+                window.MPP_renderLinkHistory();
+            }
+            if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
+                window.renderDeckCard();
+            }
+        };
+
+        // Listen to MBBS Profs Prep cross_links/${activeSubjectSlug} (Accessible to ALL students & Admin)
+        onValue(ref(profsDb, `cross_links/${activeSubjectSlug}`), (snap) => {
+            if (snap.exists()) ingestCrossLinksData(snap.val());
+        });
+
+        // Also listen to MedPYQ cross_links/${activeSubjectSlug} when Admin is connected
+        onValue(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), (snap) => {
+            if (snap.exists()) ingestCrossLinksData(snap.val());
+        });
+
+        // Listen to Real-Time Question Edits (MCQ options, ans_key, stem, explanation + 10 Undo/Redo)
+        window.MPP_applyOverrideToMemory = function(qid, ov) {
+            if (!qid) return;
+            const up = String(qid).trim().toUpperCase();
+            const applyFn = (item) => {
+                if (!item || String(item.q).trim().toUpperCase() !== up) return;
+                if (item._origAnsKey === undefined) item._origAnsKey = item.ans_key || '';
+                if (item._origOptions === undefined && Array.isArray(item.options)) item._origOptions = [...item.options];
+                if (item._origStem === undefined) item._origStem = item.stem || '';
+
+                if (ov) {
+                    if (ov.ans_key) item.ans_key = ov.ans_key;
+                    if (Array.isArray(ov.options) && ov.options.length > 0) item.options = [...ov.options];
+                    if (ov.stem) item.stem = ov.stem;
+                    if (ov.explanation !== undefined) {
+                        if (!window.liveAnswers) window.liveAnswers = {};
+                        window.liveAnswers[item.q] = { text: ov.explanation };
+                    }
+                }
+            };
+            (window.qnaData || []).forEach(applyFn);
+            (window.displayData || []).forEach(applyFn);
+            (window.activeDeckQuestions || []).forEach(applyFn);
+            if (window.MPP_allExamLookup[up]) applyFn(window.MPP_allExamLookup[up]);
+        };
+
+        onValue(ref(profsDb, `question_edits/${collegeCode}/${subjectCodeUpper}`), (snap) => {
+            const val = snap.val() || {};
+            const ovs = val.overrides || {};
+            window.MPP_questionEditsMap = ovs;
+            Object.keys(ovs).forEach(upKey => window.MPP_applyOverrideToMemory(upKey, ovs[upKey]));
+
+            const rawU = val.undoStack || [];
+            const rawR = val.redoStack || [];
+            window.MPP_undoStack = (Array.isArray(rawU) ? rawU : Object.values(rawU)).filter(Boolean).slice(0, 10);
+            window.MPP_redoStack = (Array.isArray(rawR) ? rawR : Object.values(rawR)).filter(Boolean).slice(0, 10);
+
+            if (window.displayData && window.displayData.length > 0 && typeof window.populateTable === 'function') {
+                window.populateTable();
+            }
+            if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
+                const editBox = document.getElementById('mpp-inline-rt-editor');
+                if (!editBox || editBox.classList.contains('hidden')) {
+                    window.renderDeckCard();
+                } else {
+                    window.MPP_updateUndoRedoUI();
+                }
+            }
+        });
+
+        // Re-apply overrides whenever fetchQuestions finishes loading the static JSON file
+        const origProcessData = window.processDataForAccess;
+        if (typeof origProcessData === 'function') {
+            window.processDataForAccess = function() {
+                Object.keys(window.MPP_questionEditsMap || {}).forEach(upKey => {
+                    window.MPP_applyOverrideToMemory(upKey, window.MPP_questionEditsMap[upKey]);
+                });
+                return origProcessData.apply(this, arguments);
+            };
+        }
+
+        // 8. Multi-Dimensional Sub-Topic Sequence Filtering (Normal Users = AIIMS PYQs only; Admin = All 5 Exams)
+        window.MPP_filterSequenceByRole = function(rawSeq, fallbackQid, examFilterOverride = null) {
+            const cleanFallback = String(fallbackQid || '').trim();
+            if (!Array.isArray(rawSeq) || rawSeq.length === 0) {
+                return cleanFallback ? [cleanFallback] : [];
+            }
+            const list = [...rawSeq];
+
+            // Normal Users on MBBS Profs Prep ONLY see AIIMS Profs PYQs (DGT, DGM, Clinical)
+            if (!window.isUserAdmin()) {
+                const aiimsOnly = list.filter(qid => window.MPP_inferExamFromQid(qid) === 'aiims-profs');
+                return aiimsOnly.length > 0 ? aiimsOnly : (cleanFallback ? [cleanFallback] : []);
+            }
+
+            // Admin User: filter if an exam switcher button is active
+            if (examFilterOverride && examFilterOverride !== 'all') {
+                return list.filter(qid => window.MPP_inferExamFromQid(qid) === examFilterOverride);
+            }
+
+            return list;
+        };
+
+        window.MPP_getAvailableTopicsForCard = function(anchorQid, displayedQid) {
+            const seenSlugs = new Set();
+            const topics = [];
+            const collect = (qid) => {
+                if (!qid) return;
+                const up = String(qid).trim().toUpperCase();
+                const slugs = window.MPP_nodeTopicsMap[up] || [];
+                slugs.forEach(s => {
+                    if (!seenSlugs.has(s) && window.MPP_crossClustersMap[s]) {
+                        // For normal users, only include topics that have at least 1 AIIMS question
+                        const c = window.MPP_crossClustersMap[s];
+                        if (!window.isUserAdmin()) {
+                            const hasAiims = (c.qids || []).some(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
+                            if (!hasAiims) return;
+                        }
+                        seenSlugs.add(s);
+                        topics.push(c);
+                    }
+                });
+            };
+            collect(displayedQid);
+            collect(anchorQid);
+            return topics;
+        };
+
+        window.MPP_getActiveClusterInfo = function(anchorQid, displayedQid, examFilterOverride = null) {
+            const topics = window.MPP_getAvailableTopicsForCard(anchorQid, displayedQid);
+            const fallbackQid = displayedQid || anchorQid;
+
+            if (topics.length === 0) {
+                return {
+                    topics: [],
+                    activeTopic: null,
+                    sequence: fallbackQid ? [String(fallbackQid).trim()] : []
+                };
+            }
+
+            let activeTopic = topics.find(t => t.slug === window.MPP_state.activeTopicSlug);
+            if (!activeTopic) {
+                activeTopic = topics[0];
+                window.MPP_state.activeTopicSlug = activeTopic.slug;
+            }
+
+            const seq = window.MPP_filterSequenceByRole(activeTopic.qids, fallbackQid, examFilterOverride);
+            return { topics, activeTopic, sequence: seq };
+        };
+
+        window.MPP_getAnchorAndDisplayedQ = function() {
+            if (!window.activeDeckQuestions || window.activeDeckQuestions.length === 0) {
+                return { anchorQ: null, displayedQ: null };
+            }
+            const anchorQ = window.activeDeckQuestions[window.deckIndex];
+            if (!anchorQ) return { anchorQ: null, displayedQ: null };
+
+            let displayedQ = anchorQ;
+            if (window.MPP_state.overrideQid) {
+                const resolved = window.MPP_resolveQuestionByQid(window.MPP_state.overrideQid);
+                if (resolved) displayedQ = resolved;
+            }
+            window.MPP_overrideQObj = (displayedQ !== anchorQ) ? displayedQ : null;
+            return { anchorQ, displayedQ };
+        };
+
+        // 9. Pill Navigation (< and >), Topic Switcher & Long-Press Handlers
+        window.MPP_stepCluster = function(delta, event) {
+            if (event) { event.stopPropagation(); event.preventDefault(); }
+            if (window.MPP_longPressTriggered) { window.MPP_longPressTriggered = false; return; }
+
+            const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+            if (!anchorQ || !displayedQ) return;
+
+            const info = window.MPP_getActiveClusterInfo(anchorQ.q, displayedQ.q);
+            const seq = info.sequence;
+            const curUpper = String(displayedQ.q).trim().toUpperCase();
+            let curIdx = seq.findIndex(id => String(id).trim().toUpperCase() === curUpper);
+            if (curIdx === -1) curIdx = 0;
+
+            const nextIdx = curIdx + delta;
+            if (nextIdx >= 0 && nextIdx < seq.length) {
+                window.MPP_state.overrideQid = seq[nextIdx];
+                window.MPP_state.fanViewOpen = false;
+                window.renderDeckCard();
+            }
+        };
+
+        window.MPP_switchTopicDimension = function(slug, event) {
+            if (event) { event.stopPropagation(); event.preventDefault(); }
+            window.MPP_state.activeTopicSlug = slug;
+            const cluster = window.MPP_crossClustersMap[slug];
+            if (cluster && Array.isArray(cluster.qids) && cluster.qids.length > 0) {
+                const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                const filteredSeq = window.MPP_filterSequenceByRole(cluster.qids, anchorQ ? anchorQ.q : null);
+                const curUpper = String((displayedQ || anchorQ || {}).q || '').trim().toUpperCase();
+                if (!filteredSeq.some(id => String(id).trim().toUpperCase() === curUpper) && filteredSeq.length > 0) {
+                    window.MPP_state.overrideQid = filteredSeq[0];
+                }
+            }
+            window.renderDeckCard();
+        };
+
+        window.MPP_startPillPress = function(event, qid) {
+            if (!window.isUserAdmin()) return;
+            window.MPP_longPressTriggered = false;
+            clearTimeout(window.MPP_longPressTimer);
+            window.MPP_longPressTimer = setTimeout(() => {
+                window.MPP_longPressTriggered = true;
+                window.MPP_openAdminLinkModal(qid);
+            }, 500);
+        };
+
+        window.MPP_cancelPillPress = function() {
+            clearTimeout(window.MPP_longPressTimer);
+        };
+
+        window.MPP_onPillContextMenu = function(event, qid) {
+            if (!window.isUserAdmin()) return;
+            event.preventDefault();
+            event.stopPropagation();
+            clearTimeout(window.MPP_longPressTimer);
+            window.MPP_longPressTriggered = true;
+            window.MPP_openAdminLinkModal(qid);
+        };
+
+        window.MPP_onPillCenterClick = function(event) {
+            if (event) event.stopPropagation();
+            clearTimeout(window.MPP_longPressTimer);
+            if (window.MPP_longPressTriggered) {
+                window.MPP_longPressTriggered = false;
+                return;
+            }
+            window.MPP_state.fanViewOpen = !window.MPP_state.fanViewOpen;
+            window.renderDeckCard();
+        };
+
+        // 10. Teen Patti Fanned Card Deck Builder (Supports both AIIMS Theory SAQ/LAQ & 4-Option MCQs)
+        window.MPP_stripHtml = function(htmlStr) {
+            if (!htmlStr) return "";
+            const tmp = document.createElement("div");
+            tmp.innerHTML = htmlStr;
+            return (tmp.textContent || tmp.innerText || "").trim();
+        };
+
+        window.MPP_buildFanDeckHTML = function(deckKey, qidList, borderColor, activePos, topicTitle = '') {
+            const stageFallbackColor = (!borderColor || borderColor === 'auto') ? '#0ea5e9' : borderColor;
+            if (!qidList || qidList.length === 0) {
+                return `
+                <div class="tp-fan-stage" data-deck-key="${deckKey}" style="--tp-border-color: ${stageFallbackColor}; height: 220px;">
+                    <div class="tp-empty-fan-box" style="--tp-border-color: ${stageFallbackColor};">
+                        No linked cards in this exam
+                    </div>
+                </div>`;
+            }
+
+            const total = qidList.length;
+            const safeActivePos = Math.min(Math.max(0, activePos), total - 1);
+            window.MPP_state.fanPosMap[deckKey] = safeActivePos;
+
+            const leftCount = safeActivePos;
+            const rightCount = total - 1 - safeActivePos;
+
+            const leftMaxAngle = Math.min(48, leftCount * 10);
+            const leftAngleStep = leftCount > 0 ? leftMaxAngle / leftCount : 0;
+            const leftShiftStep = leftCount > 0 ? Math.min(22, 110 / leftCount) : 0;
+
+            const rightMaxAngle = Math.min(48, rightCount * 10);
+            const rightAngleStep = rightCount > 0 ? rightMaxAngle / rightCount : 0;
+            const rightShiftStep = rightCount > 0 ? Math.min(22, 110 / rightCount) : 0;
+
+            const cleanTopicBadge = (topicTitle && topicTitle !== 'Linked Concept')
+                ? `<div style="font-size:9.5px; font-weight:800; color:#0369a1; background:#e0f2fe; padding:2px 7px; border-radius:4px; margin-bottom:4px; display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">🏷️ ${topicTitle}</div>`
+                : '';
+
+            let cardsHtml = '';
+            qidList.forEach((qid, idx) => {
+                const qObj = window.MPP_resolveQuestionByQid(qid);
+                const cardColor = (!borderColor || borderColor === 'auto')
+                    ? window.MPP_getExamBorderColor(qObj.q)
+                    : borderColor;
+
+                const offset = idx - safeActivePos;
+                const d = Math.abs(offset);
+
+                let transformRule = 'translate3d(0px, 0px, 0px) rotate(0deg) scale(1)';
+                let zIdx = 100;
+
+                if (offset < 0) {
+                    const rot = -(d * leftAngleStep).toFixed(2);
+                    const tx = -(d * leftShiftStep).toFixed(2);
+                    const ty = (d * 3).toFixed(2);
+                    transformRule = `rotate(${rot}deg) translateX(${tx}px) translateY(${ty}px)`;
+                    zIdx = 100 - d;
+                } else if (offset > 0) {
+                    const rot = (d * rightAngleStep).toFixed(2);
+                    const tx = (d * rightShiftStep).toFixed(2);
+                    const ty = (d * 3).toFixed(2);
+                    transformRule = `rotate(${rot}deg) translateX(${tx}px) translateY(${ty}px)`;
+                    zIdx = 100 - d;
+                }
+
+                const cleanStem = window.MPP_stripHtml(qObj.stem) || `Question ${qObj.q}`;
+                const isMCQ = qObj.type === 'MCQ' && Array.isArray(qObj.options) && qObj.options.length > 0;
+
+                let middleContentHtml = '';
+                if (isMCQ) {
+                    const opts = qObj.options.slice(0, 4);
+                    const status = window.deckStatus ? window.deckStatus[qObj.q] : null;
+                    middleContentHtml = opts.map((o, oIdx) => {
+                        const char = String.fromCharCode(65 + oIdx);
+                        const cleanOpt = window.MPP_stripHtml(o);
+                        let statusStyle = '';
+                        let charStyle = '';
+                        if (status && char === String(qObj.ans_key || '').trim().toUpperCase()) {
+                            statusStyle = 'background:#dcfce7; border-color:#22c55e; color:#14532d; font-weight:700;';
+                            charStyle = 'background:#22c55e; color:white;';
+                        }
+                        return `
+                        <div class="tp-mini-opt" style="${statusStyle}">
+                            <span class="tp-mini-opt-char" style="${charStyle}">${char}</span>
+                            <span style="overflow:hidden; text-overflow:ellipsis;">${cleanOpt}</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    const liveAnsText = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
+                        ? window.MPP_stripHtml(window.liveAnswers[qObj.q].text).slice(0, 140) + '...'
+                        : 'Tap card to view full Theory question & model answer notes.';
+                    middleContentHtml = `
+                        <div style="padding:8px 10px; border-radius:8px; background:rgba(14,165,233,0.08); border:1px dashed ${cardColor}; font-size:10.5px; line-height:1.4; color:inherit;">
+                            <div style="font-weight:800; color:${cardColor}; text-transform:uppercase; font-size:9.5px; margin-bottom:3px;">📝 Theory / SAQ-LAQ</div>
+                            <div style="opacity:0.85; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${liveAnsText}</div>
+                        </div>`;
+                }
+
+                const batchLabel = Array.isArray(qObj.examBatch) ? qObj.examBatch[0] : (qObj.examBatch || window.COLLEGE_NAME || 'Exam');
+
+                const leftWingHtml = offset < 0 ? `
+                    <div class="tp-wing-strip left">
+                        <div class="tp-wing-seq">${idx + 1}/${total}</div>
+                        <div class="tp-wing-uid" style="color:${cardColor};">${qObj.q}</div>
+                        <div class="tp-wing-lines">
+                            <div class="tp-wing-line"></div>
+                            <div class="tp-wing-line" style="width:75%;"></div>
+                            <div class="tp-wing-line"></div>
+                            <div class="tp-wing-box"></div>
+                            <div class="tp-wing-box"></div>
+                            <div class="tp-wing-box"></div>
+                        </div>
+                    </div>` : '';
+
+                const rightWingHtml = offset > 0 ? `
+                    <div class="tp-wing-strip right">
+                        <div class="tp-wing-seq">${idx + 1}/${total}</div>
+                        <div class="tp-wing-uid" style="color:${cardColor};">${qObj.q}</div>
+                        <div class="tp-wing-lines" style="align-items:flex-end;">
+                            <div class="tp-wing-line"></div>
+                            <div class="tp-wing-line" style="width:75%;"></div>
+                            <div class="tp-wing-line"></div>
+                            <div class="tp-wing-box"></div>
+                            <div class="tp-wing-box"></div>
+                            <div class="tp-wing-box"></div>
+                        </div>
+                    </div>` : '';
+
+                cardsHtml += `
+                <div class="tp-patti"
+                     data-qid="${qObj.q}"
+                     data-idx="${idx}"
+                     data-card-color="${cardColor}"
+                     style="--tp-border-color: ${cardColor}; border-color: ${cardColor}; transform: ${transformRule}; z-index: ${zIdx};">
+                    ${leftWingHtml}
+                    ${rightWingHtml}
+                    <div style="opacity: ${offset === 0 ? '1' : '0.22'}; transition: opacity 0.2s; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                        <div>
+                            <div class="tp-center-top">
+                                <span class="tp-seq-badge" style="background:${cardColor};">${idx + 1}/${total}</span>
+                                <span class="tp-qid-badge" style="border-color:${cardColor}; color:${cardColor};">${qObj.q}</span>
+                            </div>
+                            ${cleanTopicBadge}
+                            <div class="tp-center-stem">${cleanStem}</div>
+                        </div>
+                        <div class="tp-center-opts">${middleContentHtml}</div>
+                        <div class="tp-center-bottom">
+                            <span class="tp-exam-pill" style="background:rgba(14,165,233,0.08); border:1px solid ${cardColor}; color:${cardColor};">${batchLabel}</span>
+                            <span class="tp-tap-hint">Tap card to open full view</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            return `
+            <div class="tp-fan-stage" data-deck-key="${deckKey}" style="--tp-border-color: ${stageFallbackColor};">
+                ${cardsHtml}
+            </div>`;
+        };
+
+        window.MPP_updateStageActiveCard = function(stageEl, newPos) {
+            const pattis = Array.from(stageEl.querySelectorAll('.tp-patti'));
+            const total = pattis.length;
+            if (total === 0) return;
+
+            const safePos = Math.min(Math.max(0, newPos), total - 1);
+            const deckKey = stageEl.getAttribute('data-deck-key');
+            window.MPP_state.fanPosMap[deckKey] = safePos;
+
+            const leftCount = safePos;
+            const rightCount = total - 1 - safePos;
+
+            const leftMaxAngle = Math.min(48, leftCount * 10);
+            const leftAngleStep = leftCount > 0 ? leftMaxAngle / leftCount : 0;
+            const leftShiftStep = leftCount > 0 ? Math.min(22, 110 / leftCount) : 0;
+
+            const rightMaxAngle = Math.min(48, rightCount * 10);
+            const rightAngleStep = rightCount > 0 ? rightMaxAngle / rightCount : 0;
+            const rightShiftStep = rightCount > 0 ? Math.min(22, 110 / rightCount) : 0;
+
+            pattis.forEach((cardEl, idx) => {
+                const offset = idx - safePos;
+                const d = Math.abs(offset);
+                const qid = cardEl.getAttribute('data-qid');
+                const cardColor = cardEl.getAttribute('data-card-color') || window.MPP_getExamBorderColor(qid);
+
+                let transformRule = 'translate3d(0px, 0px, 0px) rotate(0deg) scale(1)';
+                let zIdx = 100;
+
+                if (offset < 0) {
+                    const rot = -(d * leftAngleStep).toFixed(2);
+                    const tx = -(d * leftShiftStep).toFixed(2);
+                    const ty = (d * 3).toFixed(2);
+                    transformRule = `rotate(${rot}deg) translateX(${tx}px) translateY(${ty}px)`;
+                    zIdx = 100 - d;
+                } else if (offset > 0) {
+                    const rot = (d * rightAngleStep).toFixed(2);
+                    const tx = (d * rightShiftStep).toFixed(2);
+                    const ty = (d * 3).toFixed(2);
+                    transformRule = `rotate(${rot}deg) translateX(${tx}px) translateY(${ty}px)`;
+                    zIdx = 100 - d;
+                }
+
+                cardEl.style.transform = transformRule;
+                cardEl.style.zIndex = zIdx;
+
+                cardEl.querySelectorAll('.tp-wing-strip').forEach(w => w.remove());
+                if (offset < 0) {
+                    cardEl.insertAdjacentHTML('afterbegin', `
+                        <div class="tp-wing-strip left">
+                            <div class="tp-wing-seq">${idx + 1}/${total}</div>
+                            <div class="tp-wing-uid" style="color:${cardColor};">${qid}</div>
+                            <div class="tp-wing-lines">
+                                <div class="tp-wing-line"></div>
+                                <div class="tp-wing-line" style="width:75%;"></div>
+                                <div class="tp-wing-line"></div>
+                                <div class="tp-wing-box"></div>
+                                <div class="tp-wing-box"></div>
+                                <div class="tp-wing-box"></div>
+                            </div>
+                        </div>`);
+                } else if (offset > 0) {
+                    cardEl.insertAdjacentHTML('afterbegin', `
+                        <div class="tp-wing-strip right">
+                            <div class="tp-wing-seq">${idx + 1}/${total}</div>
+                            <div class="tp-wing-uid" style="color:${cardColor};">${qid}</div>
+                            <div class="tp-wing-lines" style="align-items:flex-end;">
+                                <div class="tp-wing-line"></div>
+                                <div class="tp-wing-line" style="width:75%;"></div>
+                                <div class="tp-wing-line"></div>
+                                <div class="tp-wing-box"></div>
+                                <div class="tp-wing-box"></div>
+                                <div class="tp-wing-box"></div>
+                            </div>
+                        </div>`);
+                }
+
+                const innerBody = cardEl.lastElementChild;
+                if (innerBody) innerBody.style.opacity = offset === 0 ? '1' : '0.22';
+            });
+
+            if (deckKey === 'main') {
+                const activePatti = pattis[safePos];
+                if (activePatti) {
+                    window.MPP_state.overrideQid = activePatti.getAttribute('data-qid');
+                    const pillCountEl = document.getElementById('mpp-pill-center-text');
+                    if (pillCountEl) pillCountEl.innerText = `${safePos + 1}/${total}`;
+                }
+            }
+        };
+
+        window.MPP_attachFanInteractions = function() {
+            document.querySelectorAll('.tp-fan-stage').forEach(stageEl => {
+                const deckKey = stageEl.getAttribute('data-deck-key');
+                let startX = 0, startY = 0, deltaX = 0, deltaY = 0, isDragging = false;
+
+                const onStart = (cx, cy) => { startX = cx; startY = cy; deltaX = 0; deltaY = 0; isDragging = true; };
+                const onMove = (cx, cy) => { if (!isDragging) return; deltaX = cx - startX; deltaY = cy - startY; };
+                const onEnd = (targetEl) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    const pattis = stageEl.querySelectorAll('.tp-patti');
+                    const total = pattis.length;
+                    if (total === 0) return;
+
+                    const curPos = window.MPP_state.fanPosMap[deckKey] || 0;
+                    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 35) {
+                        if (deltaX < -35 && curPos < total - 1) window.MPP_updateStageActiveCard(stageEl, curPos + 1);
+                        else if (deltaX > 35 && curPos > 0) window.MPP_updateStageActiveCard(stageEl, curPos - 1);
+                        return;
+                    }
+                    if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+                        const clickedCard = targetEl ? targetEl.closest('.tp-patti') : null;
+                        if (clickedCard) {
+                            const clickedQid = clickedCard.getAttribute('data-qid');
+                            if (clickedQid) {
+                                window.MPP_state.overrideQid = clickedQid;
+                                window.MPP_state.fanViewOpen = false;
+                                window.renderDeckCard();
+                            }
+                        }
+                    }
+                };
+
+                stageEl.addEventListener('touchstart', e => { if (e.touches.length === 1) onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+                stageEl.addEventListener('touchmove', e => { if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+                stageEl.addEventListener('touchend', e => onEnd(e.target));
+                stageEl.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+                stageEl.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+                stageEl.addEventListener('mouseup', e => onEnd(e.target));
+            });
+        };
+
+        window.MPP_setAdminTopFilter = function(filterVal) {
+            window.MPP_state.adminTopFilter = filterVal;
+            window.renderDeckCard();
+        };
+
+        // 11. Admin Multi-Topic Linker Modal + Dual-Firebase Sync + 10-Step Undo
+        window.MPP_renderTopicChips = function() {
+            const listEl = document.getElementById('mpp-admin-topic-chips');
+            if (!listEl) return;
+            const allClusters = Object.values(window.MPP_crossClustersMap || {}).filter(c => c && c.qids && c.qids.length > 0);
+            if (allClusters.length === 0) {
+                listEl.innerHTML = `<span class="text-[10px] text-slate-400">No sub-topics yet. Type <b>Topic Name: DGT1, N23</b> below!</span>`;
+                return;
+            }
+            listEl.innerHTML = allClusters.map(c => {
+                const safeSlug = c.slug.replace(/'/g, "\\'");
+                return `<button type="button" onclick="window.MPP_appendTopicChip('${safeSlug}')" class="admin-topic-chip-btn">➕ ${c.title} (${c.qids.length})</button>`;
+            }).join('');
+        };
+
+        window.MPP_appendTopicChip = function(slug) {
+            const cluster = window.MPP_crossClustersMap[slug];
+            const inputEl = document.getElementById('mpp-admin-link-input');
+            if (!cluster || !inputEl) return;
+
+            const anchorQid = String(window.MPP_editingAnchorQid || '').trim();
+            const anchorUpper = anchorQid.toUpperCase();
+            const updatedQids = [...cluster.qids];
+            if (anchorQid && !updatedQids.some(id => String(id).trim().toUpperCase() === anchorUpper)) {
+                updatedQids.push(anchorQid);
+            }
+            const formattedLine = `${cluster.title}: ${updatedQids.join(', ')}`;
+
+            const currentLines = inputEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+            const existingIdx = currentLines.findIndex(line => {
+                if (!line.includes(':')) return false;
+                const lineTitle = line.slice(0, line.indexOf(':')).trim();
+                return window.MPP_makeTopicSlug(lineTitle, anchorQid) === slug;
+            });
+
+            if (existingIdx !== -1) currentLines[existingIdx] = formattedLine;
+            else if (currentLines.length === 1 && currentLines[0].toUpperCase() === anchorUpper) currentLines[0] = formattedLine;
+            else currentLines.push(formattedLine);
+
+            inputEl.value = currentLines.join('\n');
+            inputEl.focus();
+        };
+
+        window.MPP_openAdminLinkModal = function(qid) {
+            if (!window.isUserAdmin()) return;
+            const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+            const targetQid = String((displayedQ && displayedQ.q) ? displayedQ.q : qid).trim();
+            window.MPP_editingAnchorQid = targetQid;
+
+            const up = targetQid.toUpperCase();
+            const topicSlugs = window.MPP_nodeTopicsMap[up] || [];
+            const lines = [];
+
+            topicSlugs.forEach(s => {
+                const cObj = window.MPP_crossClustersMap[s];
+                if (cObj && Array.isArray(cObj.qids) && cObj.qids.length > 0) {
+                    if (cObj.title && cObj.title !== 'Linked Concept') lines.push(`${cObj.title}: ${cObj.qids.join(', ')}`);
+                    else lines.push(cObj.qids.join(', '));
+                }
+            });
+
+            if (lines.length === 0) {
+                const fallbackSeq = window.MPP_crossLinksMap[up] || [targetQid];
+                lines.push(fallbackSeq.join(', '));
+            }
+
+            document.getElementById('mpp-admin-link-subtitle').innerText = `Subject: ${subjectCodeUpper} (${activeSubjectSlug}) | QID: ${targetQid}`;
+            document.getElementById('mpp-admin-link-input').value = lines.join('\n');
+            window.MPP_updateBridgeBadgeUI();
+            window.MPP_renderTopicChips();
+            window.MPP_renderLinkHistory();
+            document.getElementById('mpp-admin-link-modal').classList.remove('hidden');
+        };
+
+        window.MPP_renderLinkHistory = function() {
+            const container = document.getElementById('mpp-admin-link-history');
+            if (!container) return;
+            if (!window.MPP_crossLinksHistory || window.MPP_crossLinksHistory.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-slate-400 text-center py-2">No recent link history.</div>`;
+                return;
+            }
+            container.innerHTML = window.MPP_crossLinksHistory.map((h, idx) => {
+                const timeStr = h.timestamp ? new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                const summary = h.summaryText || (Array.isArray(h.newSequence) ? h.newSequence.join(', ') : 'Cleared');
+                return `
+                <div class="flex justify-between items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+                    <div class="overflow-hidden flex-1">
+                        <div class="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 truncate">${summary}</div>
+                        <div class="text-[9.5px] text-slate-400">Anchor: ${h.anchorQid || '-'} • ${timeStr}</div>
+                    </div>
+                    <button onclick="window.MPP_undoCrossLinks(${idx})" class="px-2.5 py-1 rounded bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 text-[10px] font-extrabold cursor-pointer shrink-0">Undo</button>
+                </div>`;
+            }).join('');
+        };
+
+        window.MPP_saveCrossLinks = async function() {
+            if (!window.isUserAdmin()) return;
+            const rawText = document.getElementById('mpp-admin-link-input').value || '';
+            const btn = document.getElementById('btn-mpp-save-links');
+            const anchorQid = String(window.MPP_editingAnchorQid || '').trim();
+            const anchorUpper = anchorQid.toUpperCase();
+            if (!anchorQid) return;
+
+            const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+            const parsedTopics = [];
+            const seenSlugsInModal = new Set();
+
+            lines.forEach(line => {
+                let rawTitle = 'Linked Concept';
+                let qidsPart = line;
+                const colonIdx = line.indexOf(':');
+                if (colonIdx !== -1) {
+                    rawTitle = line.slice(0, colonIdx).trim() || 'Linked Concept';
+                    qidsPart = line.slice(colonIdx + 1).trim();
+                }
+                const seenQidUpper = new Set();
+                const orderedQids = [];
+                qidsPart.split(',').forEach(token => {
+                    const t = token.trim();
+                    if (t) {
+                        const up = t.toUpperCase();
+                        if (!seenQidUpper.has(up)) {
+                            seenQidUpper.add(up);
+                            orderedQids.push(t);
+                        }
+                    }
+                });
+                if (orderedQids.length > 0) {
+                    const slug = window.MPP_makeTopicSlug(rawTitle, orderedQids[0]);
+                    if (!seenSlugsInModal.has(slug)) {
+                        seenSlugsInModal.add(slug);
+                        parsedTopics.push({ slug, title: rawTitle, qids: orderedQids });
+                    }
+                }
+            });
+
+            const prevAnchorSlugs = [...(window.MPP_nodeTopicsMap[anchorUpper] || [])];
+            const affectedSlugs = new Set([...prevAnchorSlugs, ...parsedTopics.map(t => t.slug)]);
+            const affectedQidsUpper = new Set([anchorUpper]);
+
+            affectedSlugs.forEach(s => {
+                const c = window.MPP_crossClustersMap[s];
+                if (c && Array.isArray(c.qids)) c.qids.forEach(q => affectedQidsUpper.add(String(q).trim().toUpperCase()));
+            });
+            parsedTopics.forEach(t => t.qids.forEach(q => affectedQidsUpper.add(String(q).trim().toUpperCase())));
+
+            const beforeClusters = {};
+            affectedSlugs.forEach(s => {
+                beforeClusters[s] = window.MPP_crossClustersMap[s]
+                    ? { slug: s, title: window.MPP_crossClustersMap[s].title, qids: [...window.MPP_crossClustersMap[s].qids] }
+                    : null;
+            });
+
+            const beforeNodeTopics = {};
+            const beforeNodes = {};
+            affectedQidsUpper.forEach(upKey => {
+                beforeNodeTopics[upKey] = window.MPP_nodeTopicsMap[upKey] ? [...window.MPP_nodeTopicsMap[upKey]] : null;
+                beforeNodes[upKey] = window.MPP_crossLinksMap[upKey] ? [...window.MPP_crossLinksMap[upKey]] : null;
+            });
+
+            const nextClusters = {};
+            Object.keys(window.MPP_crossClustersMap).forEach(s => {
+                nextClusters[s] = { slug: s, title: window.MPP_crossClustersMap[s].title, qids: [...window.MPP_crossClustersMap[s].qids] };
+            });
+            const nextNodeTopics = {};
+            Object.keys(window.MPP_nodeTopicsMap).forEach(upKey => {
+                nextNodeTopics[upKey] = [...window.MPP_nodeTopicsMap[upKey]];
+            });
+
+            const removeSlugFromQid = (upKey, slugToRemove) => {
+                if (!nextNodeTopics[upKey]) return;
+                nextNodeTopics[upKey] = nextNodeTopics[upKey].filter(s => s !== slugToRemove);
+                if (nextNodeTopics[upKey].length === 0) delete nextNodeTopics[upKey];
+            };
+            const addSlugToQid = (upKey, slugToAdd) => {
+                if (!nextNodeTopics[upKey]) nextNodeTopics[upKey] = [];
+                if (!nextNodeTopics[upKey].includes(slugToAdd)) nextNodeTopics[upKey].push(slugToAdd);
+            };
+
+            prevAnchorSlugs.forEach(oldSlug => {
+                if (!seenSlugsInModal.has(oldSlug)) {
+                    removeSlugFromQid(anchorUpper, oldSlug);
+                    if (nextClusters[oldSlug]) {
+                        nextClusters[oldSlug].qids = nextClusters[oldSlug].qids.filter(id => String(id).trim().toUpperCase() !== anchorUpper);
+                        if (nextClusters[oldSlug].qids.length <= 1) {
+                            nextClusters[oldSlug].qids.forEach(remId => removeSlugFromQid(String(remId).trim().toUpperCase(), oldSlug));
+                            delete nextClusters[oldSlug];
+                        }
+                    }
+                }
+            });
+
+            parsedTopics.forEach(topicObj => {
+                const { slug, title, qids } = topicObj;
+                const prevQidsInCluster = nextClusters[slug] ? [...nextClusters[slug].qids] : [];
+                const newUpperSet = new Set(qids.map(x => String(x).trim().toUpperCase()));
+                prevQidsInCluster.forEach(oldId => {
+                    const up = String(oldId).trim().toUpperCase();
+                    if (!newUpperSet.has(up)) removeSlugFromQid(up, slug);
+                });
+                if (qids.length <= 1) {
+                    qids.forEach(id => removeSlugFromQid(String(id).trim().toUpperCase(), slug));
+                    delete nextClusters[slug];
+                } else {
+                    nextClusters[slug] = { slug, title, qids };
+                    qids.forEach(id => addSlugToQid(String(id).trim().toUpperCase(), slug));
+                }
+            });
+
+            const updates = {};
+            affectedSlugs.forEach(s => { updates[`clusters/${s}`] = nextClusters[s] || null; });
+            affectedQidsUpper.forEach(upKey => {
+                const slugsForQid = nextNodeTopics[upKey] || null;
+                updates[`node_topics/${upKey}`] = (slugsForQid && slugsForQid.length > 0) ? slugsForQid : null;
+                if (slugsForQid && slugsForQid.length > 0 && nextClusters[slugsForQid[0]]) {
+                    updates[`nodes/${upKey}`] = nextClusters[slugsForQid[0]].qids;
+                } else {
+                    updates[`nodes/${upKey}`] = null;
+                }
+            });
+
+            const summaryText = parsedTopics.length > 0
+                ? parsedTopics.map(t => `${t.title} (${t.qids.join(', ')})`).join(' | ')
+                : 'Cleared Links';
+
+            const newHistoryEntry = {
+                id: 'H_' + Date.now(),
+                timestamp: Date.now(),
+                anchorQid: anchorQid,
+                summaryText: summaryText,
+                newSequence: parsedTopics[0] ? parsedTopics[0].qids : [],
+                beforeClusters,
+                beforeNodeTopics,
+                beforeNodes
+            };
+            updates['history'] = [newHistoryEntry, ...(window.MPP_crossLinksHistory || [])].slice(0, 10);
+
+            if (parsedTopics.length > 0) window.MPP_state.activeTopicSlug = parsedTopics[0].slug;
+
+            btn.innerText = "Syncing...";
+            btn.disabled = true;
+
+            try {
+                // Dual-Write to BOTH MBBS Profs Prep Firebase and MedPYQ Firebase!
+                await update(ref(profsDb, `cross_links/${activeSubjectSlug}`), updates);
+                if (window.MPP_state.medpyqConnected) {
+                    await update(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), updates).catch(() => {});
+                }
+                document.getElementById('mpp-admin-link-modal').classList.add('hidden');
+            } catch (err) {
+                alert("Failed to sync cross-links: " + err.message);
+            } finally {
+                btn.innerText = "Apply & Sync Both Apps";
+                btn.disabled = false;
+            }
+        };
+
+        window.MPP_undoCrossLinks = async function(historyIndex) {
+            if (!window.isUserAdmin()) return;
+            const entry = (window.MPP_crossLinksHistory || [])[historyIndex];
+            if (!entry) return;
+
+            const updates = {};
+            if (entry.beforeClusters) {
+                Object.keys(entry.beforeClusters).forEach(s => { updates[`clusters/${s}`] = entry.beforeClusters[s] || null; });
+            }
+            if (entry.beforeNodeTopics) {
+                Object.keys(entry.beforeNodeTopics).forEach(upKey => {
+                    const prevSlugs = entry.beforeNodeTopics[upKey];
+                    updates[`node_topics/${upKey}`] = (Array.isArray(prevSlugs) && prevSlugs.length > 0) ? prevSlugs : null;
+                });
+            }
+            if (entry.beforeNodes) {
+                Object.keys(entry.beforeNodes).forEach(upKey => {
+                    const prevVal = entry.beforeNodes[upKey];
+                    updates[`nodes/${upKey}`] = (Array.isArray(prevVal) && prevVal.length > 1) ? prevVal : null;
+                });
+            }
+            updates['history'] = window.MPP_crossLinksHistory.filter((_, idx) => idx !== historyIndex);
+
+            try {
+                await update(ref(profsDb, `cross_links/${activeSubjectSlug}`), updates);
+                if (window.MPP_state.medpyqConnected) {
+                    await update(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), updates).catch(() => {});
+                }
+                if (window.MPP_editingAnchorQid) {
+                    setTimeout(() => window.MPP_openAdminLinkModal(window.MPP_editingAnchorQid), 80);
+                }
+            } catch (err) {
+                alert("Undo failed: " + err.message);
+            }
+        };
+
+        // 12. Real-Time Admin MCQ Option, Key & Explanation Editor (with 10 Undo / 10 Redo)
+        window.MPP_toggleInlineEditor = function() {
+            const box = document.getElementById('mpp-inline-rt-editor');
+            if (box) box.classList.toggle('hidden');
+        };
+
+        window.MPP_selectEditKey = function(ltr) {
+            document.querySelectorAll('.admin-key-pill').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-key') === ltr);
+            });
+            const inp = document.getElementById('mpp-edit-ans-input');
+            if (inp) inp.value = ltr;
+        };
+
+        window.MPP_saveQuestionEdit = async function(qid) {
+            if (!window.isUserAdmin()) return;
+            const qObj = window.MPP_resolveQuestionByQid(qid);
+            if (!qObj) return;
+
+            const isMCQ = qObj.type === 'MCQ';
+            const newAnsKey = isMCQ ? (document.getElementById('mpp-edit-ans-input')?.value || qObj.ans_key || 'A').trim().toUpperCase() : '';
+            const newOptions = isMCQ
+                ? [0, 1, 2, 3].map(i => {
+                    const el = document.getElementById(`mpp-edit-opt-${i}`);
+                    return el ? el.value.trim() : ((qObj.options && qObj.options[i]) || '');
+                })
+                : null;
+            const newExpl = document.getElementById('mpp-edit-expl-input')?.value ?? ((window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text) || '');
+
+            const prevAnsKey = qObj.ans_key || '';
+            const prevOptions = Array.isArray(qObj.options) ? [...qObj.options] : null;
+            const prevExpl = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text) || qObj.explanation || '';
+
+            const btn = document.getElementById('btn-mpp-save-qe');
+            if (btn) { btn.innerText = "Saving Live..."; btn.disabled = true; }
+
+            const upKey = String(qObj.q).trim().toUpperCase();
+            const examType = window.MPP_inferExamFromQid(qObj.q);
+
+            const actionRecord = {
+                id: 'QE_' + Date.now(),
+                qid: qObj.q,
+                upKey: upKey,
+                examType: examType,
+                prevAnsKey,
+                prevOptions,
+                prevExplanation: prevExpl,
+                newAnsKey,
+                newOptions,
+                newExplanation: newExpl,
+                timestamp: Date.now()
+            };
+
+            const newUndoStack = [actionRecord, ...(window.MPP_undoStack || [])].slice(0, 10);
+            const newRedoStack = [];
+
+            const overridePayload = {
+                ans_key: newAnsKey,
+                options: newOptions,
+                explanation: newExpl,
+                updatedAt: Date.now()
+            };
+
+            try {
+                window.MPP_applyOverrideToMemory(upKey, overridePayload);
+
+                // Save to MBBS Profs Prep Firebase
+                await update(ref(profsDb, `question_edits/${collegeCode}/${subjectCodeUpper}`), {
+                    [`overrides/${upKey}`]: overridePayload,
+                    undoStack: newUndoStack,
+                    redoStack: newRedoStack
+                });
+
+                if (examType === 'aiims-profs') {
+                    await set(ref(profsDb, `answers/${collegeCode}/${subjectCodeUpper}/${qObj.q}`), {
+                        text: newExpl,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: window.currentUserObj.email
+                    });
+                } else if (window.MPP_state.medpyqConnected) {
+                    // Also sync to MedPYQ Firebase if editing an N / IN / CMS / F card!
+                    await update(ref(medpyqDb, `question_edits/${activeSubjectSlug}`), {
+                        [`overrides/${upKey}`]: overridePayload
+                    }).catch(() => {});
+                }
+
+                window.renderDeckCard();
+            } catch (err) {
+                alert("Failed to save live edit: " + err.message);
+            } finally {
+                if (btn) { btn.innerText = "⚡ Save Live"; btn.disabled = false; }
+            }
+        };
+
+        window.MPP_undoQuestionEdit = async function() {
+            if (!window.isUserAdmin() || !window.MPP_undoStack || window.MPP_undoStack.length === 0) return;
+            const [latest, ...remUndo] = window.MPP_undoStack;
+            const newRedo = [latest, ...(window.MPP_redoStack || [])].slice(0, 10);
+
+            const restored = {
+                ans_key: latest.prevAnsKey,
+                options: latest.prevOptions,
+                explanation: latest.prevExplanation,
+                updatedAt: Date.now()
+            };
+
+            try {
+                window.MPP_applyOverrideToMemory(latest.upKey, restored);
+                await update(ref(profsDb, `question_edits/${collegeCode}/${subjectCodeUpper}`), {
+                    [`overrides/${latest.upKey}`]: restored,
+                    undoStack: remUndo,
+                    redoStack: newRedo
+                });
+                if (latest.examType === 'aiims-profs') {
+                    await set(ref(profsDb, `answers/${collegeCode}/${subjectCodeUpper}/${latest.qid}/text`), latest.prevExplanation || "");
+                }
+                window.renderDeckCard();
+            } catch (e) {
+                alert("Undo failed: " + e.message);
+            }
+        };
+
+        window.MPP_redoQuestionEdit = async function() {
+            if (!window.isUserAdmin() || !window.MPP_redoStack || window.MPP_redoStack.length === 0) return;
+            const [latest, ...remRedo] = window.MPP_redoStack;
+            const newUndo = [latest, ...(window.MPP_undoStack || [])].slice(0, 10);
+
+            const reapplied = {
+                ans_key: latest.newAnsKey,
+                options: latest.newOptions,
+                explanation: latest.newExplanation,
+                updatedAt: Date.now()
+            };
+
+            try {
+                window.MPP_applyOverrideToMemory(latest.upKey, reapplied);
+                await update(ref(profsDb, `question_edits/${collegeCode}/${subjectCodeUpper}`), {
+                    [`overrides/${latest.upKey}`]: reapplied,
+                    undoStack: newUndo,
+                    redoStack: remRedo
+                });
+                if (latest.examType === 'aiims-profs') {
+                    await set(ref(profsDb, `answers/${collegeCode}/${subjectCodeUpper}/${latest.qid}/text`), latest.newExplanation || "");
+                }
+                window.renderDeckCard();
+            } catch (e) {
+                alert("Redo failed: " + e.message);
+            }
+        };
+
+        window.MPP_updateUndoRedoUI = function() {
+            const uBtn = document.getElementById('btn-mpp-qe-undo');
+            const rBtn = document.getElementById('btn-mpp-qe-redo');
+            const uCount = (window.MPP_undoStack || []).length;
+            const rCount = (window.MPP_redoStack || []).length;
+            if (uBtn) { uBtn.disabled = uCount === 0; uBtn.innerHTML = `↩️ Undo (${uCount}/10)`; }
+            if (rBtn) { rBtn.disabled = rCount === 0; rBtn.innerHTML = `↪️ Redo (${rCount}/10)`; }
+        };
+
+        // 13. Hook Deck Navigation & Wrap renderDeckCard to Inject < 1/16 > Pill, Teen Patti Overlay & Live Editor
+        const hookDeckFunctions = () => {
+            if (typeof window.renderDeckCard !== 'function' || window.MPP_deckHooked) return;
+            window.MPP_deckHooked = true;
+
+            const origDeckNext = window.deckNext;
+            if (typeof origDeckNext === 'function') {
+                window.deckNext = function() {
+                    window.MPP_state.overrideQid = null;
+                    window.MPP_state.fanViewOpen = false;
+                    window.MPP_state.activeTopicSlug = null;
+                    return origDeckNext.apply(this, arguments);
+                };
+            }
+
+            const origDeckPrev = window.deckPrev;
+            if (typeof origDeckPrev === 'function') {
+                window.deckPrev = function() {
+                    window.MPP_state.overrideQid = null;
+                    window.MPP_state.fanViewOpen = false;
+                    window.MPP_state.activeTopicSlug = null;
+                    return origDeckPrev.apply(this, arguments);
+                };
+            }
+
+            const origCheckDeckAns = window.checkDeckAnswer;
+            if (typeof origCheckDeckAns === 'function') {
+                window.checkDeckAnswer = function(btn, picked, correct) {
+                    const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                    const p = String(picked).toUpperCase();
+                    const c = String(correct).toUpperCase();
+                    btn.parentElement.querySelectorAll('button').forEach(b => b.disabled = true);
+                    if (p === c) {
+                        btn.classList.add('deck-opt-correct');
+                        if (displayedQ) window.deckStatus[displayedQ.q] = 'correct';
+                    } else {
+                        btn.classList.add('deck-opt-wrong');
+                        if (displayedQ) window.deckStatus[displayedQ.q] = 'wrong';
+                        btn.parentElement.querySelectorAll('button').forEach((b, i) => {
+                            if (window.optionLetters[i] === c) b.classList.add('deck-opt-correct');
+                        });
+                    }
+                };
+            }
+
+            const origRenderDeckCard = window.renderDeckCard;
+            window.renderDeckCard = function() {
+                // If an override QID (linked sub-topic question) is active, temporarily swap it into activeDeckQuestions[deckIndex]
+                const anchorQ = (window.activeDeckQuestions && window.activeDeckQuestions.length > 0)
+                    ? window.activeDeckQuestions[window.deckIndex]
+                    : null;
+
+                let displayedQ = anchorQ;
+                if (anchorQ && window.MPP_state.overrideQid) {
+                    const resolved = window.MPP_resolveQuestionByQid(window.MPP_state.overrideQid);
+                    if (resolved) {
+                        displayedQ = resolved;
+                        window.activeDeckQuestions[window.deckIndex] = displayedQ;
+                    }
+                }
+
+                // Run the page's native renderDeckCard() so 100% of existing layout, dark mode, Panzoom & markdown stay untouched
+                origRenderDeckCard.apply(this, arguments);
+
+                // Restore anchorQ in activeDeckQuestions array so main chapter sequence is never mutated
+                if (anchorQ && displayedQ !== anchorQ) {
+                    window.activeDeckQuestions[window.deckIndex] = anchorQ;
+                }
+
+                if (!anchorQ || !displayedQ || window.accessLevel === 'guest') return;
+
+                const container = document.getElementById('deck-card-container');
+                const deckCard = container ? container.querySelector('.deck-card') : null;
+                if (!deckCard) return;
+
+                const isAdmin = window.isUserAdmin();
+                const clusterInfo = window.MPP_getActiveClusterInfo(
+                    anchorQ.q,
+                    displayedQ.q,
+                    (isAdmin && window.MPP_state.fanViewOpen) ? window.MPP_state.adminTopFilter : null
+                );
+                const clusterSeq = clusterInfo.sequence;
+                const availableTopics = clusterInfo.topics;
+                const activeTopicObj = clusterInfo.activeTopic;
+
+                const curUpper = String(displayedQ.q).trim().toUpperCase();
+                let clusterPos = clusterSeq.findIndex(id => String(id).trim().toUpperCase() === curUpper);
+                if (clusterPos === -1) clusterPos = 0;
+                const totalInCluster = Math.max(1, clusterSeq.length);
+                const pillCenterLabel = `${Math.min(clusterPos + 1, totalInCluster)}/${totalInCluster}`;
+
+                // A. Inject < 1/16 > Pill right next to the QID badge in the top row of .deck-card
+                const headerRow = deckCard.firstElementChild;
+                const qBadge = headerRow ? headerRow.querySelector('span') : null;
+                if (headerRow && qBadge && !headerRow.querySelector('.mpp-cluster-pill')) {
+                    const leftWrap = document.createElement('div');
+                    leftWrap.className = 'flex items-center gap-2 flex-wrap';
+                    qBadge.parentNode.insertBefore(leftWrap, qBadge);
+                    leftWrap.appendChild(qBadge);
+
+                    // Show anchor index + displayed QID if stepping through a linked card
+                    if (displayedQ.q !== anchorQ.q) {
+                        qBadge.innerHTML = `${anchorQ.q} <span class="opacity-70">→</span> ${displayedQ.q}`;
+                    }
+
+                    const pillHtml = `
+                        <div class="mpp-cluster-pill ${window.MPP_state.fanViewOpen ? 'pill-fan-active' : ''}"
+                             onmousedown="window.MPP_startPillPress(event, '${displayedQ.q}')"
+                             onmouseup="window.MPP_cancelPillPress()"
+                             onmouseleave="window.MPP_cancelPillPress()"
+                             ontouchstart="window.MPP_startPillPress(event, '${displayedQ.q}')"
+                             ontouchend="window.MPP_cancelPillPress()"
+                             oncontextmenu="window.MPP_onPillContextMenu(event, '${displayedQ.q}')">
+                            <button type="button" class="mpp-cluster-btn" onclick="window.MPP_stepCluster(-1, event)" ${clusterPos <= 0 ? 'disabled' : ''}>&lt;</button>
+                            <span class="mpp-cluster-count" id="mpp-pill-center-text" onclick="window.MPP_onPillCenterClick(event)" title="Tap to toggle Teen Patti Fanned Deck">${pillCenterLabel}</span>
+                            <button type="button" class="mpp-cluster-btn" onclick="window.MPP_stepCluster(1, event)" ${clusterPos >= clusterSeq.length - 1 ? 'disabled' : ''}>&gt;</button>
+                        </div>`;
+                    leftWrap.insertAdjacentHTML('beforeend', pillHtml);
+                }
+
+                // B. Inject Multi-Dimensional Sub-Topic Switcher Bar & Superimposed Teen Patti Overlay inside the scrollable middle area
+                const scrollArea = deckCard.children[1];
+                if (!scrollArea) return;
+
+                const showTopicBar = availableTopics.length > 1 || (availableTopics.length === 1 && availableTopics[0].title !== 'Linked Concept');
+                if (showTopicBar) {
+                    const pillsHtml = availableTopics.map(tObj => {
+                        const isAct = activeTopicObj && activeTopicObj.slug === tObj.slug;
+                        const tSeq = window.MPP_filterSequenceByRole(tObj.qids, displayedQ.q);
+                        const posInT = tSeq.findIndex(id => String(id).trim().toUpperCase() === curUpper);
+                        const countLabel = posInT !== -1 ? `${posInT + 1}/${tSeq.length}` : `${tSeq.length}`;
+                        const safeSlug = tObj.slug.replace(/'/g, "\\'");
+                        return `
+                        <button type="button" class="mpp-topic-dim-pill ${isAct ? 'active' : ''}" onclick="window.MPP_switchTopicDimension('${safeSlug}', event)">
+                            <span>🏷️ ${tObj.title}</span>
+                            <span class="mpp-topic-dim-count">${countLabel}</span>
+                        </button>`;
+                    }).join('');
+                    scrollArea.insertAdjacentHTML('afterbegin', `<div class="mpp-topic-dims-bar">${pillsHtml}</div>`);
+                }
+
+                // C. Superimpose Teen Patti Fanned Deck over the parent question's body/options while keeping parent question visible in background
+                if (window.MPP_state.fanViewOpen) {
+                    Array.from(scrollArea.children).forEach((child, idx) => {
+                        // Keep the first question stem block and topic bar visible at top, dim the options/body underneath
+                        if (idx > (showTopicBar ? 1 : 0)) {
+                            child.classList.add('mpp-body-under-fan');
+                        }
+                    });
+
+                    const activeTopicTitle = activeTopicObj ? activeTopicObj.title : '';
+                    const mainFanHtml = window.MPP_buildFanDeckHTML('main', clusterSeq, 'auto', clusterPos, activeTopicTitle);
+
+                    let adminExtendedHtml = '';
+                    if (isAdmin) {
+                        const fullCrossInfo = window.MPP_getActiveClusterInfo(anchorQ.q, displayedQ.q, 'all');
+                        const fullSeq = fullCrossInfo.sequence;
+                        const aiimsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
+                        const neetSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'neet-pg');
+                        const iniSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'inicet');
+                        const cmsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'upsc-cms');
+                        const fmgeSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'fmge');
+                        const curFilter = window.MPP_state.adminTopFilter || 'all';
+
+                        adminExtendedHtml = `
+                        <div class="tp-admin-extended-section">
+                            <div class="tp-admin-switcher">
+                                <span style="font-size:11px; font-weight:900; color:#ea580c;">&larr;</span>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'all' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('all')">All Exam</button>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'aiims-profs' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('aiims-profs')">AIIMS PYQ</button>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'neet-pg' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('neet-pg')">NEET-PG</button>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'inicet' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('inicet')">INI</button>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'upsc-cms' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('upsc-cms')">CMS</button>
+                                <button type="button" class="tp-switch-btn ${curFilter === 'fmge' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('fmge')">FMGE</button>
+                                <span style="font-size:11px; font-weight:900; color:#ea580c;">&rarr;</span>
+                            </div>
+
+                            <!-- 1. AIIMS PROFS PYQ Deck (Sky Blue #0ea5e9) -->
+                            ${window.MPP_buildFanDeckHTML('admin-aiims', aiimsSeq, '#0ea5e9', window.MPP_state.fanPosMap['admin-aiims'] ?? 0, activeTopicTitle)}
+                            <div class="tp-exam-label-box">AIIMS PROFS PYQ</div>
+
+                            <!-- 2. NEETPG Deck (Blue #2563eb) -->
+                            ${window.MPP_buildFanDeckHTML('admin-neet-pg', neetSeq, '#2563eb', window.MPP_state.fanPosMap['admin-neet-pg'] ?? 0, activeTopicTitle)}
+                            <div class="tp-exam-label-box">NEETPG</div>
+
+                            <!-- 3. INICET Deck (Purple #9333ea) -->
+                            ${window.MPP_buildFanDeckHTML('admin-inicet', iniSeq, '#9333ea', window.MPP_state.fanPosMap['admin-inicet'] ?? 0, activeTopicTitle)}
+                            <div class="tp-exam-label-box">INICET</div>
+
+                            <!-- 4. CMS Deck (Yellow/Gold #eab308) -->
+                            ${window.MPP_buildFanDeckHTML('admin-upsc-cms', cmsSeq, '#eab308', window.MPP_state.fanPosMap['admin-upsc-cms'] ?? 0, activeTopicTitle)}
+                            <div class="tp-exam-label-box">CMS</div>
+
+                            <!-- 5. FMGE Deck (Green #22c55e) -->
+                            ${window.MPP_buildFanDeckHTML('admin-fmge', fmgeSeq, '#22c55e', window.MPP_state.fanPosMap['admin-fmge'] ?? 0, activeTopicTitle)}
+                            <div class="tp-exam-label-box">FMGE</div>
+                        </div>`;
+                    }
+
+                    const overlayMarginTop = displayedQ.type === 'MCQ' ? '-220px' : '-40px';
+                    scrollArea.insertAdjacentHTML('beforeend', `
+                        <div class="tp-parent-overlay" style="margin-top: ${overlayMarginTop};" onclick="if(event.target === this){ window.MPP_state.fanViewOpen=false; window.renderDeckCard(); }">
+                            ${mainFanHtml}
+                            ${adminExtendedHtml}
+                        </div>
+                    `);
+                    window.MPP_attachFanInteractions();
+                }
+
+                // D. Inject Admin Real-Time MCQ Options, Key & Explanation Toolbar (with 10 Undo / 10 Redo)
+                if (isAdmin) {
+                    const uCount = (window.MPP_undoStack || []).length;
+                    const rCount = (window.MPP_redoStack || []).length;
+                    const isMCQ = displayedQ.type === 'MCQ';
+                    const curKey = String(displayedQ.ans_key || 'A').trim().toUpperCase();
+                    const curExpl = (window.liveAnswers && window.liveAnswers[displayedQ.q] && window.liveAnswers[displayedQ.q].text) || displayedQ.explanation || '';
+                    const safeExpl = curExpl.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    let mcqEditorFieldsHtml = '';
+                    if (isMCQ) {
+                        const opts = Array.isArray(displayedQ.options) ? displayedQ.options : ['', '', '', ''];
+                        mcqEditorFieldsHtml = `
+                            <div class="flex items-center justify-between flex-wrap gap-2 mb-2.5">
+                                <span class="text-[11px] font-extrabold text-orange-800 dark:text-orange-300 uppercase">Correct Answer Key:</span>
+                                <div class="flex gap-1.5">
+                                    ${['A', 'B', 'C', 'D'].map(ltr => `
+                                        <button type="button" class="admin-key-pill ${curKey === ltr ? 'active' : ''}" data-key="${ltr}" onclick="window.MPP_selectEditKey('${ltr}')">${ltr}</button>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="mpp-edit-ans-input" value="${curKey}">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2.5">
+                                ${[0, 1, 2, 3].map(i => {
+                                    const char = String.fromCharCode(65 + i);
+                                    const val = String(opts[i] || '').replace(/"/g, '&quot;');
+                                    return `
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-black text-orange-700 dark:text-orange-400 w-4">${char})</span>
+                                        <input type="text" id="mpp-edit-opt-${i}" value="${val}" class="flex-1 px-2.5 py-1.5 rounded-lg border border-orange-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-white outline-none">
+                                    </div>`;
+                                }).join('')}
+                            </div>`;
+                    }
+
+                    const rtToolbarHtml = `
+                        <div class="admin-rt-toolbar">
+                            <div class="flex justify-between items-center flex-wrap gap-2">
+                                <button type="button" onclick="window.MPP_toggleInlineEditor()" class="admin-rt-btn-toggle">
+                                    ✏️ Edit ${isMCQ ? `MCQ Options, Key (${curKey}) &` : ''} Explanation (${displayedQ.q})
+                                </button>
+                                <div class="flex gap-1.5">
+                                    <button type="button" id="btn-mpp-qe-undo" onclick="window.MPP_undoQuestionEdit()" class="admin-rt-btn-hist" ${uCount === 0 ? 'disabled' : ''}>↩️ Undo (${uCount}/10)</button>
+                                    <button type="button" id="btn-mpp-qe-redo" onclick="window.MPP_redoQuestionEdit()" class="admin-rt-btn-hist" ${rCount === 0 ? 'disabled' : ''}>↪️ Redo (${rCount}/10)</button>
+                                </div>
+                            </div>
+                            <div id="mpp-inline-rt-editor" class="hidden mt-3 pt-3 border-t border-dashed border-orange-300 dark:border-slate-700">
+                                ${mcqEditorFieldsHtml}
+                                <label class="text-[10px] font-extrabold text-orange-800 dark:text-orange-300 uppercase block mb-1">Explanation / Model Answer (Markdown, Math &amp; Media — Syncs Live):</label>
+                                <textarea id="mpp-edit-expl-input" rows="4" class="w-full p-2.5 rounded-lg border border-orange-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-white outline-none resize-y mb-2">${safeExpl}</textarea>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" onclick="window.MPP_toggleInlineEditor()" class="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border-none cursor-pointer">Close</button>
+                                    <button type="button" id="btn-mpp-save-qe" onclick="window.MPP_saveQuestionEdit('${displayedQ.q}')" class="px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold border-none cursor-pointer shadow">⚡ Save Live</button>
+                                </div>
+                            </div>
+                        </div>`;
+                    scrollArea.insertAdjacentHTML('beforeend', rtToolbarHtml);
+                }
+            };
+        };
+
+        hookDeckFunctions();
+        window.addEventListener('load', hookDeckFunctions);
+        setTimeout(hookDeckFunctions, 600);
+
+    } catch (err) {
+        console.error("Failed to initialize Teen Patti & MedPYQ Bridge engine:", err);
+    }
+};
+
+// ====================================================
+// 16. REGISTER SERVICE WORKER
+// ====================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((registration) => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch((error) => {
+                console.log('ServiceWorker registration failed: ', error);
+            });
+    });
+                                         }

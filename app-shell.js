@@ -2530,6 +2530,76 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================================================
 window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
     try {
+        // Inject unboxed, free-floating top-layer styles so Teen Patti never renders inside a cramped inner box
+        if (!document.getElementById('tp-unboxed-floating-styles')) {
+            const unboxedStyles = `
+            <style id="tp-unboxed-floating-styles">
+                /* Unlock all nested card containers when Teen Patti Fan is open so cards float on top unclipped */
+                #deck-card-container.tp-fan-open {
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    display: block !important;
+                    padding-bottom: 60px !important;
+                }
+                #deck-card-container.tp-fan-open .flashcard-container,
+                #deck-card-container.tp-fan-open .flashcard-inner,
+                #deck-card-container.tp-fan-open .flashcard-front {
+                    position: static !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    overflow: visible !important;
+                    transform: none !important;
+                    -webkit-transform: none !important;
+                }
+                #deck-card-container.tp-fan-open .deck-card {
+                    height: auto !important;
+                    min-height: 0 !important;
+                    overflow: visible !important;
+                    position: relative !important;
+                }
+                #deck-card-container.tp-fan-open .deck-card > div {
+                    overflow: visible !important;
+                    max-height: none !important;
+                }
+                /* Float Teen Patti directly on top of the parent card without any surrounding box */
+                .tp-parent-overlay {
+                    position: relative !important;
+                    margin-top: 8px !important;
+                    margin-bottom: 10px !important;
+                    z-index: 120 !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    overflow: visible !important;
+                    pointer-events: auto !important;
+                }
+                .tp-parent-overlay.overlap-mcq {
+                    margin-top: -230px !important;
+                }
+                .tp-admin-extended-section {
+                    width: 100% !important;
+                    max-width: 560px !important;
+                    margin: 0 auto !important;
+                    padding: 4px 0 20px 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    overflow: visible !important;
+                }
+                .tp-fan-stage {
+                    overflow: visible !important;
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+            </style>`;
+            document.head.insertAdjacentHTML('beforeend', unboxedStyles);
+        }
+
         const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
         const { getAuth, signInWithEmailAndPassword, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
         const { getDatabase, ref, get, set, update, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
@@ -2628,7 +2698,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
         };
 
-        // Helper to trigger MedPYQ bank preloading as soon as BOTH profsAuth (Admin) and medpyqAuth are ready
         const tryConnectAndPreloadMedPYQ = async () => {
             if (!window.isUserAdmin()) return;
 
@@ -2644,7 +2713,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     if (cached && cached.e && cached.p) {
                         await signInWithEmailAndPassword(medpyqAuth, cached.e, cached.p);
                     } else {
-                        // Also try fetching directly in case public read is enabled
                         await window.MPP_preloadMedPYQBanks();
                     }
                 } catch (e) {
@@ -2695,7 +2763,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return '#0ea5e9';                         // Sky Blue (AIIMS Profs PYQ)
         };
 
-        // 5. Preload MedPYQ 4 Exam Banks (Indexes both exact QID and N/IN/CMS/F prefixed aliases)
+        // 5. Preload MedPYQ 4 Exam Banks
         window.MPP_preloadMedPYQBanks = async function() {
             const pgExams = [
                 { key: 'neet-pg', prefix: 'N' },
@@ -2738,7 +2806,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 isMedPYQ: true
                             };
 
-                            // Index by exact ID (e.g. N27) AND by prefixed number (e.g. N27, INI27) so lookup never misses
                             window.MPP_allExamLookup[up] = qRecord;
                             window.MPP_allExamLookup[prefixedAlias] = qRecord;
                             if (ex === 'inicet') window.MPP_allExamLookup[`INI${numPart}`] = qRecord;
@@ -2761,7 +2828,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
             window.MPP_updateBridgeBadgeUI();
 
-            // Subscribe to MedPYQ question_edits for this subject
             try {
                 onValue(ref(medpyqDb, `question_edits/${activeSubjectSlug}/overrides`), (snap) => {
                     const ovs = snap.val() || {};
@@ -2778,7 +2844,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 });
             } catch (e) {}
 
-            // Subscribe to MedPYQ cross_links for this subject now that auth is ready
             try {
                 onValue(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), (snap) => {
                     if (snap.exists()) ingestCrossLinksData(snap.val());
@@ -2790,7 +2855,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
         };
 
-        // Also preload same-subject Clinical Cases from profsDb
         onValue(ref(profsDb, `clinical_data/${collegeCode}/${subjectCodeUpper}`), (snap) => {
             const data = snap.val() || {};
             Object.keys(data).forEach(k => {
@@ -2817,7 +2881,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             });
         });
 
-        // 6. Resolve Any QID (Subject-Isolated Local AIIMS JSON -> MedPYQ Lookup -> Auto-Preload Retry)
+        // 6. Resolve Any QID
         window.MPP_resolveQuestionByQid = function(qid) {
             if (!qid) return null;
             const clean = String(qid).trim();
@@ -2847,7 +2911,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 return found;
             }
 
-            // If Admin hasn't preloaded MedPYQ banks yet, trigger background preload automatically
             if (window.isUserAdmin() && !window.MPP_state.banksPreloaded) {
                 tryConnectAndPreloadMedPYQ();
             }
@@ -3976,9 +4039,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     window.activeDeckQuestions[window.deckIndex] = anchorQ;
                 }
 
+                const container = document.getElementById('deck-card-container');
+                if (container) {
+                    container.classList.toggle('tp-fan-open', Boolean(window.MPP_state.fanViewOpen));
+                }
+
                 if (!anchorQ || !displayedQ || window.accessLevel === 'guest') return;
 
-                const container = document.getElementById('deck-card-container');
                 const deckCard = container ? container.querySelector('.deck-card') : null;
                 if (!deckCard) return;
 
@@ -4045,9 +4112,11 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     scrollArea.insertAdjacentHTML('afterbegin', `<div class="mpp-topic-dims-bar">${pillsHtml}</div>`);
                 }
 
+                // Float Teen Patti directly on top of the card (unboxed, unclipped)
                 if (window.MPP_state.fanViewOpen) {
+                    const stemBlockIndex = showTopicBar ? 1 : 0;
                     Array.from(scrollArea.children).forEach((child, idx) => {
-                        if (idx > (showTopicBar ? 1 : 0)) {
+                        if (idx > stemBlockIndex) {
                             child.classList.add('mpp-body-under-fan');
                         }
                     });
@@ -4096,9 +4165,9 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         </div>`;
                     }
 
-                    const overlayMarginTop = displayedQ.type === 'MCQ' ? '-220px' : '-40px';
+                    const overlapClass = displayedQ.type === 'MCQ' ? 'overlap-mcq' : '';
                     scrollArea.insertAdjacentHTML('beforeend', `
-                        <div class="tp-parent-overlay" style="margin-top: ${overlayMarginTop};" onclick="if(event.target === this){ window.MPP_state.fanViewOpen=false; window.renderDeckCard(); }">
+                        <div class="tp-parent-overlay ${overlapClass}" onclick="if(event.target === this){ window.MPP_state.fanViewOpen=false; window.renderDeckCard(); }">
                             ${mainFanHtml}
                             ${adminExtendedHtml}
                         </div>
@@ -4188,4 +4257,4 @@ if ('serviceWorker' in navigator) {
                 console.log('ServiceWorker registration failed: ', error);
             });
     });
-                                              }
+                }

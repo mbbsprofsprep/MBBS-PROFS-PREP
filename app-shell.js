@@ -2530,11 +2530,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================================================
 window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
     try {
-        // Inject unboxed, free-floating top-layer styles so Teen Patti never renders inside a cramped inner box
+        // Inject unboxed, free-floating top-layer styles + image thumbnail styles
         if (!document.getElementById('tp-unboxed-floating-styles')) {
             const unboxedStyles = `
             <style id="tp-unboxed-floating-styles">
-                /* Unlock all nested card containers when Teen Patti Fan is open so cards float on top unclipped */
                 #deck-card-container.tp-fan-open {
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
@@ -2561,7 +2560,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     overflow: visible !important;
                     max-height: none !important;
                 }
-                /* Float Teen Patti directly on top of the parent card without any surrounding box */
                 .tp-parent-overlay {
                     position: relative !important;
                     margin-top: 8px !important;
@@ -2596,15 +2594,56 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     border: none !important;
                     box-shadow: none !important;
                 }
+                .tp-patti-thumb-box {
+                    width: 100%;
+                    height: 68px;
+                    margin: 2px 0 5px 0;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: #f8fafc;
+                    border: 1px solid #cbd5e1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+                html.dark .tp-patti-thumb-box {
+                    background: #1e293b;
+                    border-color: #334155;
+                }
+                .tp-patti-thumb-box img {
+                    max-width: 100% !important;
+                    max-height: 100% !important;
+                    width: auto !important;
+                    height: auto !important;
+                    object-fit: contain !important;
+                    display: block !important;
+                    margin: 0 !important;
+                }
+                .deck-card img, #qnaTable img {
+                    cursor: zoom-in;
+                }
             </style>`;
             document.head.insertAdjacentHTML('beforeend', unboxedStyles);
+        }
+
+        // Allow clicking any image in Deck View or Table View to zoom in full-screen lightbox
+        if (!window.MPP_imgZoomBound) {
+            window.MPP_imgZoomBound = true;
+            document.addEventListener('click', (e) => {
+                const imgEl = e.target.closest('.deck-card img, #qnaTable img, #ans-modal-body img');
+                if (imgEl && !imgEl.closest('.tp-patti')) {
+                    e.stopPropagation();
+                    window.openNrLightbox(imgEl.src);
+                }
+            });
         }
 
         const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
         const { getAuth, signInWithEmailAndPassword, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
         const { getDatabase, ref, get, set, update, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
-        // 1. Normalize Subject Slug so AIIMS Deoghar DGT1/DGM1 stay strictly isolated per subject & match MedPYQ
+        // 1. Normalize Subject Slug
         const SUBJECT_BRIDGE_MAP = {
             'psm': 'cfm',
             'cfm': 'cfm',
@@ -2624,7 +2663,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         const collegeCode = String(window.COLLEGE_CODE || 'deoghar').toLowerCase().trim();
         const subjectCodeUpper = String(window.SUBJECT_CODE || 'CFM').toUpperCase().trim();
 
-        // 2. Global State for Teen Patti & Cross-Exam Lookup
+        // 2. Global State
         window.MPP_state = {
             subjectSlug: activeSubjectSlug,
             overrideQid: null,
@@ -2641,6 +2680,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         window.MPP_nodeTopicsMap = {};
         window.MPP_crossLinksHistory = [];
         window.MPP_allExamLookup = {};
+        window.MPP_medpyqExplanations = {}; // Persistent store so onValue(answersRef) never wipes MedPYQ explanations
         window.MPP_questionEditsMap = {};
         window.MPP_undoStack = [];
         window.MPP_redoStack = [];
@@ -2648,7 +2688,62 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         window.MPP_longPressTriggered = false;
         window.MPP_editingAnchorQid = null;
 
-        // 3. Initialize Secondary Firebase App ("MedPYQBridge") for Cross-Project Admin Sync
+        // Helper: Normalize image URLs (handles Google Drive links, relative paths, and raw image URLs)
+        window.MPP_normalizeImgUrl = function(rawUrl) {
+            if (!rawUrl) return "";
+            let u = String(rawUrl).trim();
+            if (!u || u === "null" || u === "undefined") return "";
+            const gDriveMatch = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+            if (gDriveMatch) {
+                return `https://lh3.googleusercontent.com/d/${gDriveMatch[1]}`;
+            }
+            if (!/^https?:\/\//i.test(u) && !u.startsWith('data:')) {
+                u = 'https://medpyq.github.io/' + u.replace(/^\/+/, '');
+            }
+            return u;
+        };
+
+        // Helper: Extract first image URL from question object (checks qObj.img, qObj.image, or <img src="..."> in stem)
+        window.MPP_extractQuestionImage = function(qObj) {
+            if (!qObj) return "";
+            const directImg = qObj.img || qObj.image || qObj.q_img || qObj.imgUrl || "";
+            if (directImg && String(directImg).trim() !== "") {
+                return window.MPP_normalizeImgUrl(directImg);
+            }
+            if (qObj.stem) {
+                const m = String(qObj.stem).match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+                if (m && m[1]) return window.MPP_normalizeImgUrl(m[1]);
+            }
+            return "";
+        };
+
+        // Helper: Ensure stem HTML includes the question's image if stored separately in qObj.img
+        window.MPP_buildStemWithImage = function(stemHtml, imgUrl) {
+            let s = String(stemHtml || "");
+            const normImg = window.MPP_normalizeImgUrl(imgUrl);
+            if (normImg && !s.includes(normImg) && !/<img[^>]+src=/i.test(s)) {
+                s += `<div class="my-3 text-center"><img src="${normImg}" class="max-w-full max-h-72 w-auto h-auto mx-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-zoom-in" alt="Question Image"></div>`;
+            }
+            return s;
+        };
+
+        // Helper: Ensure explanation HTML/Markdown renders all embedded images, raw image URLs & ans_image
+        window.MPP_buildExplanationWithImages = function(rawExpl, item) {
+            let expl = String(rawExpl || "");
+            const extraImg = (item && (item.expl_img || item.explanation_img || item.ans_image)) ? window.MPP_normalizeImgUrl(item.expl_img || item.explanation_img || item.ans_image) : "";
+
+            // Convert bare image URLs (not already inside src="..." or markdown ![](...)) into <img> tags
+            expl = expl.replace(/(^|[\s>])(https?:\/\/[^\s<"')]+\.(?:png|jpe?g|webp|gif|svg)(?:\?[^\s<"')]*)?)/gi, (match, prefix, url) => {
+                return `${prefix}<div class="my-3 text-center"><img src="${url}" class="max-w-full max-h-80 w-auto h-auto mx-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-zoom-in" alt="Explanation Image"></div>`;
+            });
+
+            if (extraImg && !expl.includes(extraImg)) {
+                expl = `<div class="my-3 text-center"><img src="${extraImg}" class="max-w-full max-h-80 w-auto h-auto mx-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-zoom-in" alt="Explanation Image"></div>\n` + expl;
+            }
+            return expl;
+        };
+
+        // 3. Initialize Secondary Firebase App ("MedPYQBridge")
         const medpyqConfig = {
             apiKey: "AIzaSyAp8tKgVyc6PC-yt0Nv4nOOtH8B8jCaSYE",
             authDomain: "medpyq-elearning.firebaseapp.com",
@@ -2763,7 +2858,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return '#0ea5e9';                         // Sky Blue (AIIMS Profs PYQ)
         };
 
-        // 5. Preload MedPYQ 4 Exam Banks
+        // 5. Preload MedPYQ 4 Exam Banks (Preserving & Embedding Stem + Explanation Images)
         window.MPP_preloadMedPYQBanks = async function() {
             const pgExams = [
                 { key: 'neet-pg', prefix: 'N' },
@@ -2791,17 +2886,22 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                             if (item.year_paper) fullYear += " " + item.year_paper;
                             const ch = Array.isArray(item.topic) ? item.topic : [item.topic || item.subject || ex.toUpperCase()];
 
+                            const normImg = window.MPP_normalizeImgUrl(item.img || item.image || item.q_img || "");
+                            const enrichedStem = window.MPP_buildStemWithImage(item.stem || "", normImg);
+                            const enrichedExpl = window.MPP_buildExplanationWithImages(item.explanation || "", item);
+
                             const qRecord = {
                                 q: rawUid,
                                 uid: rawUid,
                                 type: 'MCQ',
-                                stem: item.stem || "",
+                                rawStem: item.stem || "",
+                                stem: enrichedStem,
                                 options: Array.isArray(item.options) ? item.options : ["Option A", "Option B", "Option C", "Option D"],
                                 ans_key: item.ans_key || "A",
                                 chapter: ch,
                                 examBatch: fullYear,
-                                explanation: item.explanation || "",
-                                img: item.img || null,
+                                explanation: enrichedExpl,
+                                img: normImg || null,
                                 examKey: ex,
                                 isMedPYQ: true
                             };
@@ -2810,10 +2910,14 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                             window.MPP_allExamLookup[prefixedAlias] = qRecord;
                             if (ex === 'inicet') window.MPP_allExamLookup[`INI${numPart}`] = qRecord;
 
-                            if (item.explanation) {
+                            if (enrichedExpl) {
+                                window.MPP_medpyqExplanations[up] = enrichedExpl;
+                                window.MPP_medpyqExplanations[prefixedAlias] = enrichedExpl;
+                                if (ex === 'inicet') window.MPP_medpyqExplanations[`INI${numPart}`] = enrichedExpl;
+
                                 if (!window.liveAnswers) window.liveAnswers = {};
-                                if (!window.liveAnswers[rawUid]) window.liveAnswers[rawUid] = { text: item.explanation };
-                                if (!window.liveAnswers[prefixedAlias]) window.liveAnswers[prefixedAlias] = { text: item.explanation };
+                                window.liveAnswers[rawUid] = { text: enrichedExpl };
+                                window.liveAnswers[prefixedAlias] = { text: enrichedExpl };
                             }
                         });
                     }
@@ -2833,11 +2937,14 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     const ovs = snap.val() || {};
                     Object.keys(ovs).forEach(upKey => {
                         if (window.MPP_allExamLookup[upKey]) {
-                            if (ovs[upKey].ans_key) window.MPP_allExamLookup[upKey].ans_key = ovs[upKey].ans_key;
+                            const rec = window.MPP_allExamLookup[upKey];
+                            if (ovs[upKey].ans_key) rec.ans_key = ovs[upKey].ans_key;
                             if (ovs[upKey].explanation !== undefined) {
-                                window.MPP_allExamLookup[upKey].explanation = ovs[upKey].explanation;
+                                const enriched = window.MPP_buildExplanationWithImages(ovs[upKey].explanation, rec);
+                                rec.explanation = enriched;
+                                window.MPP_medpyqExplanations[upKey] = enriched;
                                 if (!window.liveAnswers) window.liveAnswers = {};
-                                window.liveAnswers[window.MPP_allExamLookup[upKey].q] = { text: ovs[upKey].explanation };
+                                window.liveAnswers[rec.q] = { text: enriched };
                             }
                         }
                     });
@@ -2861,27 +2968,33 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const up = String(k).trim().toUpperCase();
                 const d = data[k];
                 if (d && !window.MPP_allExamLookup[up]) {
+                    const normImg = window.MPP_normalizeImgUrl(d.img || "");
+                    const enrichedStem = window.MPP_buildStemWithImage(d.stem || "", normImg);
+                    const enrichedExpl = window.MPP_buildExplanationWithImages(d.answer || "", d);
                     window.MPP_allExamLookup[up] = {
                         q: k,
                         uid: k,
                         type: d.type || "Theory",
-                        stem: d.stem || "",
+                        rawStem: d.stem || "",
+                        stem: enrichedStem,
                         options: d.options || null,
                         ans_key: d.ans_key || "",
                         chapter: Array.isArray(d.chapter) ? d.chapter : [d.chapter || "Clinical Case"],
                         examBatch: d.examBatch || "Clinical Wards",
-                        explanation: d.answer || "",
+                        explanation: enrichedExpl,
+                        img: normImg || null,
                         examKey: 'aiims-profs'
                     };
-                    if (d.answer && (!window.liveAnswers || !window.liveAnswers[k])) {
+                    if (enrichedExpl) {
+                        window.MPP_medpyqExplanations[up] = enrichedExpl;
                         if (!window.liveAnswers) window.liveAnswers = {};
-                        window.liveAnswers[k] = { text: d.answer };
+                        if (!window.liveAnswers[k]) window.liveAnswers[k] = { text: enrichedExpl };
                     }
                 }
             });
         });
 
-        // 6. Resolve Any QID
+        // 6. Resolve Any QID (Ensures stem image & explanation are always attached)
         window.MPP_resolveQuestionByQid = function(qid) {
             if (!qid) return null;
             const clean = String(qid).trim();
@@ -2890,9 +3003,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             if (Array.isArray(window.qnaData)) {
                 const localMatch = window.qnaData.find(x => x && String(x.q).trim().toUpperCase() === up);
                 if (localMatch) {
+                    if (localMatch.img && !localMatch._imgMerged) {
+                        localMatch.stem = window.MPP_buildStemWithImage(localMatch.stem, localMatch.img);
+                        localMatch._imgMerged = true;
+                    }
                     const ov = window.MPP_questionEditsMap[up];
                     if (ov) {
-                        if (ov.stem) localMatch.stem = ov.stem;
+                        if (ov.stem) localMatch.stem = window.MPP_buildStemWithImage(ov.stem, localMatch.img);
                         if (ov.ans_key) localMatch.ans_key = ov.ans_key;
                         if (Array.isArray(ov.options)) localMatch.options = ov.options;
                     }
@@ -2904,9 +3021,16 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const found = window.MPP_allExamLookup[up];
                 const ov = window.MPP_questionEditsMap[up];
                 if (ov) {
-                    if (ov.stem) found.stem = ov.stem;
+                    if (ov.stem) found.stem = window.MPP_buildStemWithImage(ov.stem, found.img);
                     if (ov.ans_key) found.ans_key = ov.ans_key;
                     if (Array.isArray(ov.options)) found.options = ov.options;
+                }
+                // Always restore explanation into window.liveAnswers in case onValue(answersRef) cleared it
+                const savedExpl = window.MPP_medpyqExplanations[up] || found.explanation;
+                if (savedExpl) {
+                    if (!window.liveAnswers) window.liveAnswers = {};
+                    window.liveAnswers[found.q] = { text: savedExpl };
+                    window.liveAnswers[clean] = { text: savedExpl };
                 }
                 return found;
             }
@@ -3025,10 +3149,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 if (ov) {
                     if (ov.ans_key) item.ans_key = ov.ans_key;
                     if (Array.isArray(ov.options) && ov.options.length > 0) item.options = [...ov.options];
-                    if (ov.stem) item.stem = ov.stem;
+                    if (ov.stem) item.stem = window.MPP_buildStemWithImage(ov.stem, item.img);
                     if (ov.explanation !== undefined) {
+                        const enriched = window.MPP_buildExplanationWithImages(ov.explanation, item);
+                        item.explanation = enriched;
+                        window.MPP_medpyqExplanations[up] = enriched;
                         if (!window.liveAnswers) window.liveAnswers = {};
-                        window.liveAnswers[item.q] = { text: ov.explanation };
+                        window.liveAnswers[item.q] = { text: enriched };
                     }
                 }
             };
@@ -3225,7 +3352,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             window.renderDeckCard();
         };
 
-        // 10. Teen Patti Fanned Card Deck Builder
+        // 10. Teen Patti Fanned Card Deck Builder (Renders Image Thumbnails Inside Cards!)
         window.MPP_stripHtml = function(htmlStr) {
             if (!htmlStr) return "";
             const tmp = document.createElement("div");
@@ -3291,8 +3418,14 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     zIdx = 100 - d;
                 }
 
-                const cleanStem = window.MPP_stripHtml(qObj.stem) || `Question ${displayQid}`;
+                const cleanStem = window.MPP_stripHtml(qObj.rawStem || qObj.stem) || `Question ${displayQid}`;
+                const cardImgUrl = window.MPP_extractQuestionImage(qObj);
                 const isMCQ = qObj.type === 'MCQ' && Array.isArray(qObj.options) && qObj.options.length > 0;
+
+                const thumbHtml = cardImgUrl
+                    ? `<div class="tp-patti-thumb-box"><img src="${cardImgUrl}" alt="Q Image"></div>`
+                    : '';
+                const stemClampLines = cardImgUrl ? 2 : 5;
 
                 let middleContentHtml = '';
                 if (isMCQ) {
@@ -3314,13 +3447,18 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         </div>`;
                     }).join('');
                 } else {
-                    const liveAnsText = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
-                        ? window.MPP_stripHtml(window.liveAnswers[qObj.q].text).slice(0, 140) + '...'
+                    const upKey = String(qObj.q).trim().toUpperCase();
+                    const rawAns = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
+                        || window.MPP_medpyqExplanations[upKey]
+                        || qObj.explanation
+                        || '';
+                    const liveAnsText = rawAns
+                        ? window.MPP_stripHtml(rawAns).slice(0, 140) + '...'
                         : 'Tap card to view full Theory question & model answer notes.';
                     middleContentHtml = `
                         <div style="padding:8px 10px; border-radius:8px; background:rgba(14,165,233,0.08); border:1px dashed ${cardColor}; font-size:10.5px; line-height:1.4; color:inherit;">
                             <div style="font-weight:800; color:${cardColor}; text-transform:uppercase; font-size:9.5px; margin-bottom:3px;">📝 Theory / SAQ-LAQ</div>
-                            <div style="opacity:0.85; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${liveAnsText}</div>
+                            <div style="opacity:0.85; display:-webkit-box; -webkit-line-clamp:${cardImgUrl ? 2 : 4}; -webkit-box-orient:vertical; overflow:hidden;">${liveAnsText}</div>
                         </div>`;
                 }
 
@@ -3369,7 +3507,8 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 <span class="tp-qid-badge" style="border-color:${cardColor}; color:${cardColor};">${displayQid}</span>
                             </div>
                             ${cleanTopicBadge}
-                            <div class="tp-center-stem">${cleanStem}</div>
+                            <div class="tp-center-stem" style="-webkit-line-clamp:${stemClampLines};">${cleanStem}</div>
+                            ${thumbHtml}
                         </div>
                         <div class="tp-center-opts">${middleContentHtml}</div>
                         <div class="tp-center-bottom">
@@ -3843,16 +3982,20 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     return el ? el.value.trim() : ((qObj.options && qObj.options[i]) || '');
                 })
                 : null;
-            const newExpl = document.getElementById('mpp-edit-expl-input')?.value ?? ((window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text) || '');
+            const upKey = String(qObj.q).trim().toUpperCase();
+            const newExpl = document.getElementById('mpp-edit-expl-input')?.value
+                ?? ((window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text) || window.MPP_medpyqExplanations[upKey] || '');
 
             const prevAnsKey = qObj.ans_key || '';
             const prevOptions = Array.isArray(qObj.options) ? [...qObj.options] : null;
-            const prevExpl = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text) || qObj.explanation || '';
+            const prevExpl = (window.liveAnswers && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
+                || window.MPP_medpyqExplanations[upKey]
+                || qObj.explanation
+                || '';
 
             const btn = document.getElementById('btn-mpp-save-qe');
             if (btn) { btn.innerText = "Saving Live..."; btn.disabled = true; }
 
-            const upKey = String(qObj.q).trim().toUpperCase();
             const examType = window.MPP_inferExamFromQid(qObj.q);
 
             const actionRecord = {
@@ -4015,6 +4158,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                             if (window.optionLetters[i] === c) b.classList.add('deck-opt-correct');
                         });
                     }
+                    // Automatically reveal the explanation panel (and its images) when an MCQ option is selected
+                    if (displayedQ) {
+                        const panel = document.getElementById(`deck-ans-panel-${displayedQ.q}`);
+                        if (panel && panel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
+                            window.toggleDeckAnswerPanel(displayedQ.q);
+                        }
+                    }
                 };
             }
 
@@ -4030,6 +4180,22 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     if (resolved) {
                         displayedQ = resolved;
                         window.activeDeckQuestions[window.deckIndex] = displayedQ;
+                    }
+                }
+
+                // Ensure any preloaded MedPYQ explanation (and its images) is in window.liveAnswers BEFORE origRenderDeckCard runs
+                if (displayedQ) {
+                    const upKey = String(displayedQ.q).trim().toUpperCase();
+                    const medExpl = window.MPP_medpyqExplanations[upKey] || displayedQ.explanation;
+                    if (medExpl) {
+                        if (!window.liveAnswers) window.liveAnswers = {};
+                        if (!window.liveAnswers[displayedQ.q] || !window.liveAnswers[displayedQ.q].text) {
+                            window.liveAnswers[displayedQ.q] = { text: medExpl };
+                        }
+                    }
+                    if (displayedQ.img && !displayedQ._imgMerged) {
+                        displayedQ.stem = window.MPP_buildStemWithImage(displayedQ.stem, displayedQ.img);
+                        displayedQ._imgMerged = true;
                     }
                 }
 
@@ -4112,7 +4278,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     scrollArea.insertAdjacentHTML('afterbegin', `<div class="mpp-topic-dims-bar">${pillsHtml}</div>`);
                 }
 
-                // Float Teen Patti directly on top of the card (unboxed, unclipped)
                 if (window.MPP_state.fanViewOpen) {
                     const stemBlockIndex = showTopicBar ? 1 : 0;
                     Array.from(scrollArea.children).forEach((child, idx) => {
@@ -4180,7 +4345,10 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     const rCount = (window.MPP_redoStack || []).length;
                     const isMCQ = displayedQ.type === 'MCQ';
                     const curKey = String(displayedQ.ans_key || 'A').trim().toUpperCase();
-                    const curExpl = (window.liveAnswers && window.liveAnswers[displayedQ.q] && window.liveAnswers[displayedQ.q].text) || displayedQ.explanation || '';
+                    const curExpl = (window.liveAnswers && window.liveAnswers[displayedQ.q] && window.liveAnswers[displayedQ.q].text)
+                        || window.MPP_medpyqExplanations[curUpper]
+                        || displayedQ.explanation
+                        || '';
                     const safeExpl = curExpl.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
                     let mcqEditorFieldsHtml = '';
@@ -4257,4 +4425,4 @@ if ('serviceWorker' in navigator) {
                 console.log('ServiceWorker registration failed: ', error);
             });
     });
-                }
+            }

@@ -2562,14 +2562,15 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             activeTopicSlug: null,
             adminTopFilter: 'all',
             fanPosMap: {},
-            medpyqConnected: false
+            medpyqConnected: false,
+            banksPreloaded: false
         };
         window.MPP_overrideQObj = null;
         window.MPP_crossLinksMap = {};
         window.MPP_crossClustersMap = {};
         window.MPP_nodeTopicsMap = {};
         window.MPP_crossLinksHistory = [];
-        window.MPP_allExamLookup = {}; // Stores MedPYQ + Clinical questions keyed by UPPER QID
+        window.MPP_allExamLookup = {};
         window.MPP_questionEditsMap = {};
         window.MPP_undoStack = [];
         window.MPP_redoStack = [];
@@ -2598,69 +2599,85 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             const badge = document.getElementById('mpp-bridge-status-badge');
             if (!badge) return;
             if (window.MPP_state.medpyqConnected) {
+                const count = Object.keys(window.MPP_allExamLookup || {}).length;
                 badge.className = "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full cursor-pointer bg-emerald-100 text-emerald-700 border border-emerald-300";
-                badge.innerHTML = "🟢 MedPYQ Connected";
+                badge.innerHTML = `🟢 MedPYQ Synced (${count} Qs)`;
             } else {
-                badge.className = "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full cursor-pointer bg-amber-100 text-amber-700 border border-amber-300";
-                badge.innerHTML = "⚡ Connect MedPYQ Bridge";
+                badge.className = "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full cursor-pointer bg-amber-100 text-amber-700 border border-amber-300 animate-pulse";
+                badge.innerHTML = "⚡ Tap to Connect MedPYQ Bridge";
             }
         };
 
         window.MPP_promptBridgeAuth = async function() {
             if (!window.isUserAdmin()) return;
             const defaultEmail = (window.currentUserObj && window.currentUserObj.email) ? window.currentUserObj.email : "educateindiainstitute@gmail.com";
-            const email = prompt("MedPYQ Admin Email (for cross-project NEET-PG/INI-CET/CMS/FMGE sync):", defaultEmail);
+            const email = prompt("MedPYQ Admin Email (for NEET-PG / INI-CET / CMS / FMGE sync):", defaultEmail);
             if (!email) return;
-            const pass = prompt(`Enter password for ${email} on MedPYQ (saved locally so you only do this once):`);
+            const pass = prompt(`Enter your MedPYQ password for ${email} (saved locally so it auto-connects next time):`);
             if (!pass) return;
             try {
                 await signInWithEmailAndPassword(medpyqAuth, email.trim(), pass);
                 localStorage.setItem('medpyq_bridge_creds', JSON.stringify({ e: email.trim(), p: pass }));
                 window.MPP_state.medpyqConnected = true;
-                window.MPP_updateBridgeBadgeUI();
+                window.MPP_state.banksPreloaded = false;
                 await window.MPP_preloadMedPYQBanks();
-                alert("MedPYQ Bridge connected! All 4 PG exam banks are now synced.");
+                window.MPP_updateBridgeBadgeUI();
+                alert(`MedPYQ Bridge connected! Loaded ${Object.keys(window.MPP_allExamLookup).length} cross-exam questions for ${activeSubjectSlug.toUpperCase()}.`);
             } catch (e) {
                 alert("MedPYQ Bridge login failed: " + e.message);
             }
         };
 
-        // Auto-authenticate MedPYQBridge for Admin in background
+        // Helper to trigger MedPYQ bank preloading as soon as BOTH profsAuth (Admin) and medpyqAuth are ready
+        const tryConnectAndPreloadMedPYQ = async () => {
+            if (!window.isUserAdmin()) return;
+
+            if (medpyqAuth.currentUser) {
+                window.MPP_state.medpyqConnected = true;
+                window.MPP_updateBridgeBadgeUI();
+                if (!window.MPP_state.banksPreloaded) {
+                    await window.MPP_preloadMedPYQBanks();
+                }
+            } else {
+                try {
+                    const cached = JSON.parse(localStorage.getItem('medpyq_bridge_creds') || 'null');
+                    if (cached && cached.e && cached.p) {
+                        await signInWithEmailAndPassword(medpyqAuth, cached.e, cached.p);
+                    } else {
+                        // Also try fetching directly in case public read is enabled
+                        await window.MPP_preloadMedPYQBanks();
+                    }
+                } catch (e) {
+                    console.warn("MedPYQ Bridge awaiting one-time password connect:", e.message);
+                }
+            }
+        };
+
         onAuthStateChanged(medpyqAuth, (mUser) => {
             if (mUser) {
                 window.MPP_state.medpyqConnected = true;
                 window.MPP_updateBridgeBadgeUI();
-                if (window.isUserAdmin()) {
-                    window.MPP_preloadMedPYQBanks();
-                }
-            } else if (window.isUserAdmin()) {
-                try {
-                    const cached = JSON.parse(localStorage.getItem('medpyq_bridge_creds') || 'null');
-                    if (cached && cached.e && cached.p) {
-                        signInWithEmailAndPassword(medpyqAuth, cached.e, cached.p).catch(() => {});
-                    }
-                } catch (e) {}
+                tryConnectAndPreloadMedPYQ();
+            }
+        });
+
+        onAuthStateChanged(profsAuth, (pUser) => {
+            window.currentUserObj = pUser;
+            if (window.isUserAdmin(pUser)) {
+                tryConnectAndPreloadMedPYQ();
             }
         });
 
         // 4. Exam Classifier & 5-Deck Color Coding
-        // AIIMS Profs (#0ea5e9 Sky), NEET-PG (#2563eb Blue), INI-CET (#9333ea Purple), CMS (#eab308 Gold), FMGE (#22c55e Green)
         window.MPP_inferExamFromQid = function(qid) {
             if (!qid) return 'aiims-profs';
             const clean = String(qid).trim().toUpperCase();
 
-            // Check if it exists in current page's AIIMS qnaData
             if (Array.isArray(window.qnaData) && window.qnaData.some(x => x && String(x.q).trim().toUpperCase() === clean)) {
                 return 'aiims-profs';
             }
             if (window.MPP_allExamLookup[clean] && window.MPP_allExamLookup[clean].examKey) {
                 return window.MPP_allExamLookup[clean].examKey;
-            }
-            if (/^[A-Z]{2,4}[TM]\d+/i.test(clean) || clean.includes('-')) {
-                // Matches AIIMS codes like DGT1, DGM1, KLT1, DLT1, CFM-001
-                if (!clean.startsWith('INI') && !clean.startsWith('CMS') && !clean.startsWith('FMGE')) {
-                    return 'aiims-profs';
-                }
             }
             if (clean.startsWith('INI') || clean.startsWith('IN')) return 'inicet';
             if (clean.startsWith('CMS') || clean.startsWith('UPSC')) return 'upsc-cms';
@@ -2678,25 +2695,37 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return '#0ea5e9';                         // Sky Blue (AIIMS Profs PYQ)
         };
 
-        // 5. Preload MedPYQ 4 Exam Banks + Same-Subject Clinical Cases for Seamless Resolution
+        // 5. Preload MedPYQ 4 Exam Banks (Indexes both exact QID and N/IN/CMS/F prefixed aliases)
         window.MPP_preloadMedPYQBanks = async function() {
-            if (!window.isUserAdmin()) return;
-            const pgExams = ['neet-pg', 'inicet', 'upsc-cms', 'fmge'];
-            await Promise.all(pgExams.map(async (ex) => {
+            const pgExams = [
+                { key: 'neet-pg', prefix: 'N' },
+                { key: 'inicet', prefix: 'IN' },
+                { key: 'upsc-cms', prefix: 'CMS' },
+                { key: 'fmge', prefix: 'F' }
+            ];
+
+            let loadedAny = false;
+            await Promise.all(pgExams.map(async ({ key: ex, prefix }) => {
                 try {
                     const snap = await get(ref(medpyqDb, `question_banks/${ex}/${activeSubjectSlug}`));
                     if (snap.exists()) {
+                        loadedAny = true;
                         const raw = snap.val();
                         const arr = (Array.isArray(raw) ? raw : Object.values(raw)).filter(Boolean);
                         arr.forEach((item, idx) => {
-                            const uid = String(item.q || ("Q" + idx)).trim();
-                            const up = uid.toUpperCase();
+                            const rawUid = String(item.q || `${prefix}${idx + 1}`).trim();
+                            const up = rawUid.toUpperCase();
+                            const numMatch = up.match(/(\d+)$/);
+                            const numPart = numMatch ? numMatch[1] : String(idx + 1);
+                            const prefixedAlias = `${prefix}${numPart}`;
+
                             let fullYear = item.exam || ex.toUpperCase();
                             if (item.year_paper) fullYear += " " + item.year_paper;
                             const ch = Array.isArray(item.topic) ? item.topic : [item.topic || item.subject || ex.toUpperCase()];
-                            window.MPP_allExamLookup[up] = {
-                                q: uid,
-                                uid: uid,
+
+                            const qRecord = {
+                                q: rawUid,
+                                uid: rawUid,
                                 type: 'MCQ',
                                 stem: item.stem || "",
                                 options: Array.isArray(item.options) ? item.options : ["Option A", "Option B", "Option C", "Option D"],
@@ -2708,16 +2737,31 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 examKey: ex,
                                 isMedPYQ: true
                             };
-                            if (item.explanation && (!window.liveAnswers || !window.liveAnswers[uid])) {
+
+                            // Index by exact ID (e.g. N27) AND by prefixed number (e.g. N27, INI27) so lookup never misses
+                            window.MPP_allExamLookup[up] = qRecord;
+                            window.MPP_allExamLookup[prefixedAlias] = qRecord;
+                            if (ex === 'inicet') window.MPP_allExamLookup[`INI${numPart}`] = qRecord;
+
+                            if (item.explanation) {
                                 if (!window.liveAnswers) window.liveAnswers = {};
-                                window.liveAnswers[uid] = { text: item.explanation };
+                                if (!window.liveAnswers[rawUid]) window.liveAnswers[rawUid] = { text: item.explanation };
+                                if (!window.liveAnswers[prefixedAlias]) window.liveAnswers[prefixedAlias] = { text: item.explanation };
                             }
                         });
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.warn(`MedPYQ preload (${ex}/${activeSubjectSlug}):`, e.message);
+                }
             }));
 
-            // Also subscribe to MedPYQ question_edits for this subject
+            if (loadedAny) {
+                window.MPP_state.banksPreloaded = true;
+                window.MPP_state.medpyqConnected = true;
+            }
+            window.MPP_updateBridgeBadgeUI();
+
+            // Subscribe to MedPYQ question_edits for this subject
             try {
                 onValue(ref(medpyqDb, `question_edits/${activeSubjectSlug}/overrides`), (snap) => {
                     const ovs = snap.val() || {};
@@ -2734,12 +2778,19 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 });
             } catch (e) {}
 
+            // Subscribe to MedPYQ cross_links for this subject now that auth is ready
+            try {
+                onValue(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), (snap) => {
+                    if (snap.exists()) ingestCrossLinksData(snap.val());
+                });
+            } catch (e) {}
+
             if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
                 window.renderDeckCard();
             }
         };
 
-        // Also preload same-subject Clinical Cases from profsDb so Review <-> Clinical links work
+        // Also preload same-subject Clinical Cases from profsDb
         onValue(ref(profsDb, `clinical_data/${collegeCode}/${subjectCodeUpper}`), (snap) => {
             const data = snap.val() || {};
             Object.keys(data).forEach(k => {
@@ -2766,13 +2817,12 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             });
         });
 
-        // 6. Resolve Any QID (Subject-Isolated Local AIIMS JSON -> MedPYQ Lookup -> Fallback)
+        // 6. Resolve Any QID (Subject-Isolated Local AIIMS JSON -> MedPYQ Lookup -> Auto-Preload Retry)
         window.MPP_resolveQuestionByQid = function(qid) {
             if (!qid) return null;
             const clean = String(qid).trim();
             const up = clean.toUpperCase();
 
-            // 1. Check current subject's local qnaData first (ensures ENT DGT1/DGM1 is strictly ENT's question)
             if (Array.isArray(window.qnaData)) {
                 const localMatch = window.qnaData.find(x => x && String(x.q).trim().toUpperCase() === up);
                 if (localMatch) {
@@ -2786,7 +2836,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 }
             }
 
-            // 2. Check cross-exam & clinical lookup
             if (window.MPP_allExamLookup[up]) {
                 const found = window.MPP_allExamLookup[up];
                 const ov = window.MPP_questionEditsMap[up];
@@ -2798,22 +2847,28 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 return found;
             }
 
-            // 3. Fallback placeholder
+            // If Admin hasn't preloaded MedPYQ banks yet, trigger background preload automatically
+            if (window.isUserAdmin() && !window.MPP_state.banksPreloaded) {
+                tryConnectAndPreloadMedPYQ();
+            }
+
             const guessedExam = window.MPP_inferExamFromQid(clean);
             return {
                 q: clean,
                 uid: clean,
                 type: 'MCQ',
-                stem: `Linked Question (${clean})`,
+                stem: window.MPP_state.medpyqConnected
+                    ? `Question ${clean} not found in ${activeSubjectSlug.toUpperCase()} (${guessedExam.toUpperCase()}).`
+                    : `Tap "⚡ Connect MedPYQ Bridge" inside the Admin Linker (long-press pill) to load ${clean} from MedPYQ.`,
                 options: ["Option A", "Option B", "Option C", "Option D"],
                 ans_key: "A",
-                chapter: ["Linked Sub-Topic"],
+                chapter: ["MedPYQ Cross-Link"],
                 examBatch: guessedExam.toUpperCase(),
                 examKey: guessedExam
             };
         };
 
-        // 7. Subscribe to Subject-Partitioned Cross-Links & Real-Time Question Edits in profsDb
+        // 7. Subscribe to Subject-Partitioned Cross-Links & Real-Time Question Edits
         window.MPP_makeTopicSlug = function(rawTitle, fallbackSeedQid) {
             const clean = String(rawTitle || '').trim();
             if (!clean || clean.toLowerCase() === 'linked concept') {
@@ -2823,7 +2878,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return 'topic-' + clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         };
 
-        const ingestCrossLinksData = (val) => {
+        function ingestCrossLinksData(val) {
             if (!val) return;
             const rawNodes = val.nodes || {};
             const normNodes = {};
@@ -2889,19 +2944,12 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
                 window.renderDeckCard();
             }
-        };
+        }
 
-        // Listen to MBBS Profs Prep cross_links/${activeSubjectSlug} (Accessible to ALL students & Admin)
         onValue(ref(profsDb, `cross_links/${activeSubjectSlug}`), (snap) => {
             if (snap.exists()) ingestCrossLinksData(snap.val());
         });
 
-        // Also listen to MedPYQ cross_links/${activeSubjectSlug} when Admin is connected
-        onValue(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), (snap) => {
-            if (snap.exists()) ingestCrossLinksData(snap.val());
-        });
-
-        // Listen to Real-Time Question Edits (MCQ options, ans_key, stem, explanation + 10 Undo/Redo)
         window.MPP_applyOverrideToMemory = function(qid, ov) {
             if (!qid) return;
             const up = String(qid).trim().toUpperCase();
@@ -2951,7 +2999,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
         });
 
-        // Re-apply overrides whenever fetchQuestions finishes loading the static JSON file
         const origProcessData = window.processDataForAccess;
         if (typeof origProcessData === 'function') {
             window.processDataForAccess = function() {
@@ -2962,7 +3009,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             };
         }
 
-        // 8. Multi-Dimensional Sub-Topic Sequence Filtering (Normal Users = AIIMS PYQs only; Admin = All 5 Exams)
+        // 8. Multi-Dimensional Sub-Topic Sequence Filtering
         window.MPP_filterSequenceByRole = function(rawSeq, fallbackQid, examFilterOverride = null) {
             const cleanFallback = String(fallbackQid || '').trim();
             if (!Array.isArray(rawSeq) || rawSeq.length === 0) {
@@ -2970,13 +3017,11 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
             const list = [...rawSeq];
 
-            // Normal Users on MBBS Profs Prep ONLY see AIIMS Profs PYQs (DGT, DGM, Clinical)
             if (!window.isUserAdmin()) {
                 const aiimsOnly = list.filter(qid => window.MPP_inferExamFromQid(qid) === 'aiims-profs');
                 return aiimsOnly.length > 0 ? aiimsOnly : (cleanFallback ? [cleanFallback] : []);
             }
 
-            // Admin User: filter if an exam switcher button is active
             if (examFilterOverride && examFilterOverride !== 'all') {
                 return list.filter(qid => window.MPP_inferExamFromQid(qid) === examFilterOverride);
             }
@@ -2993,7 +3038,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const slugs = window.MPP_nodeTopicsMap[up] || [];
                 slugs.forEach(s => {
                     if (!seenSlugs.has(s) && window.MPP_crossClustersMap[s]) {
-                        // For normal users, only include topics that have at least 1 AIIMS question
                         const c = window.MPP_crossClustersMap[s];
                         if (!window.isUserAdmin()) {
                             const hasAiims = (c.qids || []).some(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
@@ -3047,7 +3091,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return { anchorQ, displayedQ };
         };
 
-        // 9. Pill Navigation (< and >), Topic Switcher & Long-Press Handlers
+        // 9. Pill Navigation, Topic Switcher & Long-Press Handlers
         window.MPP_stepCluster = function(delta, event) {
             if (event) { event.stopPropagation(); event.preventDefault(); }
             if (window.MPP_longPressTriggered) { window.MPP_longPressTriggered = false; return; }
@@ -3118,7 +3162,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             window.renderDeckCard();
         };
 
-        // 10. Teen Patti Fanned Card Deck Builder (Supports both AIIMS Theory SAQ/LAQ & 4-Option MCQs)
+        // 10. Teen Patti Fanned Card Deck Builder
         window.MPP_stripHtml = function(htmlStr) {
             if (!htmlStr) return "";
             const tmp = document.createElement("div");
@@ -3159,8 +3203,9 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             let cardsHtml = '';
             qidList.forEach((qid, idx) => {
                 const qObj = window.MPP_resolveQuestionByQid(qid);
+                const displayQid = String(qid).trim();
                 const cardColor = (!borderColor || borderColor === 'auto')
-                    ? window.MPP_getExamBorderColor(qObj.q)
+                    ? window.MPP_getExamBorderColor(displayQid)
                     : borderColor;
 
                 const offset = idx - safeActivePos;
@@ -3183,7 +3228,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     zIdx = 100 - d;
                 }
 
-                const cleanStem = window.MPP_stripHtml(qObj.stem) || `Question ${qObj.q}`;
+                const cleanStem = window.MPP_stripHtml(qObj.stem) || `Question ${displayQid}`;
                 const isMCQ = qObj.type === 'MCQ' && Array.isArray(qObj.options) && qObj.options.length > 0;
 
                 let middleContentHtml = '';
@@ -3221,7 +3266,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const leftWingHtml = offset < 0 ? `
                     <div class="tp-wing-strip left">
                         <div class="tp-wing-seq">${idx + 1}/${total}</div>
-                        <div class="tp-wing-uid" style="color:${cardColor};">${qObj.q}</div>
+                        <div class="tp-wing-uid" style="color:${cardColor};">${displayQid}</div>
                         <div class="tp-wing-lines">
                             <div class="tp-wing-line"></div>
                             <div class="tp-wing-line" style="width:75%;"></div>
@@ -3235,7 +3280,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const rightWingHtml = offset > 0 ? `
                     <div class="tp-wing-strip right">
                         <div class="tp-wing-seq">${idx + 1}/${total}</div>
-                        <div class="tp-wing-uid" style="color:${cardColor};">${qObj.q}</div>
+                        <div class="tp-wing-uid" style="color:${cardColor};">${displayQid}</div>
                         <div class="tp-wing-lines" style="align-items:flex-end;">
                             <div class="tp-wing-line"></div>
                             <div class="tp-wing-line" style="width:75%;"></div>
@@ -3248,7 +3293,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
                 cardsHtml += `
                 <div class="tp-patti"
-                     data-qid="${qObj.q}"
+                     data-qid="${displayQid}"
                      data-idx="${idx}"
                      data-card-color="${cardColor}"
                      style="--tp-border-color: ${cardColor}; border-color: ${cardColor}; transform: ${transformRule}; z-index: ${zIdx};">
@@ -3258,7 +3303,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         <div>
                             <div class="tp-center-top">
                                 <span class="tp-seq-badge" style="background:${cardColor};">${idx + 1}/${total}</span>
-                                <span class="tp-qid-badge" style="border-color:${cardColor}; color:${cardColor};">${qObj.q}</span>
+                                <span class="tp-qid-badge" style="border-color:${cardColor}; color:${cardColor};">${displayQid}</span>
                             </div>
                             ${cleanTopicBadge}
                             <div class="tp-center-stem">${cleanStem}</div>
@@ -3659,7 +3704,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             btn.disabled = true;
 
             try {
-                // Dual-Write to BOTH MBBS Profs Prep Firebase and MedPYQ Firebase!
                 await update(ref(profsDb, `cross_links/${activeSubjectSlug}`), updates);
                 if (window.MPP_state.medpyqConnected) {
                     await update(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), updates).catch(() => {});
@@ -3709,7 +3753,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             }
         };
 
-        // 12. Real-Time Admin MCQ Option, Key & Explanation Editor (with 10 Undo / 10 Redo)
+        // 12. Real-Time Admin MCQ Option, Key & Explanation Editor
         window.MPP_toggleInlineEditor = function() {
             const box = document.getElementById('mpp-inline-rt-editor');
             if (box) box.classList.toggle('hidden');
@@ -3775,7 +3819,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             try {
                 window.MPP_applyOverrideToMemory(upKey, overridePayload);
 
-                // Save to MBBS Profs Prep Firebase
                 await update(ref(profsDb, `question_edits/${collegeCode}/${subjectCodeUpper}`), {
                     [`overrides/${upKey}`]: overridePayload,
                     undoStack: newUndoStack,
@@ -3789,7 +3832,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         updatedBy: window.currentUserObj.email
                     });
                 } else if (window.MPP_state.medpyqConnected) {
-                    // Also sync to MedPYQ Firebase if editing an N / IN / CMS / F card!
                     await update(ref(medpyqDb, `question_edits/${activeSubjectSlug}`), {
                         [`overrides/${upKey}`]: overridePayload
                     }).catch(() => {});
@@ -3868,7 +3910,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             if (rBtn) { rBtn.disabled = rCount === 0; rBtn.innerHTML = `↪️ Redo (${rCount}/10)`; }
         };
 
-        // 13. Hook Deck Navigation & Wrap renderDeckCard to Inject < 1/16 > Pill, Teen Patti Overlay & Live Editor
+        // 13. Hook Deck Navigation & Wrap renderDeckCard
         const hookDeckFunctions = () => {
             if (typeof window.renderDeckCard !== 'function' || window.MPP_deckHooked) return;
             window.MPP_deckHooked = true;
@@ -3915,7 +3957,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
             const origRenderDeckCard = window.renderDeckCard;
             window.renderDeckCard = function() {
-                // If an override QID (linked sub-topic question) is active, temporarily swap it into activeDeckQuestions[deckIndex]
                 const anchorQ = (window.activeDeckQuestions && window.activeDeckQuestions.length > 0)
                     ? window.activeDeckQuestions[window.deckIndex]
                     : null;
@@ -3929,10 +3970,8 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     }
                 }
 
-                // Run the page's native renderDeckCard() so 100% of existing layout, dark mode, Panzoom & markdown stay untouched
                 origRenderDeckCard.apply(this, arguments);
 
-                // Restore anchorQ in activeDeckQuestions array so main chapter sequence is never mutated
                 if (anchorQ && displayedQ !== anchorQ) {
                     window.activeDeckQuestions[window.deckIndex] = anchorQ;
                 }
@@ -3959,7 +3998,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const totalInCluster = Math.max(1, clusterSeq.length);
                 const pillCenterLabel = `${Math.min(clusterPos + 1, totalInCluster)}/${totalInCluster}`;
 
-                // A. Inject < 1/16 > Pill right next to the QID badge in the top row of .deck-card
                 const headerRow = deckCard.firstElementChild;
                 const qBadge = headerRow ? headerRow.querySelector('span') : null;
                 if (headerRow && qBadge && !headerRow.querySelector('.mpp-cluster-pill')) {
@@ -3968,7 +4006,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     qBadge.parentNode.insertBefore(leftWrap, qBadge);
                     leftWrap.appendChild(qBadge);
 
-                    // Show anchor index + displayed QID if stepping through a linked card
                     if (displayedQ.q !== anchorQ.q) {
                         qBadge.innerHTML = `${anchorQ.q} <span class="opacity-70">→</span> ${displayedQ.q}`;
                     }
@@ -3988,7 +4025,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     leftWrap.insertAdjacentHTML('beforeend', pillHtml);
                 }
 
-                // B. Inject Multi-Dimensional Sub-Topic Switcher Bar & Superimposed Teen Patti Overlay inside the scrollable middle area
                 const scrollArea = deckCard.children[1];
                 if (!scrollArea) return;
 
@@ -4009,10 +4045,8 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     scrollArea.insertAdjacentHTML('afterbegin', `<div class="mpp-topic-dims-bar">${pillsHtml}</div>`);
                 }
 
-                // C. Superimpose Teen Patti Fanned Deck over the parent question's body/options while keeping parent question visible in background
                 if (window.MPP_state.fanViewOpen) {
                     Array.from(scrollArea.children).forEach((child, idx) => {
-                        // Keep the first question stem block and topic bar visible at top, dim the options/body underneath
                         if (idx > (showTopicBar ? 1 : 0)) {
                             child.classList.add('mpp-body-under-fan');
                         }
@@ -4045,23 +4079,18 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 <span style="font-size:11px; font-weight:900; color:#ea580c;">&rarr;</span>
                             </div>
 
-                            <!-- 1. AIIMS PROFS PYQ Deck (Sky Blue #0ea5e9) -->
                             ${window.MPP_buildFanDeckHTML('admin-aiims', aiimsSeq, '#0ea5e9', window.MPP_state.fanPosMap['admin-aiims'] ?? 0, activeTopicTitle)}
                             <div class="tp-exam-label-box">AIIMS PROFS PYQ</div>
 
-                            <!-- 2. NEETPG Deck (Blue #2563eb) -->
                             ${window.MPP_buildFanDeckHTML('admin-neet-pg', neetSeq, '#2563eb', window.MPP_state.fanPosMap['admin-neet-pg'] ?? 0, activeTopicTitle)}
                             <div class="tp-exam-label-box">NEETPG</div>
 
-                            <!-- 3. INICET Deck (Purple #9333ea) -->
                             ${window.MPP_buildFanDeckHTML('admin-inicet', iniSeq, '#9333ea', window.MPP_state.fanPosMap['admin-inicet'] ?? 0, activeTopicTitle)}
                             <div class="tp-exam-label-box">INICET</div>
 
-                            <!-- 4. CMS Deck (Yellow/Gold #eab308) -->
                             ${window.MPP_buildFanDeckHTML('admin-upsc-cms', cmsSeq, '#eab308', window.MPP_state.fanPosMap['admin-upsc-cms'] ?? 0, activeTopicTitle)}
                             <div class="tp-exam-label-box">CMS</div>
 
-                            <!-- 5. FMGE Deck (Green #22c55e) -->
                             ${window.MPP_buildFanDeckHTML('admin-fmge', fmgeSeq, '#22c55e', window.MPP_state.fanPosMap['admin-fmge'] ?? 0, activeTopicTitle)}
                             <div class="tp-exam-label-box">FMGE</div>
                         </div>`;
@@ -4077,7 +4106,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     window.MPP_attachFanInteractions();
                 }
 
-                // D. Inject Admin Real-Time MCQ Options, Key & Explanation Toolbar (with 10 Undo / 10 Redo)
                 if (isAdmin) {
                     const uCount = (window.MPP_undoStack || []).length;
                     const rCount = (window.MPP_redoStack || []).length;
@@ -4160,4 +4188,4 @@ if ('serviceWorker' in navigator) {
                 console.log('ServiceWorker registration failed: ', error);
             });
     });
-                                         }
+                                              }

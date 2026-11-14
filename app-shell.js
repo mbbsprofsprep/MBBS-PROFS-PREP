@@ -5553,9 +5553,9 @@ if ('serviceWorker' in navigator) {
                 let maxT = 0, maxM = 0;
                 let prefixT = "DGT", prefixM = "DGM";
                 finalQna.forEach(item => {
-                    const mT = String(item.q).match(/^([A-Z]+T)(\d+)$/i);
+                    const mT = String(item.q).match(/^([A-Z]*T)(\d+)$/i);
                     if (mT) { prefixT = mT[1].toUpperCase(); maxT = Math.max(maxT, parseInt(mT[2], 10)); }
-                    const mM = String(item.q).match(/^([A-Z]+M)(\d+)$/i);
+                    const mM = String(item.q).match(/^([A-Z]*M)(\d+)$/i);
                     if (mM) { prefixM = mM[1].toUpperCase(); maxM = Math.max(maxM, parseInt(mM[2], 10)); }
                 });
 

@@ -6435,3 +6435,122 @@ STRICT OUTPUT FORMAT RULES:
         window.MPP_mountAIScannerUI();
     }
 })();
+/* ============================================================================
+   SECTION 18C: LONG-TAP SELECT & DELETE FROM DECK
+   ============================================================================ */
+
+(function () {
+    let isSelectMode = false;
+    let selectedQuestionIds = new Set();
+
+    // 1. Toggle Selection Mode on Long Tap (Hold card for 500ms)
+    window.MPP_initCardLongPress = function () {
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        // Also support right-click / context menu on desktop
+        document.addEventListener('contextmenu', (e) => {
+            const card = e.target.closest('.question-card, [data-qid]');
+            if (card) {
+                e.preventDefault();
+                const qId = card.getAttribute('data-qid') || card.dataset.qId;
+                if (qId) window.MPP_toggleCardSelection(qId, card);
+            }
+        });
+    };
+
+    let touchTimer = null;
+    let touchedCard = null;
+
+    function handleTouchStart(e) {
+        const card = e.target.closest('.question-card, [data-qid]');
+        if (!card) return;
+        touchedCard = card;
+        touchTimer = setTimeout(() => {
+            const qId = card.getAttribute('data-qid') || card.dataset.qId;
+            if (qId) {
+                window.MPP_toggleCardSelection(qId, card);
+                if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
+            }
+        }, 500); // 500ms long hold
+    }
+
+    function handleTouchEnd() {
+        if (touchTimer) clearTimeout(touchTimer);
+        touchTimer = null;
+    }
+
+    // 2. Select / Deselect a Card
+    window.MPP_toggleCardSelection = function (qId, cardElement) {
+        isSelectMode = true;
+        if (selectedQuestionIds.has(qId)) {
+            selectedQuestionIds.delete(qId);
+            if (cardElement) cardElement.style.border = '';
+        } else {
+            selectedQuestionIds.add(qId);
+            if (cardElement) cardElement.style.border = '3px solid #ef4444'; // Red border for selected
+        }
+        window.MPP_renderBulkDeleteBar();
+    };
+
+    // 3. Floating Action Bar for Deleting Selected Questions
+    window.MPP_renderBulkDeleteBar = function () {
+        let bar = document.getElementById('mpp-bulk-delete-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'mpp-bulk-delete-bar';
+            bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.5);display:flex;align-items:center;gap:15px;z-index:99999;border:1px solid #ef4444;font-size:13px;';
+            document.body.appendChild(bar);
+        }
+
+        if (selectedQuestionIds.size === 0) {
+            bar.style.display = 'none';
+            isSelectMode = false;
+            return;
+        }
+
+        bar.style.display = 'flex';
+        bar.innerHTML = `
+            <div>🗑️ <b>${selectedQuestionIds.size}</b> question(s) selected</div>
+            <button onclick="window.MPP_confirmBulkDelete()" style="background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-weight:700;cursor:pointer;">Delete Selected</button>
+            <button onclick="window.MPP_cancelBulkDelete()" style="background:#334155;color:#cbd5e1;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;">Cancel</button>
+        `;
+    };
+
+    window.MPP_cancelBulkDelete = function () {
+        selectedQuestionIds.clear();
+        isSelectMode = false;
+        document.querySelectorAll('.question-card, [data-qid]').forEach(c => c.style.border = '');
+        window.MPP_renderBulkDeleteBar();
+    };
+
+    // 4. Delete from Array & Firebase
+    window.MPP_confirmBulkDelete = async function () {
+        if (!confirm(`Are you sure you want to delete ${selectedQuestionIds.size} selected question(s)?`)) return;
+
+        window.qnaData = (Array.isArray(window.qnaData) ? window.qnaData : []).filter(q => !selectedQuestionIds.has(String(q.q)));
+
+        if (window.firebase && window.firebase.database) {
+            try {
+                const path = `question_banks/${window.currentCollege || 'deoghar'}/${window.currentSubjectKey || 'FMT'}`;
+                // Convert array back to object/array map for Firebase
+                await firebase.database().ref(path).set(window.qnaData);
+                alert('✅ Successfully deleted from Firebase!');
+            } catch (err) {
+                alert('❌ Firebase delete error: ' + err.message);
+            }
+        }
+
+        selectedQuestionIds.clear();
+        isSelectMode = false;
+        window.MPP_renderBulkDeleteBar();
+        if (typeof window.renderQuestions === 'function') window.renderQuestions();
+        else location.reload();
+    };
+
+    // Initialize long-tap listener on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.MPP_initCardLongPress);
+    } else {
+        window.MPP_initCardLongPress();
+    }
+})();

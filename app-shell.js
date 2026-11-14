@@ -4426,3 +4426,488 @@ if ('serviceWorker' in navigator) {
             });
     });
             }
+// ====================================================
+// 17. FIREBASE JSON VAULT, INDEXEDDB VERSION CACHE & BULK ADMIN MIGRATOR
+// ====================================================
+(function initFirebaseCloudVault() {
+    // 1. Inject Admin Cloud Vault Modal HTML
+    const vaultModalHTML = `
+    <div id="mpp-cloud-vault-modal" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[33000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] text-left">
+            <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>☁️</span> Firebase JSON Cloud Vault
+                    </h3>
+                    <p id="mpp-vault-status-sub" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 mt-0.5">Checking cloud status...</p>
+                </div>
+                <button onclick="document.getElementById('mpp-cloud-vault-modal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-bold text-2xl leading-none bg-transparent border-none cursor-pointer">&times;</button>
+            </div>
+
+            <div class="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+                <!-- Option A: 1-Click Sync Current Page -->
+                <div class="p-4 rounded-xl bg-sky-50/70 dark:bg-slate-800/70 border border-sky-200 dark:border-slate-700">
+                    <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
+                        ⚡ 1. Sync Current Subject Page to Firebase
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                        Uploads the currently loaded subject's full <code class="px-1 bg-white dark:bg-slate-900 rounded">curriculumData</code> &amp; <code class="px-1 bg-white dark:bg-slate-900 rounded">qnaData</code> to <code class="px-1 bg-white dark:bg-slate-900 rounded">question_banks</code> (Pro-locked) and auto-generates the 20-question <code class="px-1 bg-white dark:bg-slate-900 rounded">question_previews</code> node.
+                    </p>
+                    <button id="btn-vault-sync-current" onclick="window.MPP_syncCurrentPageToFirebase(this)" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
+                        ☁️ Sync This Subject to Firebase Now
+                    </button>
+                </div>
+
+                <!-- Option B: Bulk Multi-File JSON Uploader -->
+                <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-slate-800/70 border border-emerald-200 dark:border-slate-700">
+                    <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
+                        📦 2. Bulk Upload Multiple .JSON Files at Once
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                        Select any number of <code class="px-1 bg-white dark:bg-slate-900 rounded">{subject}_aiims_{college}_data.json</code> files from your device. Each file is automatically routed to its matching college &amp; subject key in Firebase.
+                    </p>
+                    <input type="file" id="mpp-bulk-json-input" accept=".json" multiple class="hidden" onchange="window.MPP_handleBulkJsonFiles(this.files)">
+                    <button onclick="document.getElementById('mpp-bulk-json-input').click()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
+                        📂 Select JSON Files to Migrate...
+                    </button>
+                    <div id="mpp-bulk-upload-log" class="hidden mt-3 p-3 rounded-lg bg-slate-900 text-emerald-400 font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
+                </div>
+
+                <!-- Option C: Clear Local IndexedDB Cache -->
+                <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Local IndexedDB Cache</div>
+                        <div class="text-[10px] text-slate-500">Bumps version or clears cached bank on this device</div>
+                    </div>
+                    <button onclick="window.MPP_clearLocalBankCache()" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 text-xs font-bold cursor-pointer">
+                        🔄 Force Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', vaultModalHTML);
+
+    // 2. Lightweight IndexedDB Wrapper (Bypasses 5MB localStorage limit for 19 subjects)
+    const IDB_NAME = 'MBBSProfsPrepVaultDB';
+    const IDB_STORE = 'question_banks_cache';
+
+    function openVaultIDB() {
+        return new Promise((resolve, reject) => {
+            if (!window.indexedDB) return resolve(null);
+            const req = window.indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    db.createObjectStore(IDB_STORE);
+                }
+            };
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = () => resolve(null);
+        });
+    }
+
+    window.MPP_idbGet = async function(key) {
+        try {
+            const db = await openVaultIDB();
+            if (!db) return null;
+            return await new Promise((resolve) => {
+                const tx = db.transaction(IDB_STORE, 'readonly');
+                const req = tx.objectStore(IDB_STORE).get(key);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
+    window.MPP_idbSet = async function(key, val) {
+        try {
+            const db = await openVaultIDB();
+            if (!db) return;
+            await new Promise((resolve) => {
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                tx.objectStore(IDB_STORE).put(val, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        } catch (e) {}
+    };
+
+    window.MPP_clearLocalBankCache = async function() {
+        try {
+            const db = await openVaultIDB();
+            if (db) {
+                await new Promise((resolve) => {
+                    const tx = db.transaction(IDB_STORE, 'readwrite');
+                    tx.objectStore(IDB_STORE).clear();
+                    tx.oncomplete = () => resolve();
+                });
+            }
+            window.subjectJsonCache = {};
+            alert("Local IndexedDB cache cleared! Reloading fresh from Firebase Cloud...");
+            window.location.reload();
+        } catch (e) {}
+    };
+
+    // 3. Resolve College Code & Version-Aware Subject Key (Supports ?version=ed8)
+    window.MPP_getVaultKeys = function(customCollege, customSubject, customVersion) {
+        const params = new URLSearchParams(window.location.search);
+        const college = String(customCollege || window.COLLEGE_CODE || params.get('college') || 'deoghar').toLowerCase().trim();
+        const rawSub = String(customSubject || window.SUBJECT_CODE || 'CFM').toUpperCase().trim();
+        const ver = String(customVersion !== undefined ? customVersion : (window.VERSION_CODE || params.get('version') || '')).toLowerCase().trim();
+        const subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
+        const fileName = ver
+            ? `${rawSub.toLowerCase()}_aiims_${college}_${ver}_data.json`
+            : `${rawSub.toLowerCase()}_aiims_${college}_data.json`;
+        return { college, rawSub, ver, subjectKey, fileName };
+    };
+
+    // 4. Upload a Parsed Subject Payload ({ collegeName, curriculumData, qnaData }) to Firebase Vault
+    window.MPP_uploadBankPayloadToFirebase = async function(college, subjectKey, jsonData) {
+        if (!window.db) throw new Error("Firebase database not initialized yet.");
+        const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+        const collegeName = jsonData.collegeName || (`AIIMS ${college.toUpperCase()}`);
+        const curriculumData = jsonData.curriculumData || [];
+        const qnaData = Array.isArray(jsonData.qnaData) ? jsonData.qnaData : Object.values(jsonData.qnaData || {});
+
+        // Build 20-question Free Preview (10 Theory + 10 MCQ) so Free users never download the full locked bank
+        const previewTheory = qnaData.filter(q => q && q.type === 'Theory').slice(0, 10);
+        const previewMcq = qnaData.filter(q => q && q.type === 'MCQ').slice(0, 10);
+        const previewQna = [...previewTheory, ...previewMcq];
+
+        const versionStamp = Date.now();
+        const updates = {};
+
+        updates[`question_banks/${college}/${subjectKey}`] = {
+            collegeName: collegeName,
+            curriculumData: curriculumData,
+            qnaData: qnaData,
+            version: versionStamp
+        };
+        updates[`question_previews/${college}/${subjectKey}`] = {
+            collegeName: collegeName,
+            curriculumData: curriculumData,
+            qnaData: previewQna,
+            version: versionStamp
+        };
+        updates[`bank_meta/${college}/${subjectKey}`] = {
+            version: versionStamp,
+            totalQuestions: qnaData.length,
+            updatedAt: new Date().toISOString(),
+            updatedBy: (window.currentUserObj && window.currentUserObj.email) ? window.currentUserObj.email : 'admin'
+        };
+
+        await update(ref(window.db), updates);
+
+        // Update local IndexedDB cache immediately
+        const idbKey = `pro_${college}_${subjectKey}`;
+        await window.MPP_idbSet(idbKey, {
+            version: versionStamp,
+            collegeName,
+            curriculumData,
+            qnaData
+        });
+
+        return { versionStamp, count: qnaData.length };
+    };
+
+    // 5. 1-Click Sync Current Page to Firebase
+    window.MPP_syncCurrentPageToFirebase = async function(btn) {
+        if (!window.isUserAdmin()) return alert("Admin access required.");
+        const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
+        const origText = btn ? btn.innerText : "";
+        if (btn) { btn.innerText = "⏳ Uploading to Firebase Cloud..."; btn.disabled = true; }
+
+        try {
+            let payload = null;
+            if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+                payload = {
+                    collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
+                    curriculumData: window.curriculumData || [],
+                    qnaData: window.qnaData
+                };
+            } else {
+                const res = await fetch(fileName);
+                if (!res.ok) throw new Error(`Could not fetch ${fileName}`);
+                payload = await res.json();
+            }
+
+            const resInfo = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, payload);
+            window.MPP_DataSourceTag = 'firebase-pro';
+            window.MPP_updateVaultBadgeUI();
+            alert(`✅ Synced ${resInfo.count} questions to Firebase at question_banks/${college}/${subjectKey}!\n\nYou can now safely delete ${fileName} from GitHub.`);
+        } catch (err) {
+            console.error(err);
+            alert("Sync failed: " + err.message);
+        } finally {
+            if (btn) { btn.innerText = origText; btn.disabled = false; }
+        }
+    };
+
+    // 6. Bulk Multi-File JSON Drag/Select Migrator
+    window.MPP_handleBulkJsonFiles = async function(fileList) {
+        if (!fileList || fileList.length === 0) return;
+        const logEl = document.getElementById('mpp-bulk-upload-log');
+        if (logEl) {
+            logEl.classList.remove('hidden');
+            logEl.innerHTML = `<div>🚀 Starting bulk migration of ${fileList.length} file(s)...</div>`;
+        }
+
+        let successFiles = 0;
+        for (const file of Array.from(fileList)) {
+            try {
+                const text = await file.text();
+                const json = JSON.parse(text);
+
+                // Parse filename pattern: {subject}_aiims_{college}_data.json or {subject}_aiims_{college}_{version}_data.json
+                const cleanName = file.name.replace(/\.json$/i, '');
+                let college = window.COLLEGE_CODE || 'deoghar';
+                let subjectKey = window.SUBJECT_CODE || 'CFM';
+
+                const match = cleanName.match(/^([a-z0-9-]+?)_aiims_([a-z0-9-]+?)(?:_(ed\d+))?_data(?:_.*)?$/i);
+                if (match) {
+                    const rawSub = match[1].toUpperCase();
+                    college = match[2].toLowerCase();
+                    const ver = match[3] ? match[3].toLowerCase() : '';
+                    subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
+                } else {
+                    const manual = prompt(`Could not auto-detect college/subject from filename "${file.name}".\nEnter as college/SUBJECT (e.g. deoghar/ENT or deoghar/PATHOLOGY_ed8):`, `${college}/${subjectKey}`);
+                    if (!manual || !manual.includes('/')) continue;
+                    const parts = manual.split('/');
+                    college = parts[0].trim().toLowerCase();
+                    subjectKey = parts[1].trim().toUpperCase();
+                }
+
+                if (logEl) logEl.insertAdjacentHTML('beforeend', `<div>⏳ Uploading <b>${file.name}</b> &rarr; <code>${college}/${subjectKey}</code>...</div>`);
+                const info = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, json);
+                successFiles++;
+                if (logEl) logEl.insertAdjacentHTML('beforeend', `<div class="text-emerald-300">✅ Done: <code>${college}/${subjectKey}</code> (${info.count} Qs)</div>`);
+                logEl.scrollTop = logEl.scrollHeight;
+            } catch (e) {
+                if (logEl) logEl.insertAdjacentHTML('beforeend', `<div class="text-red-400">❌ Error in ${file.name}: ${e.message}</div>`);
+            }
+        }
+
+        if (logEl) {
+            logEl.insertAdjacentHTML('beforeend', `<div class="text-amber-300 font-bold pt-1 border-t border-slate-700">🎉 Completed ${successFiles}/${fileList.length} files!</div>`);
+        }
+        if (window.fetchQuestions) await window.fetchQuestions();
+    };
+
+    // 7. Inject "☁️ Cloud Vault" Button Into #admin-controls Header Bar
+    window.MPP_updateVaultBadgeUI = function() {
+        const subEl = document.getElementById('mpp-vault-status-sub');
+        const btnEl = document.getElementById('admin-vault-trigger-btn');
+        const { college, subjectKey } = window.MPP_getVaultKeys();
+
+        let statusText = `Target: question_banks/${college}/${subjectKey}`;
+        if (window.MPP_DataSourceTag === 'firebase-cache') statusText = `⚡ Loaded from IndexedDB Cache (0 KB used) • ${college}/${subjectKey}`;
+        else if (window.MPP_DataSourceTag === 'firebase-pro') statusText = `🟢 Live on Firebase Cloud • ${college}/${subjectKey}`;
+        else if (window.MPP_DataSourceTag === 'firebase-preview') statusText = `🔒 Free Preview Node • ${college}/${subjectKey}`;
+        else if (window.MPP_DataSourceTag === 'github-fallback') statusText = `⚠️ Using GitHub JSON Fallback (Not in Firebase yet) • ${college}/${subjectKey}`;
+
+        if (subEl) subEl.innerText = statusText;
+        if (btnEl) {
+            if (window.MPP_DataSourceTag === 'github-fallback') {
+                btnEl.className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none animate-pulse";
+                btnEl.innerHTML = "⚠️ Migrate JSON to Cloud";
+            } else {
+                btnEl.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
+                btnEl.innerHTML = "☁️ Cloud Vault";
+            }
+        }
+    };
+
+    function injectAdminVaultButton() {
+        const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
+        if (isClinicalPage) return;
+
+        const adminControls = document.getElementById('admin-controls');
+        if (adminControls && !document.getElementById('admin-vault-trigger-btn')) {
+            const btn = document.createElement('button');
+            btn.id = 'admin-vault-trigger-btn';
+            btn.type = 'button';
+            btn.onclick = () => {
+                window.MPP_updateVaultBadgeUI();
+                document.getElementById('mpp-cloud-vault-modal').classList.remove('hidden');
+            };
+            btn.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
+            btn.innerHTML = "☁️ Cloud Vault";
+            adminControls.insertBefore(btn, adminControls.firstChild);
+        }
+    }
+
+    // 8. Central Override of window.fetchQuestions & window.processDataForAccess on Review Pages
+    function hookReviewPageDataLoader() {
+        const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
+        if (isClinicalPage || !window.SUBJECT_CODE || window.MPP_fetchHooked) return;
+        window.MPP_fetchHooked = true;
+
+        injectAdminVaultButton();
+
+        window.MPP_loadedTier = null;
+
+        const applyLoadedBank = (data, sourceTag, tier) => {
+            window.MPP_DataSourceTag = sourceTag;
+            window.MPP_loadedTier = tier;
+            window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME;
+            window.curriculumData = data.curriculumData || [];
+            window.qnaData = Array.isArray(data.qnaData) ? data.qnaData : Object.values(data.qnaData || {});
+            window.isDataLoaded = true;
+
+            const titleEl = document.getElementById('dynamic-page-title');
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
+            const headerEl = document.getElementById('dynamic-college-header');
+            if (headerEl) headerEl.innerText = window.COLLEGE_NAME;
+
+            window.MPP_updateVaultBadgeUI();
+            if (typeof window.processDataForAccess === 'function') {
+                window.processDataForAccess();
+            }
+        };
+
+        window.fetchQuestions = async function() {
+            const tableBody = document.getElementById('tableBody');
+            if (tableBody && !window.isDataLoaded) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing ${window.COLLEGE_NAME} Cloud Vault...</p></td></tr>`;
+            }
+
+            const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
+            const tier = window.accessLevel || 'guest';
+
+            // 1. Wait for Firebase DB instance if still booting
+            if (!window.db) {
+                try {
+                    const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+                    const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                    window.db = getDatabase(getApp());
+                } catch (e) {}
+            }
+
+            // 2. If Guest (Not Logged In): Do NOT download anything over the network
+            if (!window.currentUserObj && tier === 'guest') {
+                window.qnaData = [];
+                window.isDataLoaded = true;
+                window.MPP_loadedTier = 'guest';
+                if (typeof window.processDataForAccess === 'function') window.processDataForAccess();
+                return;
+            }
+
+            try {
+                const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+                // 3. Pro / VIP / Admin Tier -> Check 10-byte version in bank_meta, then IndexedDB cache, then question_banks
+                if (tier === 'premium' || window.isUserAdmin()) {
+                    const metaSnap = await get(ref(window.db, `bank_meta/${college}/${subjectKey}/version`));
+                    const remoteVersion = metaSnap.exists() ? metaSnap.val() : null;
+
+                    if (remoteVersion) {
+                        const idbKey = `pro_${college}_${subjectKey}`;
+                        const cached = await window.MPP_idbGet(idbKey);
+                        if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
+                            applyLoadedBank(cached, 'firebase-cache', 'premium');
+                            return;
+                        }
+
+                        const bankSnap = await get(ref(window.db, `question_banks/${college}/${subjectKey}`));
+                        if (bankSnap.exists()) {
+                            const cloudData = bankSnap.val();
+                            await window.MPP_idbSet(idbKey, {
+                                version: remoteVersion,
+                                collegeName: cloudData.collegeName,
+                                curriculumData: cloudData.curriculumData || [],
+                                qnaData: cloudData.qnaData || []
+                            });
+                            applyLoadedBank(cloudData, 'firebase-pro', 'premium');
+                            return;
+                        }
+                    }
+                }
+
+                // 4. Free Tier -> Fetch ONLY the 20-question preview node from question_previews
+                if (tier === 'free') {
+                    const prevSnap = await get(ref(window.db, `question_previews/${college}/${subjectKey}`));
+                    if (prevSnap.exists()) {
+                        applyLoadedBank(prevSnap.val(), 'firebase-preview', 'free');
+                        return;
+                    }
+                }
+            } catch (cloudErr) {
+                console.warn("Firebase Vault lookup warning (falling back if needed):", cloudErr.message);
+            }
+
+            // 5. Graceful Fallback to GitHub .json (Only if subject has not been migrated to Firebase yet)
+            try {
+                const response = await fetch(fileName);
+                if (!response.ok) throw new Error("Not in Firebase or GitHub");
+                const jsonData = await response.json();
+                applyLoadedBank(jsonData, 'github-fallback', tier);
+            } catch (fallbackErr) {
+                console.error("Failed to load question bank:", fallbackErr);
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Question Bank Not Uploaded Yet (${college}/${subjectKey}).</p><p class="text-sm">Admins: Click <b>☁️ Cloud Vault</b> in the top right to upload this subject's JSON to Firebase.</p></td></tr>`;
+                }
+            }
+        };
+
+        // Re-fetch automatically when Auth / Subscription status upgrades window.accessLevel (e.g. guest -> free -> premium)
+        const origProc = window.processDataForAccess;
+        if (typeof origProc === 'function') {
+            window.processDataForAccess = function() {
+                injectAdminVaultButton();
+                const currentTier = window.accessLevel || 'guest';
+                if (window.isDataLoaded && window.MPP_loadedTier !== currentTier && (currentTier === 'premium' || currentTier === 'free')) {
+                    window.MPP_loadedTier = currentTier;
+                    window.fetchQuestions();
+                    return;
+                }
+                return origProc.apply(this, arguments);
+            };
+        }
+    }
+
+    // 9. Upgrade recoverRichQuestionData so Neuro-Recall Bookmarks Pull Images from IndexedDB / Firebase Vault First
+    const origRecoverRich = window.recoverRichQuestionData;
+    window.recoverRichQuestionData = async function(bm) {
+        if (!bm) return { stemHtml: "Saved Question", ansImage: null, img: null };
+        let stemHtml = bm.stemHtml || bm.text || "Saved Question";
+        let ansImage = bm.ans_image || null;
+        let img = bm.img || null;
+
+        if (!stemHtml.includes('<img') && bm.q) {
+            try {
+                let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
+                let subCode = (bm.subjectCode || '').toUpperCase().trim();
+                if (!subCode && bm.subject) {
+                    const parts = bm.subject.split(' - ');
+                    if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
+                    if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
+                }
+                if (colCode && subCode) {
+                    const cached = await window.MPP_idbGet(`pro_${colCode}_${subCode}`);
+                    if (cached && Array.isArray(cached.qnaData)) {
+                        const found = cached.qnaData.find(x => x && x.q === bm.q);
+                        if (found) {
+                            if (found.stem) stemHtml = found.stem;
+                            if (found.ans_image) ansImage = found.ans_image;
+                            if (found.img) img = found.img;
+                            return { stemHtml, ansImage, img };
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+        return typeof origRecoverRich === 'function' ? origRecoverRich(bm) : { stemHtml, ansImage, img };
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hookReviewPageDataLoader);
+    } else {
+        hookReviewPageDataLoader();
+    }
+    window.addEventListener('load', hookReviewPageDataLoader);
+    setTimeout(hookReviewPageDataLoader, 400);
+})();

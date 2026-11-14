@@ -5291,3 +5291,378 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', hookFeatureFlagsAndDataLoader);
     setTimeout(hookFeatureFlagsAndDataLoader, 300);
 })();
+// ====================================================
+// 18. SMART JS / PAPER SNIPPET INJECTOR (APPEND / MERGE TO FIREBASE)
+// ====================================================
+(function initSmartSnippetInjector() {
+    window.MPP_lastBatchBackup = null;
+
+    // 1. Parse Raw JS Object Literal Snippets (Supports // comments, unquoted keys, trailing commas & backticks)
+    window.MPP_parseRawQuestionSnippet = function(rawText, splitSlashChapters = true) {
+        if (!rawText || !rawText.trim()) return [];
+        let cleaned = rawText.trim();
+
+        // Strip leading/trailing array brackets if user pasted a full [...] array
+        if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+            cleaned = cleaned.slice(1, -1).trim();
+        }
+
+        let parsedArr = [];
+        try {
+            // Evaluate inside an array literal so // comments, unquoted keys (q:, stem:) & trailing commas work natively
+            const fn = new Function(`"use strict"; return [\n${cleaned}\n];`);
+            const res = fn();
+            if (Array.isArray(res)) {
+                parsedArr = res.length === 1 && Array.isArray(res[0]) ? res[0] : res;
+            }
+        } catch (jsErr) {
+            try {
+                const jsonAttempt = JSON.parse(`[${cleaned.replace(/,\s*$/, '')}]`);
+                parsedArr = Array.isArray(jsonAttempt) ? jsonAttempt : [];
+            } catch (jsonErr) {
+                throw new Error(`Syntax error in snippet: ${jsErr.message}`);
+            }
+        }
+
+        return parsedArr.filter(Boolean).map((item, idx) => {
+            const qObj = { ...item };
+            qObj.q = String(item.q || `Q${idx + 1}`).trim();
+            qObj.type = String(item.type || (item.options ? "MCQ" : "Theory")).trim();
+            qObj.stem = String(item.stem ?? "").trim();
+            qObj.ans_key = String(item.ans_key ?? "").trim();
+            qObj.examBatch = item.examBatch || "Prof Exam";
+
+            // Auto-split "Chapter A / Chapter B" into ["Chapter A", "Chapter B"] for multi-chapter filtering
+            if (splitSlashChapters && typeof item.chapter === 'string' && item.chapter.includes(' / ')) {
+                qObj.chapter = item.chapter.split(' / ').map(c => c.trim()).filter(Boolean);
+            } else {
+                qObj.chapter = item.chapter || "General";
+            }
+
+            if (item.options) {
+                const optArr = Array.isArray(item.options) ? item.options : Object.values(item.options);
+                qObj.options = optArr.map(o => String(o ?? ""));
+            }
+            return qObj;
+        });
+    };
+
+    // 2. Live Preview Counter as Admin Pastes Code
+    window.MPP_previewSnippetCount = function() {
+        const statusEl = document.getElementById('mpp-snippet-parse-status');
+        const rawText = document.getElementById('mpp-snippet-textarea')?.value || '';
+        if (!statusEl) return;
+
+        if (!rawText.trim()) {
+            statusEl.className = "text-[11px] font-bold text-slate-400";
+            statusEl.innerText = "Waiting for snippet...";
+            return;
+        }
+
+        try {
+            const splitCh = document.getElementById('mpp-snippet-split-chap')?.checked !== false;
+            const items = window.MPP_parseRawQuestionSnippet(rawText, splitCh);
+            const tCount = items.filter(x => x.type === 'Theory').length;
+            const mCount = items.filter(x => x.type === 'MCQ').length;
+            const firstId = items[0] ? items[0].q : '-';
+            const lastId = items[items.length - 1] ? items[items.length - 1].q : '-';
+            statusEl.className = "text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400";
+            statusEl.innerText = `✅ Ready: ${items.length} Questions (${tCount} Theory, ${mCount} MCQ) • IDs: ${firstId} → ${lastId}`;
+        } catch (err) {
+            statusEl.className = "text-[11px] font-extrabold text-red-500";
+            statusEl.innerText = `❌ ${err.message}`;
+        }
+    };
+
+    // 3. Inject & Merge Pasted Snippet into Firebase Cloud Vault
+    window.MPP_injectSnippetToFirebase = async function(btn) {
+        if (!window.isUserAdmin()) return alert("Admin access required.");
+        const rawText = document.getElementById('mpp-snippet-textarea')?.value || '';
+        if (!rawText.trim()) return alert("Please paste your question objects first!");
+
+        const splitCh = document.getElementById('mpp-snippet-split-chap')?.checked !== false;
+        const mode = document.getElementById('mpp-snippet-merge-mode')?.value || 'merge';
+        const targetInput = document.getElementById('mpp-snippet-target-path')?.value || '';
+
+        let newItems = [];
+        try {
+            newItems = window.MPP_parseRawQuestionSnippet(rawText, splitCh);
+        } catch (e) {
+            return alert(e.message);
+        }
+        if (newItems.length === 0) return alert("No valid question objects found in snippet.");
+
+        let { college, subjectKey, candidateKeys } = window.MPP_getVaultKeys();
+        if (targetInput && targetInput.includes('/')) {
+            const [cPart, sPart] = targetInput.split('/');
+            if (cPart && sPart) {
+                college = cPart.trim().toLowerCase();
+                subjectKey = sPart.trim().toUpperCase();
+                candidateKeys = [subjectKey, subjectKey.toLowerCase()];
+            }
+        }
+
+        const origBtnText = btn ? btn.innerText : "";
+        if (btn) { btn.innerText = "⏳ Merging into Firebase..."; btn.disabled = true; }
+
+        try {
+            const { dbInstance } = await window.MPP_ensureProfsFirebase();
+            const { ref, get, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+            // 1. Fetch existing bank from Firebase (or fall back to currently loaded window.qnaData)
+            let existingBank = null;
+            for (const k of candidateKeys) {
+                const snap = await get(ref(dbInstance, `question_banks/${college}/${k}`)).catch(() => null);
+                if (snap && snap.exists()) {
+                    existingBank = window.MPP_sanitizeBankData(snap.val(), college);
+                    break;
+                }
+            }
+
+            if (!existingBank && Array.isArray(window.qnaData) && window.qnaData.length > 0 && college === (window.COLLEGE_CODE || 'deoghar').toLowerCase()) {
+                existingBank = {
+                    collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
+                    curriculumData: window.curriculumData || [],
+                    qnaData: [...window.qnaData]
+                };
+            }
+
+            if (!existingBank) {
+                existingBank = {
+                    collegeName: `AIIMS ${college.toUpperCase()}`,
+                    curriculumData: window.curriculumData || [],
+                    qnaData: []
+                };
+            }
+
+            // Save backup for 1-Click Undo
+            window.MPP_lastBatchBackup = {
+                college,
+                subjectKey,
+                bankSnapshot: JSON.parse(JSON.stringify(existingBank))
+            };
+            const undoBtn = document.getElementById('btn-mpp-undo-snippet');
+            if (undoBtn) undoBtn.classList.remove('hidden');
+
+            let finalQna = [...existingBank.qnaData];
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            if (mode === 'auto-number') {
+                // Find highest existing Theory (e.g. DGT114) and MCQ (e.g. DGM90) numbers
+                let maxT = 0, maxM = 0;
+                let prefixT = "DGT", prefixM = "DGM";
+                finalQna.forEach(item => {
+                    const mT = String(item.q).match(/^([A-Z]+T)(\d+)$/i);
+                    if (mT) { prefixT = mT[1].toUpperCase(); maxT = Math.max(maxT, parseInt(mT[2], 10)); }
+                    const mM = String(item.q).match(/^([A-Z]+M)(\d+)$/i);
+                    if (mM) { prefixM = mM[1].toUpperCase(); maxM = Math.max(maxM, parseInt(mM[2], 10)); }
+                });
+
+                newItems.forEach(item => {
+                    if (item.type === 'MCQ') {
+                        maxM++;
+                        item.q = `${prefixM}${maxM}`;
+                    } else {
+                        maxT++;
+                        item.q = `${prefixT}${maxT}`;
+                    }
+                    finalQna.push(item);
+                    addedCount++;
+                });
+            } else {
+                // Smart Merge by QID: Update existing QID in-place or append new QID at the end
+                const indexMap = new Map();
+                finalQna.forEach((item, idx) => {
+                    indexMap.set(String(item.q).trim().toUpperCase(), idx);
+                });
+
+                newItems.forEach(item => {
+                    const up = String(item.q).trim().toUpperCase();
+                    if (indexMap.has(up)) {
+                        const existingIdx = indexMap.get(up);
+                        finalQna[existingIdx] = { ...finalQna[existingIdx], ...item };
+                        updatedCount++;
+                    } else {
+                        indexMap.set(up, finalQna.length);
+                        finalQna.push(item);
+                        addedCount++;
+                    }
+                });
+            }
+// 1. Natural-sort finalQna so Theory (DGT1..DGT999) always comes first, then MCQ (DGM1..DGM999)
+            finalQna.sort((a, b) => {
+                const aIsMcq = a.type === 'MCQ' ? 1 : 0;
+                const bIsMcq = b.type === 'MCQ' ? 1 : 0;
+                if (aIsMcq !== bIsMcq) return aIsMcq - bIsMcq;
+                return String(a.q || '').localeCompare(String(b.q || ''), undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            // 2. Auto-register any new chapters into both flat and nested ({ unit, chapters }) curriculumData
+            let updatedCurriculum = JSON.parse(JSON.stringify(existingBank.curriculumData || []));
+            const existingChapSet = new Set();
+            updatedCurriculum.forEach(g => {
+                if (typeof g === 'string') existingChapSet.add(g);
+                else if (g && Array.isArray(g.chapters)) g.chapters.forEach(c => existingChapSet.add(c));
+            });
+
+            const newlyDiscoveredChaps = [];
+            finalQna.forEach(item => {
+                const chList = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
+                chList.forEach(ch => {
+                    if (ch && !existingChapSet.has(ch)) {
+                        existingChapSet.add(ch);
+                        newlyDiscoveredChaps.push(ch);
+                    }
+                });
+            });
+
+            if (newlyDiscoveredChaps.length > 0) {
+                newlyDiscoveredChaps.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+                if (updatedCurriculum.length === 0 || typeof updatedCurriculum[0] === 'string') {
+                    updatedCurriculum.push(...newlyDiscoveredChaps);
+                    updatedCurriculum.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+                } else {
+                    let extraUnit = updatedCurriculum.find(u => u && u.unit === 'Additional Chapters');
+                    if (!extraUnit) {
+                        extraUnit = { unit: 'Additional Chapters', chapters: [] };
+                        updatedCurriculum.push(extraUnit);
+                    }
+                    extraUnit.chapters.push(...newlyDiscoveredChaps);
+                    extraUnit.chapters.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+                }
+            }
+            // Also sync any embedded explanation/answer fields directly to answers/${college}/${subjectKey}
+            const answerUpdates = {};
+            let syncedAnswers = 0;
+            newItems.forEach(item => {
+                const explText = item.explanation || item.answer || "";
+                if (explText) {
+                    answerUpdates[`answers/${college}/${subjectKey}/${item.q}`] = {
+                        text: String(explText),
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: (window.currentUserObj && window.currentUserObj.email) ? window.currentUserObj.email : 'admin'
+                    };
+                    syncedAnswers++;
+                }
+            });
+            if (syncedAnswers > 0) {
+                await update(ref(dbInstance), answerUpdates);
+            }
+
+            // Upload merged bank to Firebase + update IndexedDB cache
+            const uploadRes = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, {
+                collegeName: existingBank.collegeName,
+                curriculumData: updatedCurriculum,
+                qnaData: finalQna
+            });
+
+            document.getElementById('mpp-snippet-textarea').value = '';
+            window.MPP_previewSnippetCount();
+
+            alert(`🎉 Injected into Firebase (${college}/${uploadRes.normSubKey})!\n\n• Added: ${addedCount} new questions\n• Updated: ${updatedCount} existing questions\n• Total in Bank: ${uploadRes.count} questions`);
+
+            if (typeof window.fetchQuestions === 'function') {
+                await window.fetchQuestions();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Injection failed: " + err.message);
+        } finally {
+            if (btn) { btn.innerText = origBtnText; btn.disabled = false; }
+        }
+    };
+
+    // 4. 1-Click Undo Last Batch Injection
+    window.MPP_undoLastSnippetInjection = async function(btn) {
+        if (!window.MPP_lastBatchBackup) return;
+        const { college, subjectKey, bankSnapshot } = window.MPP_lastBatchBackup;
+        if (!confirm(`Restore ${college}/${subjectKey} to its state before the last snippet injection (${bankSnapshot.qnaData.length} questions)?`)) return;
+
+        if (btn) { btn.innerText = "Restoring..."; btn.disabled = true; }
+        try {
+            await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, bankSnapshot);
+            window.MPP_lastBatchBackup = null;
+            if (btn) btn.classList.add('hidden');
+            alert("✅ Previous bank state restored!");
+            if (typeof window.fetchQuestions === 'function') await window.fetchQuestions();
+        } catch (e) {
+            alert("Undo failed: " + e.message);
+        } finally {
+            if (btn) { btn.innerText = "↩️ Undo Last Injection"; btn.disabled = false; }
+        }
+    };
+
+    // 5. Inject the Snippet Injector UI Card Inside #mpp-cloud-vault-modal
+    function attachSnippetUI() {
+        const modal = document.getElementById('mpp-cloud-vault-modal');
+        const scrollContainer = modal ? modal.querySelector('.space-y-4.overflow-y-auto') : null;
+        if (!scrollContainer || document.getElementById('mpp-snippet-injector-card')) return;
+
+        const { college, subjectKey } = window.MPP_getVaultKeys();
+
+        const injectorHtml = `
+        <div id="mpp-snippet-injector-card" class="p-4 rounded-xl bg-indigo-50/80 dark:bg-slate-800/90 border-2 border-indigo-300 dark:border-indigo-700 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+                <div class="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                    📝 Paste Exam Paper JS Snippet (Append / Merge)
+                </div>
+                <button id="btn-mpp-undo-snippet" onclick="window.MPP_undoLastSnippetInjection(this)" class="hidden px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 text-[10px] font-extrabold border border-red-300 dark:border-red-700 cursor-pointer">
+                    ↩️ Undo Last Injection
+                </button>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-snug m-0">
+                Paste your <code class="px-1 bg-white dark:bg-slate-900 rounded">{ q: "DGT115", type: "Theory", stem: "...", ... },</code> lines (including <code class="px-1 bg-white dark:bg-slate-900 rounded">// comments</code>) directly below:
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[9.5px] font-extrabold text-slate-500 uppercase block mb-0.5">Target (college/SUBJECT)</label>
+                    <input type="text" id="mpp-snippet-target-path" value="${college}/${subjectKey}" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-extrabold text-indigo-700 dark:text-indigo-300 outline-none">
+                </div>
+                <div>
+                    <label class="text-[9.5px] font-extrabold text-slate-500 uppercase block mb-0.5">ID Handling Mode</label>
+                    <select id="mpp-snippet-merge-mode" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white outline-none">
+                        <option value="merge">Smart Merge / Append by QID</option>
+                        <option value="auto-number">Auto-Number from Last DGT/DGM</option>
+                    </select>
+                </div>
+            </div>
+
+            <textarea id="mpp-snippet-textarea" rows="5" oninput="window.MPP_previewSnippetCount()" placeholder='// --- 2021 Batch Prof Paper I ---&#10;{ q: "DGT115", type: "Theory", stem: "...", ans_key: "", chapter: "58. The breast", examBatch: "2021 Batch Prof Paper I" },' class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-700 font-mono text-[11px] text-slate-800 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-indigo-500 resize-y"></textarea>
+
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <label class="flex items-center gap-1.5 text-[10.5px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                    <input type="checkbox" id="mpp-snippet-split-chap" checked onchange="window.MPP_previewSnippetCount()" class="w-3.5 h-3.5 accent-indigo-600 rounded">
+                    <span>Auto-split <code class="px-1 bg-white dark:bg-slate-900 rounded">" / "</code> multi-chapters</span>
+                </label>
+                <div id="mpp-snippet-parse-status" class="text-[11px] font-bold text-slate-400">Waiting for snippet...</div>
+            </div>
+
+            <button type="button" onclick="window.MPP_injectSnippetToFirebase(this)" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
+                🚀 Inject &amp; Append Snippet to Firebase
+            </button>
+        </div>`;
+
+        scrollContainer.insertAdjacentHTML('afterbegin', injectorHtml);
+
+        // Keep target path updated whenever modal opens
+        const origOpenModal = window.MPP_openCloudVaultModal;
+        if (typeof origOpenModal === 'function') {
+            window.MPP_openCloudVaultModal = function() {
+                origOpenModal.apply(this, arguments);
+                const { college: c, subjectKey: s } = window.MPP_getVaultKeys();
+                const targetEl = document.getElementById('mpp-snippet-target-path');
+                if (targetEl) targetEl.value = `${c}/${s}`;
+            };
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachSnippetUI);
+    } else {
+        attachSnippetUI();
+    }
+    window.addEventListener('load', attachSnippetUI);
+    setTimeout(attachSnippetUI, 500);
+})();

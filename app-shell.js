@@ -5836,28 +5836,68 @@ if ('serviceWorker' in navigator) {
         });
         return Array.from(batches).sort((a, b) => b.localeCompare(a));
     };
-
+    // 2. Universal College Prefix & Next ID Detector (Supports T/M, DGT/DGM, KLT/KLM, DT/DM, PT/PM, etc.)
     window.MPP_getNextQuestionIds = function () {
         const list = Array.isArray(window.qnaData) ? window.qnaData : [];
         let maxTheory = 0;
         let maxMcq = 0;
-        let theoryPrefix = 'DGT';
-        let mcqPrefix = 'DGM';
+        const theoryPrefixCounts = {};
+        const mcqPrefixCounts = {};
 
         list.forEach(item => {
             const qId = String(item?.q || '').trim();
-            const tMatch = qId.match(/^([A-Z]+T)(\d+)$/i);
-            const mMatch = qId.match(/^([A-Z]+M)(\d+)$/i);
+            // [A-Z]*T matches "T78", "DGT12", "KLT5", "DT9", "PT1", etc.
+            const tMatch = qId.match(/^([A-Z]*T)(\d+)$/i);
+            const mMatch = qId.match(/^([A-Z]*M)(\d+)$/i);
+
             if (tMatch) {
-                theoryPrefix = tMatch[1].toUpperCase();
+                const pfx = tMatch[1].toUpperCase();
                 const num = parseInt(tMatch[2], 10);
+                theoryPrefixCounts[pfx] = (theoryPrefixCounts[pfx] || 0) + 1;
                 if (num > maxTheory) maxTheory = num;
             } else if (mMatch) {
-                mcqPrefix = mMatch[1].toUpperCase();
+                const pfx = mMatch[1].toUpperCase();
                 const num = parseInt(mMatch[2], 10);
+                mcqPrefixCounts[pfx] = (mcqPrefixCounts[pfx] || 0) + 1;
                 if (num > maxMcq) maxMcq = num;
             }
         });
+
+        // Pick the dominant prefix already used in this subject's question bank
+        const getDominantPrefix = (countsObj) => {
+            const entries = Object.entries(countsObj);
+            if (!entries.length) return null;
+            entries.sort((a, b) => b[1] - a[1]);
+            return entries[0][0];
+        };
+
+        let theoryPrefix = getDominantPrefix(theoryPrefixCounts);
+        let mcqPrefix = getDominantPrefix(mcqPrefixCounts);
+
+        // If a bank only has Theory so far (e.g., "KLT" or "T"), derive the MCQ prefix ("KLM" or "M") automatically
+        if (theoryPrefix && !mcqPrefix) {
+            mcqPrefix = theoryPrefix.replace(/T$/i, 'M');
+        } else if (mcqPrefix && !theoryPrefix) {
+            theoryPrefix = mcqPrefix.replace(/M$/i, 'T');
+        }
+
+        // Fallback if creating a brand-new empty subject bank
+        if (!theoryPrefix || !mcqPrefix) {
+            const pathHint = String(
+                window.currentCollege ||
+                document.querySelector('#mpp-cloud-vault-modal')?.innerText ||
+                location.pathname
+            ).toLowerCase();
+
+            let base = '';
+            if (pathHint.includes('kalyani')) base = 'KL';
+            else if (pathHint.includes('patna')) base = 'P';
+            else if (pathHint.includes('delhi')) base = 'D';
+            else if (pathHint.includes('deoghar')) base = 'DG';
+
+            theoryPrefix = theoryPrefix || (base + 'T');
+            mcqPrefix = mcqPrefix || (base + 'M');
+        }
 
         return {
             theoryPrefix,
@@ -6068,6 +6108,10 @@ STRICT OUTPUT FORMAT RULES:
             .replace(/(\/\/[^\n]*?---)\s*(\{)/g, '$1\n$2')
             .replace(/\},\s*(\/\/)/g, '},\n\n$1')
             .replace(/\},\s*(\{\s*q\s*:)/g, '},\n$1');
+        // Step C: Auto-align question IDs (T/M, DGT/DGM, KLT/KLM, DT/DM, PT/PM) to active bank's prefix & next number
+        const idInfo = window.MPP_getNextQuestionIds();
+        let tCounter = idInfo.nextTheoryNum;
+        let mCounter = idInfo.nextMcqNum;
 
         return sanitized
             .split('\n')
@@ -6099,6 +6143,12 @@ STRICT OUTPUT FORMAT RULES:
                     } else {
                         updated = updated.replace(/\}\s*,?\s*$/, `, examBatch: "${safeBatch}" },`);
                     }
+                }
+                // Rewrite q: "..." to match active bank's exact Theory/MCQ prefix and continue numbering
+                if (/type\s*:\s*"MCQ"/i.test(updated)) {
+                    updated = updated.replace(/(\{\s*q\s*:\s*")[^"]*(")/i, `$1${idInfo.mcqPrefix}${mCounter++}$2`);
+                } else if (/type\s*:\s*"Theory"/i.test(updated)) {
+                    updated = updated.replace(/(\{\s*q\s*:\s*")[^"]*(")/i, `$1${idInfo.theoryPrefix}${tCounter++}$2`);
                 }
 
                 // Ensure trailing comma at end of object line

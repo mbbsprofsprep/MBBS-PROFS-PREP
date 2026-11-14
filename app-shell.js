@@ -5766,3 +5766,594 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', attachSnippetUI);
     setTimeout(attachSnippetUI, 500);
 })();
+/* ============================================================================
+   SECTION 18B: AI VISION EXAM SCANNER, MULTI-KEY ROTATOR & BATCH SYNC
+   Automatically mounts inside #mpp-cloud-vault-modal above #mpp-snippet-textarea
+   ============================================================================ */
+
+(function () {
+    const AI_CONFIG_STORAGE_KEY = 'mpp_ai_scanner_config_v1';
+    const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+
+    // 1. Load & Save AI Config (Firebase settings/ai_config + localStorage fallback)
+    window.MPP_getAIConfig = async function () {
+        let localCfg = {};
+        try {
+            localCfg = JSON.parse(localStorage.getItem(AI_CONFIG_STORAGE_KEY) || '{}');
+        } catch (e) {}
+
+        if (window.firebase && firebase.database) {
+            try {
+                const snap = await firebase.database().ref('settings/ai_config').once('value');
+                const cloudCfg = snap.val();
+                if (cloudCfg && (cloudCfg.apiKeys || cloudCfg.model)) {
+                    const merged = {
+                        apiKeys: Array.isArray(cloudCfg.apiKeys) ? cloudCfg.apiKeys : (localCfg.apiKeys || []),
+                        model: cloudCfg.model || localCfg.model || DEFAULT_GEMINI_MODEL
+                    };
+                    localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(merged));
+                    return merged;
+                }
+            } catch (err) {
+                console.warn('[MPP AI Scanner] Using localStorage AI config fallback:', err.message);
+            }
+        }
+        return {
+            apiKeys: Array.isArray(localCfg.apiKeys) ? localCfg.apiKeys : [],
+            model: localCfg.model || DEFAULT_GEMINI_MODEL
+        };
+    };
+
+    window.MPP_saveAIConfig = async function (rawKeysText, modelName) {
+        const keys = String(rawKeysText || '')
+            .split(/[\n,]+/)
+            .map(k => k.trim())
+            .filter(k => k.length > 10);
+        const model = String(modelName || DEFAULT_GEMINI_MODEL).trim() || DEFAULT_GEMINI_MODEL;
+        const cfg = { apiKeys: keys, model: model, updatedAt: Date.now() };
+
+        localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+
+        if (window.firebase && firebase.database) {
+            try {
+                await firebase.database().ref('settings/ai_config').set(cfg);
+                return { savedToCloud: true, count: keys.length, model };
+            } catch (err) {
+                console.warn('[MPP AI Scanner] Cloud save blocked, saved locally:', err.message);
+            }
+        }
+        return { savedToCloud: false, count: keys.length, model };
+    };
+
+    // 2. Scan window.qnaData for Existing Exam Batches & Next Question IDs
+    window.MPP_getExistingExamBatches = function () {
+        const list = Array.isArray(window.qnaData) ? window.qnaData : [];
+        const batches = new Set();
+        list.forEach(item => {
+            if (item && item.examBatch && String(item.examBatch).trim()) {
+                batches.add(String(item.examBatch).trim());
+            }
+        });
+        return Array.from(batches).sort((a, b) => b.localeCompare(a));
+    };
+
+    window.MPP_getNextQuestionIds = function () {
+        const list = Array.isArray(window.qnaData) ? window.qnaData : [];
+        let maxTheory = 0;
+        let maxMcq = 0;
+        let theoryPrefix = 'DGT';
+        let mcqPrefix = 'DGM';
+
+        list.forEach(item => {
+            const qId = String(item?.q || '').trim();
+            const tMatch = qId.match(/^([A-Z]+T)(\d+)$/i);
+            const mMatch = qId.match(/^([A-Z]+M)(\d+)$/i);
+            if (tMatch) {
+                theoryPrefix = tMatch[1].toUpperCase();
+                const num = parseInt(tMatch[2], 10);
+                if (num > maxTheory) maxTheory = num;
+            } else if (mMatch) {
+                mcqPrefix = mMatch[1].toUpperCase();
+                const num = parseInt(mMatch[2], 10);
+                if (num > maxMcq) maxMcq = num;
+            }
+        });
+
+        return {
+            theoryPrefix,
+            mcqPrefix,
+            nextTheoryNum: maxTheory + 1,
+            nextMcqNum: maxMcq + 1
+        };
+    };
+
+    // 3. Extract Valid Chapters from window.curriculumData or window.qnaData
+    window.MPP_getValidChaptersList = function () {
+        const chapters = new Set();
+        if (window.curriculumData) {
+            if (Array.isArray(window.curriculumData)) {
+                window.curriculumData.forEach(c => {
+                    if (typeof c === 'string') chapters.add(c.trim());
+                    else if (c && (c.chapter || c.name || c.title)) chapters.add(String(c.chapter || c.name || c.title).trim());
+                });
+            } else if (typeof window.curriculumData === 'object') {
+                Object.keys(window.curriculumData).forEach(k => {
+                    const val = window.curriculumData[k];
+                    if (typeof val === 'string') chapters.add(val.trim());
+                    else if (val && (val.chapter || val.name || val.title)) chapters.add(String(val.chapter || val.name || val.title).trim());
+                    else chapters.add(k.trim());
+                });
+            }
+        }
+        if (Array.isArray(window.qnaData)) {
+            window.qnaData.forEach(q => {
+                if (q && q.chapter) {
+                    String(q.chapter).split('/').forEach(part => {
+                        if (part.trim()) chapters.add(part.trim());
+                    });
+                }
+            });
+        }
+        return Array.from(chapters).filter(Boolean);
+    };
+
+    // 4. Client-Side Image Compressor (JPG/PNG -> max 1600px JPEG) & PDF Base64 Loader
+    window.MPP_fileToGeminiPart = function (file) {
+        return new Promise((resolve, reject) => {
+            if (file.type === 'application/pdf') {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = String(reader.result).split(',')[1];
+                    resolve({ inline_data: { mime_type: 'application/pdf', data: base64 } });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX_DIM = 1600;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > MAX_DIM || height > MAX_DIM) {
+                            if (width > height) {
+                                height = Math.round((height * MAX_DIM) / width);
+                                width = MAX_DIM;
+                            } else {
+                                width = Math.round((width * MAX_DIM) / height);
+                                height = MAX_DIM;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        const base64 = dataUrl.split(',')[1];
+                        resolve({ inline_data: { mime_type: 'image/jpeg', data: base64 } });
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            reject(new Error(`Unsupported file type: ${file.type}`));
+        });
+    };
+
+    // 5. Build Master System Prompt (Used for both API Call & 1-Click Argon Copy)
+    window.MPP_buildExamTranscriberPrompt = function (options = {}) {
+        const chapters = window.MPP_getValidChaptersList();
+        const ids = window.MPP_getNextQuestionIds();
+        const forcedBatch = String(options.examBatch || '').trim();
+        const autoSolveMcq = Boolean(options.autoSolveMcq);
+
+        return `You are an expert medical university exam parser for MBBS PROFS PREP.
+Transcribe all exam questions from the uploaded question paper page(s) into JavaScript object lines ready for direct injection.
+
+STRICT OUTPUT FORMAT RULES:
+1. Return ONLY raw JavaScript object lines (and "// --- Section ... ---" comments). Do NOT wrap in markdown code fences (\`\`\`), do NOT include an outer array "[", and do NOT add conversational text.
+2. Each question MUST be on a single line in one of these exact schemas:
+   - For Theory questions:
+     { q: "${ids.theoryPrefix}${ids.nextTheoryNum}", type: "Theory", stem: "<b>[LAQ]</b> Question text...", ans_key: "", chapter: "Exact Chapter Name", examBatch: "${forcedBatch || '2024 Batch Pre-Prof'}" },
+   - For MCQ questions:
+     { q: "${ids.mcqPrefix}${ids.nextMcqNum}", type: "MCQ", stem: "Question stem...", options: ["Option A text", "Option B text", "Option C text", "Option D text"], ans_key: "${autoSolveMcq ? 'A' : ''}", chapter: "Exact Chapter Name", examBatch: "${forcedBatch || '2024 Batch Pre-Prof'}" },
+3. NUMBERING:
+   - Start Theory IDs at ${ids.theoryPrefix}${ids.nextTheoryNum} and increment sequentially.
+   - Start MCQ IDs at ${ids.mcqPrefix}${ids.nextMcqNum} and increment sequentially.
+4. CLEAN SHORT LABELS ([LAQ], [SAQ], [VSAQ]):
+   - NEVER include verbose headers like "Short Essay Question:", "Long Answer Question:", or "Short Answer Question:" inside the stem.
+   - Instead, keep type: "Theory" and prepend ONLY a bold tag at the start of the stem based on marks:
+     * <b>[LAQ]</b> for long / structured clinical vignette questions (>= 6 marks, or multi-part i, ii, iii questions).
+     * <b>[SAQ]</b> for short essay / short notes (3 to 5 marks, such as items under [5 x 3 = 15]).
+     * <b>[VSAQ]</b> for 1 to 2 mark questions.
+5. MARKS & SUB-PARTS:
+   - Keep multi-part sub-questions (i., ii., iii., iv.) inside the same single "stem" separated by <br>.
+   - Place the marks in bold at the end of the main stem or question, e.g., <b>(2+2+3 = 7 Marks)</b> or <b>(3 Marks)</b>.
+   - If a group header says "[5 x 3=15]" or "[5x3=15]", assign <b>(3 Marks)</b> to each individual question under that header.
+6. EXAM BATCH CONSISTENCY:
+   - ${forcedBatch
+        ? `You MUST set examBatch: "${forcedBatch}" on EVERY single question so Theory and MCQ papers match the exact same filter.`
+        : `Read the exam batch and exam name from Page 1 (e.g., "2024 Batch Pre-Prof") and apply that exact same examBatch string across all pages, even if Page 2+ has no header.`}
+7. CHAPTER MAPPING:
+   - Map every question's "chapter" field strictly to the closest matching chapter from this active subject list (if a question spans two chapters, join them with " / "):
+     ${chapters.length ? JSON.stringify(chapters) : '["General", "Forensic Medicine", "Toxicology"]'}
+8. NOISE & UNCERTAIN OCR HANDLING:
+   - Ignore fingers on margins, "PTO...", page numbers, college location footers (e.g., "Deoghar, Jharkhand 814152"), and background notebook handwriting.
+   - Fix obvious printing typos (e.g., "Antidots" -> "Antidotes"), and if any word is genuinely blurry or cut off, wrap it in ⚠️[word?] so the admin can spot and edit it.
+   - ${autoSolveMcq ? 'For MCQs where no answer key is printed, solve the medical MCQ accurately and set ans_key to "A", "B", "C", or "D".' : 'For MCQs, set ans_key to "A"/"B"/"C"/"D" only if marked on the paper, otherwise leave ans_key: "".'}`;
+    };
+
+    // 6. Call Gemini API with Automatic Multi-Key Failover (Rotates Gmail Keys on 429/403)
+    window.MPP_callGeminiWithFailover = async function (parts, statusCallback) {
+        const cfg = await window.MPP_getAIConfig();
+        if (!cfg.apiKeys || cfg.apiKeys.length === 0) {
+            throw new Error('No Gemini API key configured. Click "🔑 AI Keys & Model" above to paste at least one free Google AI Studio key.');
+        }
+
+        const model = cfg.model || DEFAULT_GEMINI_MODEL;
+        let lastError = null;
+
+        for (let i = 0; i < cfg.apiKeys.length; i++) {
+            const key = cfg.apiKeys[i];
+            const maskedKey = '...' + key.slice(-4);
+            if (statusCallback) {
+                statusCallback(`⏳ Scanning with ${model} (Key #${i + 1}/${cfg.apiKeys.length} ${maskedKey})...`);
+            }
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: parts }],
+                        generationConfig: {
+                            temperature: 0.15,
+                            maxOutputTokens: 8192
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errBody = await response.json().catch(() => ({}));
+                    const errMsg = errBody?.error?.message || `HTTP ${response.status}`;
+                    // Rotate to next Gmail API key on quota limit (429), key error (400/403), or overload (503)
+                    if ([400, 403, 429, 500, 503].includes(response.status) && i < cfg.apiKeys.length - 1) {
+                        console.warn(`[MPP AI Scanner] Key #${i + 1} (${maskedKey}) failed (${errMsg}). Rotating to Key #${i + 2}...`);
+                        continue;
+                    }
+                    throw new Error(`Key #${i + 1} (${maskedKey}): ${errMsg}`);
+                }
+
+                const data = await response.json();
+                const text = (data?.candidates?.[0]?.content?.parts || [])
+                    .map(p => p.text || '')
+                    .join('\n')
+                    .replace(/^```(?:javascript|js|json)?\s*/i, '')
+                    .replace(/\s*```$/i, '')
+                    .trim();
+
+                if (!text) throw new Error('Gemini returned an empty transcription.');
+                return { text, usedKeyIndex: i + 1, maskedKey, model };
+            } catch (err) {
+                lastError = err;
+                if (i === cfg.apiKeys.length - 1) break;
+            }
+        }
+        throw lastError || new Error('All configured Gemini API keys failed.');
+    };
+
+    // 7. Clean Tags ([LAQ]/[SAQ]/[VSAQ]), Force Batch Sync & Check Duplicates
+    window.MPP_cleanAndSyncSnippetText = function (rawText, forcedBatch) {
+        if (!rawText) return '';
+        return rawText
+            .split('\n')
+            .map(line => {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('{')) return line;
+
+                let updated = line;
+                // Strip verbose "Short Essay Question:" / "Long Answer Question:" and convert to clean [SAQ]/[LAQ]
+                updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Short\s+Essay\s+Question\s*[:\-]?\s*)/i, '$1<b>[SAQ]</b> ');
+                updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Long\s+(?:Answer|Essay)\s+Question\s*[:\-]?\s*)/i, '$1<b>[LAQ]</b> ');
+                updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Very\s+Short\s+Answer\s+Question\s*[:\-]?\s*)/i, '$1<b>[VSAQ]</b> ');
+
+                // Ensure Theory items without a tag get [LAQ] (>=6 marks or sub-parts) or [SAQ]
+                if (/type\s*:\s*"Theory"/i.test(updated) && !/<b>\[(LAQ|SAQ|VSAQ)\]<\/b>/i.test(updated)) {
+                    const isLong = /<br>\s*(?:i\.|a\.|1\.)/i.test(updated) || /=\s*(?:[6-9]|1\d|2\d)\s*Marks?/i.test(updated);
+                    updated = updated.replace(/(stem\s*:\s*")/i, `$1<b>[${isLong ? 'LAQ' : 'SAQ'}]</b> `);
+                }
+
+                // Force synchronize examBatch if selected in dropdown
+                if (forcedBatch) {
+                    const safeBatch = forcedBatch.replace(/"/g, '\\"');
+                    if (/examBatch\s*:\s*"[^"]*"/i.test(updated)) {
+                        updated = updated.replace(/examBatch\s*:\s*"[^"]*"/i, `examBatch: "${safeBatch}"`);
+                    } else {
+                        updated = updated.replace(/\}\s*,?\s*$/, `, examBatch: "${safeBatch}" },`);
+                    }
+                }
+                return updated;
+            })
+            .join('\n');
+    };
+
+    // Normalize stem words for duplicate detection across delayed uploads
+    function normalizeStemForDupCheck(str) {
+        return String(str || '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\[(LAQ|SAQ|VSAQ)\]/gi, ' ')
+            .replace(/\(\s*[\d+\s=x×*]+Marks?\s*\)/gi, ' ')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    window.MPP_auditSnippetQuality = function (rawText) {
+        const lines = String(rawText || '').split('\n').filter(l => l.trim().startsWith('{'));
+        const uncertainMatches = String(rawText || '').match(/⚠️\[[^\]]+\]/g) || [];
+        const existingNorms = (Array.isArray(window.qnaData) ? window.qnaData : []).map(q => ({
+            id: q.q,
+            batch: q.examBatch || '',
+            norm: normalizeStemForDupCheck(q.stem)
+        })).filter(x => x.norm.length > 8);
+
+        const duplicates = [];
+        lines.forEach((line, idx) => {
+            const stemMatch = line.match(/stem\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+            if (!stemMatch) return;
+            const norm = normalizeStemForDupCheck(stemMatch[1]);
+            if (norm.length < 8) return;
+
+            for (const ex of existingNorms) {
+                if (ex.norm === norm || (norm.length > 25 && (ex.norm.includes(norm) || norm.includes(ex.norm)))) {
+                    duplicates.push(`Line ${idx + 1} matches existing ${ex.id} (${ex.batch || 'No Batch'})`);
+                    break;
+                }
+            }
+        });
+
+        return { uncertainMatches, duplicates };
+    };
+
+    // 8. Wrap window.MPP_previewSnippetCount to Display Duplicate & Uncertain OCR Alerts
+    const originalPreviewFn = window.MPP_previewSnippetCount;
+    window.MPP_previewSnippetCount = function () {
+        if (typeof originalPreviewFn === 'function') {
+            originalPreviewFn.apply(this, arguments);
+        }
+        const textarea = document.getElementById('mpp-snippet-textarea');
+        const auditBox = document.getElementById('mpp-ai-audit-banner');
+        if (!textarea || !auditBox) return;
+
+        const { uncertainMatches, duplicates } = window.MPP_auditSnippetQuality(textarea.value);
+        if (uncertainMatches.length === 0 && duplicates.length === 0) {
+            auditBox.style.display = 'none';
+            auditBox.innerHTML = '';
+            return;
+        }
+
+        const warnings = [];
+        if (uncertainMatches.length > 0) {
+            warnings.push(`<div>🔍 <b>Uncertain OCR Words (${uncertainMatches.length}):</b> ${uncertainMatches.join(', ')} — please check & edit inside the box below.</div>`);
+        }
+        if (duplicates.length > 0) {
+            warnings.push(`<div>⚠️ <b>Possible Duplicates (${duplicates.length}):</b> ${duplicates.slice(0, 3).join(' | ')}${duplicates.length > 3 ? '...' : ''}</div>`);
+        }
+        auditBox.style.display = 'block';
+        auditBox.innerHTML = warnings.join('');
+    };
+
+    // 9. Mount the AI Vision Scanner UI inside #mpp-cloud-vault-modal
+    window.MPP_mountAIScannerUI = async function () {
+        const textarea = document.getElementById('mpp-snippet-textarea');
+        if (!textarea || document.getElementById('mpp-ai-scanner-panel')) return;
+
+        // Default merge mode to auto-number so delayed uploads never collide
+        const mergeSelect = document.getElementById('mpp-snippet-merge-mode');
+        if (mergeSelect && mergeSelect.querySelector('option[value="auto-number"]')) {
+            mergeSelect.value = 'auto-number';
+        }
+
+        const batches = window.MPP_getExistingExamBatches();
+        const cfg = await window.MPP_getAIConfig();
+
+        const panel = document.createElement('div');
+        panel.id = 'mpp-ai-scanner-panel';
+        panel.style.cssText = 'background:linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.96));border:1px solid rgba(56,189,248,0.35);border-radius:12px;padding:12px;margin-bottom:10px;color:#f8fafc;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,0.25);';
+
+        panel.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <div style="font-weight:700;font-size:13.5px;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+                    <span>📸 AI Exam Paper Scanner (JPG / PNG / PDF)</span>
+                    <span id="mpp-ai-key-badge" style="font-size:11px;padding:2px 7px;border-radius:99px;background:${cfg.apiKeys.length ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.25)'};color:${cfg.apiKeys.length ? '#4ade80' : '#fca5a5'};">
+                        ${cfg.apiKeys.length ? `${cfg.apiKeys.length} Key(s) • ${cfg.model}` : 'No Key Set'}
+                    </span>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" id="mpp-ai-toggle-keys-btn" style="background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:7px;padding:4px 9px;font-size:11.5px;cursor:pointer;">
+                        🔑 AI Keys & Model
+                    </button>
+                    <button type="button" id="mpp-ai-copy-prompt-btn" title="Copy prompt + active chapters to use inside Gemini Pro / Argon web chat" style="background:#1e293b;color:#93c5fd;border:1px solid #3b82f6;border-radius:7px;padding:4px 9px;font-size:11.5px;cursor:pointer;">
+                        📋 Copy Argon Prompt
+                    </button>
+                </div>
+            </div>
+
+            <!-- Collapsible Multi-Gmail API Key & Model Manager -->
+            <div id="mpp-ai-key-drawer" style="display:none;background:rgba(2,6,23,0.75);border:1px solid #334155;border-radius:9px;padding:10px;margin-bottom:10px;">
+                <div style="font-size:11.5px;color:#cbd5e1;margin-bottom:6px;">
+                    Paste 1 or more <b>Google AI Studio API Keys</b> (comma or newline separated). If Key #1 hits quota or you switch Gmail accounts, the scanner automatically rotates to Key #2.
+                </div>
+                <textarea id="mpp-ai-keys-input" rows="2" placeholder="AIzaSy... (Gmail 1)\nAIzaSy... (Backup Gmail 2)" style="width:100%;background:#0f172a;color:#f8fafc;border:1px solid #475569;border-radius:6px;padding:6px;font-family:monospace;font-size:11.5px;margin-bottom:6px;">${cfg.apiKeys.join('\n')}</textarea>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <label style="font-size:11.5px;color:#94a3b8;">Model ID:</label>
+                    <input type="text" id="mpp-ai-model-input" value="${cfg.model}" placeholder="gemini-2.5-flash" style="flex:1;min-width:160px;background:#0f172a;color:#38bdf8;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-family:monospace;font-size:12px;" />
+                    <button type="button" id="mpp-ai-save-keys-btn" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:600;font-size:11.5px;cursor:pointer;">
+                        💾 Save Keys & Model
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Batch Linker (Matches Delayed MCQ + Theory Uploads) -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-bottom:9px;">
+                <div>
+                    <label style="display:block;font-size:11px;color:#94a3b8;margin-bottom:3px;">🎯 Target Exam Batch (Links Theory + Later MCQ Papers):</label>
+                    <select id="mpp-ai-batch-select" style="width:100%;background:#0f172a;color:#f8fafc;border:1px solid #475569;border-radius:7px;padding:6px 8px;font-size:12px;">
+                        <option value="">✨ Auto-Detect Batch from Page 1 Header</option>
+                        <option value="__CUSTOM__">➕ Type New / Custom Exam Batch...</option>
+                        ${batches.map(b => `<option value="${b.replace(/"/g, '&quot;')}">📌 ${b}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="mpp-ai-custom-batch-wrap" style="display:none;">
+                    <label style="display:block;font-size:11px;color:#94a3b8;margin-bottom:3px;">✏️ Custom Exam Batch Name:</label>
+                    <input type="text" id="mpp-ai-custom-batch-input" placeholder="e.g., 2024 Batch Pre-Prof" style="width:100%;background:#0f172a;color:#f8fafc;border:1px solid #38bdf8;border-radius:7px;padding:6px 8px;font-size:12px;" />
+                </div>
+            </div>
+
+            <!-- Options & Action Row -->
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#cbd5e1;cursor:pointer;">
+                    <input type="checkbox" id="mpp-ai-autosolve-mcq" checked />
+                    <span>Auto-solve MCQs if answer key missing</span>
+                </label>
+
+                <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                    <input type="file" id="mpp-ai-file-input" accept="image/*,application/pdf" multiple style="display:none;" />
+                    <button type="button" id="mpp-ai-upload-btn" style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-weight:700;font-size:12px;cursor:pointer;box-shadow:0 3px 10px rgba(37,99,235,0.35);">
+                        📤 Upload & Transcribe Paper (JPG/PNG/PDF)
+                    </button>
+                    <button type="button" id="mpp-ai-clean-sync-btn" title="Convert verbose Short/Long Question labels to [SAQ]/[LAQ] and sync selected Exam Batch" style="background:#0f766e;color:#fff;border:none;border-radius:8px;padding:7px 11px;font-weight:600;font-size:11.5px;cursor:pointer;">
+                        ✨ Clean [SAQ]/[LAQ] & Sync Batch
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Scan Status & Audit Banner -->
+            <div id="mpp-ai-scan-status" style="display:none;margin-top:8px;padding:6px 9px;border-radius:7px;background:rgba(15,23,42,0.9);border:1px solid #334155;font-size:11.5px;color:#38bdf8;"></div>
+            <div id="mpp-ai-audit-banner" style="display:none;margin-top:8px;padding:7px 10px;border-radius:7px;background:rgba(120,53,15,0.35);border:1px solid #f59e0b;font-size:11.5px;color:#fde68a;line-height:1.45;"></div>
+        `;
+
+        textarea.parentNode.insertBefore(panel, textarea);
+
+        // Helper to read active batch selection
+        const getSelectedBatch = () => {
+            const sel = document.getElementById('mpp-ai-batch-select');
+            if (!sel) return '';
+            if (sel.value === '__CUSTOM__') {
+                return String(document.getElementById('mpp-ai-custom-batch-input')?.value || '').trim();
+            }
+            return sel.value.trim();
+        };
+
+        // Wire UI Events
+        document.getElementById('mpp-ai-toggle-keys-btn').onclick = () => {
+            const drawer = document.getElementById('mpp-ai-key-drawer');
+            drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+        };
+
+        document.getElementById('mpp-ai-batch-select').onchange = (e) => {
+            const customWrap = document.getElementById('mpp-ai-custom-batch-wrap');
+            customWrap.style.display = e.target.value === '__CUSTOM__' ? 'block' : 'none';
+        };
+
+        document.getElementById('mpp-ai-save-keys-btn').onclick = async () => {
+            const rawKeys = document.getElementById('mpp-ai-keys-input').value;
+            const modelVal = document.getElementById('mpp-ai-model-input').value;
+            const res = await window.MPP_saveAIConfig(rawKeys, modelVal);
+            const badge = document.getElementById('mpp-ai-key-badge');
+            badge.textContent = res.count ? `${res.count} Key(s) • ${res.model}` : 'No Key Set';
+            badge.style.background = res.count ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.25)';
+            badge.style.color = res.count ? '#4ade80' : '#fca5a5';
+            document.getElementById('mpp-ai-key-drawer').style.display = 'none';
+        };
+
+        document.getElementById('mpp-ai-copy-prompt-btn').onclick = async () => {
+            const promptText = window.MPP_buildExamTranscriberPrompt({
+                examBatch: getSelectedBatch(),
+                autoSolveMcq: document.getElementById('mpp-ai-autosolve-mcq').checked
+            });
+            await navigator.clipboard.writeText(promptText);
+            const btn = document.getElementById('mpp-ai-copy-prompt-btn');
+            const old = btn.textContent;
+            btn.textContent = '✅ Master Prompt Copied!';
+            setTimeout(() => (btn.textContent = old), 2200);
+        };
+
+        document.getElementById('mpp-ai-clean-sync-btn').onclick = () => {
+            textarea.value = window.MPP_cleanAndSyncSnippetText(textarea.value, getSelectedBatch());
+            if (typeof window.MPP_previewSnippetCount === 'function') window.MPP_previewSnippetCount();
+        };
+
+        const fileInput = document.getElementById('mpp-ai-file-input');
+        document.getElementById('mpp-ai-upload-btn').onclick = () => fileInput.click();
+
+        fileInput.onchange = async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
+
+            const statusEl = document.getElementById('mpp-ai-scan-status');
+            statusEl.style.display = 'block';
+            statusEl.style.color = '#38bdf8';
+
+            try {
+                statusEl.textContent = `⏳ Compressing & preparing ${files.length} file(s)...`;
+                const mediaParts = [];
+                for (const f of files) {
+                    const part = await window.MPP_fileToGeminiPart(f);
+                    mediaParts.push(part);
+                }
+
+                const targetBatch = getSelectedBatch();
+                const sysPrompt = window.MPP_buildExamTranscriberPrompt({
+                    examBatch: targetBatch,
+                    autoSolveMcq: document.getElementById('mpp-ai-autosolve-mcq').checked
+                });
+
+                const result = await window.MPP_callGeminiWithFailover(
+                    [{ text: sysPrompt }, ...mediaParts],
+                    (msg) => { statusEl.textContent = msg; }
+                );
+
+                const cleaned = window.MPP_cleanAndSyncSnippetText(result.text, targetBatch);
+                textarea.value = textarea.value.trim()
+                    ? `${textarea.value.trim()}\n\n${cleaned}`
+                    : cleaned;
+
+                statusEl.style.color = '#4ade80';
+                statusEl.textContent = `✅ Transcribed ${files.length} page(s) via ${result.model} (Key #${result.usedKeyIndex} ${result.maskedKey}). Review & edit below before clicking Inject!`;
+
+                if (typeof window.MPP_previewSnippetCount === 'function') {
+                    window.MPP_previewSnippetCount();
+                }
+            } catch (err) {
+                statusEl.style.color = '#fca5a5';
+                statusEl.textContent = `❌ Scan Error: ${err.message}`;
+            } finally {
+                fileInput.value = '';
+            }
+        };
+    };
+
+    // Auto-mount whenever #mpp-snippet-textarea appears in the DOM
+    const observer = new MutationObserver(() => {
+        if (document.getElementById('mpp-snippet-textarea') && !document.getElementById('mpp-ai-scanner-panel')) {
+            window.MPP_mountAIScannerUI();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    if (document.getElementById('mpp-snippet-textarea')) {
+        window.MPP_mountAIScannerUI();
+    }
+})();

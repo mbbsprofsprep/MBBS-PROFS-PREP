@@ -4427,17 +4427,24 @@ if ('serviceWorker' in navigator) {
     });
             }
 // ====================================================
-// 17. FIREBASE JSON VAULT, INDEXEDDB VERSION CACHE & BULK ADMIN MIGRATOR
+// 17. ADMIN FEATURE TOGGLES HUB, FIREBASE JSON VAULT & STUDENT PG CACHE
 // ====================================================
 (function initFirebaseCloudVault() {
-    // 1. Inject Admin Cloud Vault Modal HTML
+    // Global Admin Feature Flags (Synced Live via Firebase settings/global/features)
+    window.globalFeatureFlags = {
+        showTeenPatti: true,     // Normal users can use < 1/16 > & Teen Patti for AIIMS PYQs
+        showCrossExamPG: false,  // Normal users can see NEET-PG / INI-CET / CMS / FMGE decks
+        showAnswerCards: false   // Normal users can flip 3D Visual Answer Cards (ans_image)
+    };
+
+    // 1. Inject Admin Cloud Vault & Feature Control Hub Modal HTML
     const vaultModalHTML = `
     <div id="mpp-cloud-vault-modal" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[33000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] text-left">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[92vh] text-left">
             <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                     <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>☁️</span> Firebase JSON Cloud Vault
+                        <span>⚙️</span> Admin Control Hub &amp; Cloud Vault
                     </h3>
                     <p id="mpp-vault-status-sub" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 mt-0.5">Checking cloud status...</p>
                 </div>
@@ -4445,39 +4452,107 @@ if ('serviceWorker' in navigator) {
             </div>
 
             <div class="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-                <!-- Option A: 1-Click Sync Current Page -->
-                <div class="p-4 rounded-xl bg-sky-50/70 dark:bg-slate-800/70 border border-sky-200 dark:border-slate-700">
+                <!-- MASTER STUDENT FEATURE TOGGLES -->
+                <div class="p-4 rounded-xl bg-amber-50/70 dark:bg-slate-800/80 border border-amber-200 dark:border-amber-800/60 space-y-3">
+                    <div class="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>🎛️ Extend Admin Features to Normal Users</span>
+                        <span class="text-[10px] bg-amber-200/70 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">Live Sync</span>
+                    </div>
+
+                    <!-- Toggle 1: Subject Answers -->
+                    <div class="flex items-center justify-between gap-3 pt-1">
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 dark:text-white">📝 Student Answers (This Subject)</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">Unlock model answers &amp; explanations for students</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="vault-toggle-answers" class="sr-only peer" onchange="window.toggleGlobalAnswers()">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 2: Neuro-Recall Flashcards -->
+                    <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 dark:text-white">🧠 Neuro-Recall 3D Flashcards</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">Unlock spaced-repetition flashcard mode for students</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="vault-toggle-neuro" class="sr-only peer" onchange="window.toggleGlobalNeuroRecall()">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 3: Teen Patti & < 1/16 > Sub-Topic Deck -->
+                    <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 dark:text-white">🃏 Teen Patti &amp; &lt; 1/16 &gt; Sub-Topic Pill</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">Show &lt; 1/16 &gt; pill &amp; fanned card deck to normal users</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="vault-toggle-teenpatti" class="sr-only peer" onchange="window.MPP_toggleFeatureFlag('showTeenPatti')">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 4: Cross-Exam PG Decks (NEET-PG / INI-CET / CMS / FMGE) -->
+                    <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 dark:text-white">🔥 PG Cross-Exam Cards (NEET / INI / CMS / FMGE)</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">Allow students to view linked PG MCQs &amp; 5-exam Teen Patti fans</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="vault-toggle-pgcross" class="sr-only peer" onchange="window.MPP_toggleFeatureFlag('showCrossExamPG')">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 5: 3D Visual Answer Cards (ans_image) -->
+                    <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 dark:text-white">🖼️ 3D Visual Answer Cards (ans_image)</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">Unlock "👁️ View Answer Card" Panzoom image flip for students</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="vault-toggle-anscards" class="sr-only peer" onchange="window.MPP_toggleFeatureFlag('showAnswerCards')">
+                            <div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Option A: Bulk Multi-File JSON Uploader -->
+                <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-slate-800/70 border border-emerald-200 dark:border-slate-700">
                     <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
-                        ⚡ 1. Sync Current Subject Page to Firebase
+                        📦 1. Upload .JSON File(s) from Your Device to Firebase
                     </div>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                        Uploads the currently loaded subject's full <code class="px-1 bg-white dark:bg-slate-900 rounded">curriculumData</code> &amp; <code class="px-1 bg-white dark:bg-slate-900 rounded">qnaData</code> to <code class="px-1 bg-white dark:bg-slate-900 rounded">question_banks</code> (Pro-locked) and auto-generates the 20-question <code class="px-1 bg-white dark:bg-slate-900 rounded">question_previews</code> node.
+                        Select one or multiple <code class="px-1 bg-white dark:bg-slate-900 rounded">{subject}_aiims_{college}_data.json</code> files from your phone/PC. Automatically populates <code class="px-1 bg-white dark:bg-slate-900 rounded">question_banks</code>, <code class="px-1 bg-white dark:bg-slate-900 rounded">question_previews</code>, and <code class="px-1 bg-white dark:bg-slate-900 rounded">bank_meta</code>.
+                    </p>
+                    <input type="file" id="mpp-bulk-json-input" multiple class="hidden" onchange="window.MPP_handleBulkJsonFiles(this.files)">
+                    <button onclick="document.getElementById('mpp-bulk-json-input').click()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
+                        📂 Select JSON File(s) to Upload...
+                    </button>
+                    <div id="mpp-bulk-upload-log" class="hidden mt-3 p-3 rounded-lg bg-slate-900 text-emerald-400 font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
+                </div>
+
+                <!-- Option B: 1-Click Sync Currently Loaded Page -->
+                <div class="p-4 rounded-xl bg-sky-50/70 dark:bg-slate-800/70 border border-sky-200 dark:border-slate-700">
+                    <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
+                        ⚡ 2. Sync Currently Loaded Page to Firebase
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                        If this page's JSON is currently loaded on screen (or still on GitHub), click below to copy it directly into Firebase Cloud.
                     </p>
                     <button id="btn-vault-sync-current" onclick="window.MPP_syncCurrentPageToFirebase(this)" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
                         ☁️ Sync This Subject to Firebase Now
                     </button>
                 </div>
 
-                <!-- Option B: Bulk Multi-File JSON Uploader -->
-                <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-slate-800/70 border border-emerald-200 dark:border-slate-700">
-                    <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
-                        📦 2. Bulk Upload Multiple .JSON Files at Once
-                    </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                        Select any number of <code class="px-1 bg-white dark:bg-slate-900 rounded">{subject}_aiims_{college}_data.json</code> files from your device. Each file is automatically routed to its matching college &amp; subject key in Firebase.
-                    </p>
-                    <input type="file" id="mpp-bulk-json-input" accept=".json" multiple class="hidden" onchange="window.MPP_handleBulkJsonFiles(this.files)">
-                    <button onclick="document.getElementById('mpp-bulk-json-input').click()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
-                        📂 Select JSON Files to Migrate...
-                    </button>
-                    <div id="mpp-bulk-upload-log" class="hidden mt-3 p-3 rounded-lg bg-slate-900 text-emerald-400 font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
-                </div>
-
                 <!-- Option C: Clear Local IndexedDB Cache -->
                 <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
                     <div>
                         <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Local IndexedDB Cache</div>
-                        <div class="text-[10px] text-slate-500">Bumps version or clears cached bank on this device</div>
+                        <div class="text-[10px] text-slate-500">Clears cached banks on this device &amp; reloads from Firebase</div>
                     </div>
                     <button onclick="window.MPP_clearLocalBankCache()" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 text-xs font-bold cursor-pointer">
                         🔄 Force Refresh
@@ -4488,12 +4563,105 @@ if ('serviceWorker' in navigator) {
     </div>`;
     document.body.insertAdjacentHTML('beforeend', vaultModalHTML);
 
-    // 2. Lightweight IndexedDB Wrapper (Bypasses 5MB localStorage limit for 19 subjects)
+    // Sync Toggle Checkboxes UI in Modal & Sidebar
+    window.MPP_syncFeatureTogglesUI = function() {
+        const tAns = document.getElementById('vault-toggle-answers');
+        if (tAns && window.globalPlatformSettings) tAns.checked = Boolean(window.globalPlatformSettings.showAnswers);
+
+        const tNeuro = document.getElementById('vault-toggle-neuro');
+        if (tNeuro) tNeuro.checked = Boolean(window.globalNeuroRecallEnabled);
+
+        const tTP = document.getElementById('vault-toggle-teenpatti');
+        if (tTP) tTP.checked = Boolean(window.globalFeatureFlags.showTeenPatti);
+
+        const tPG = document.getElementById('vault-toggle-pgcross');
+        if (tPG) tPG.checked = Boolean(window.globalFeatureFlags.showCrossExamPG);
+
+        const tCards = document.getElementById('vault-toggle-anscards');
+        if (tCards) tCards.checked = Boolean(window.globalFeatureFlags.showAnswerCards);
+    };
+
+    window.MPP_openCloudVaultModal = function() {
+        window.MPP_updateVaultBadgeUI();
+        window.MPP_syncFeatureTogglesUI();
+        document.getElementById('mpp-cloud-vault-modal').classList.remove('hidden');
+    };
+
+    // Toggle Any Global Feature Flag & Sync Linked PG Cache if Unlocking PG Cross-Links for Students
+    window.MPP_toggleFeatureFlag = async function(flagName) {
+        if (!window.isUserAdmin() || !window.db) return;
+        const newState = !window.globalFeatureFlags[flagName];
+        window.globalFeatureFlags[flagName] = newState;
+        window.MPP_syncFeatureTogglesUI();
+
+        try {
+            const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            await set(ref(window.db, `settings/global/features/${flagName}`), newState);
+
+            // If Admin just unlocked PG Cross-Exam Cards for students, push cached PG question objects to profsDb so students can view them without a MedPYQ login!
+            if (flagName === 'showCrossExamPG' && newState && typeof window.MPP_syncSharedPGCacheForStudents === 'function') {
+                await window.MPP_syncSharedPGCacheForStudents();
+            }
+        } catch (e) {
+            console.error("Failed to toggle feature flag:", e);
+            alert("Failed to update setting: " + e.message);
+        }
+    };
+
+    // Copy Linked MedPYQ Questions into profsDb (cross_links/${subjectSlug}/shared_q_cache) so Normal Students Can View Them When Unlocked
+    window.MPP_syncSharedPGCacheForStudents = async function() {
+        if (!window.isUserAdmin() || !window.db || !window.MPP_state) return;
+        const subjectSlug = window.MPP_state.subjectSlug;
+        if (!subjectSlug) return;
+
+        const allClusters = Object.values(window.MPP_crossClustersMap || {});
+        const sharedCache = {};
+        let count = 0;
+
+        allClusters.forEach(c => {
+            (c.qids || []).forEach(qid => {
+                const ex = window.MPP_inferExamFromQid ? window.MPP_inferExamFromQid(qid) : 'aiims-profs';
+                if (ex !== 'aiims-profs') {
+                    const up = String(qid).trim().toUpperCase();
+                    const qObj = window.MPP_allExamLookup ? window.MPP_allExamLookup[up] : null;
+                    if (qObj) {
+                        sharedCache[up] = {
+                            q: qObj.q || qid,
+                            uid: qObj.uid || qid,
+                            type: 'MCQ',
+                            rawStem: qObj.rawStem || qObj.stem || "",
+                            stem: qObj.stem || "",
+                            options: qObj.options || ["Option A", "Option B", "Option C", "Option D"],
+                            ans_key: qObj.ans_key || "A",
+                            chapter: qObj.chapter || [ex.toUpperCase()],
+                            examBatch: qObj.examBatch || ex.toUpperCase(),
+                            explanation: (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[up]) || qObj.explanation || "",
+                            img: qObj.img || null,
+                            examKey: ex,
+                            isMedPYQ: true
+                        };
+                        count++;
+                    }
+                }
+            });
+        });
+
+        if (count > 0) {
+            try {
+                const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                await set(ref(window.db, `cross_links/${subjectSlug}/shared_q_cache`), JSON.parse(JSON.stringify(sharedCache)));
+            } catch (e) {
+                console.warn("Could not write shared_q_cache:", e.message);
+            }
+        }
+    };
+
+    // 2. Lightweight IndexedDB Wrapper
     const IDB_NAME = 'MBBSProfsPrepVaultDB';
     const IDB_STORE = 'question_banks_cache';
 
     function openVaultIDB() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             if (!window.indexedDB) return resolve(null);
             const req = window.indexedDB.open(IDB_NAME, 1);
             req.onupgradeneeded = (e) => {
@@ -4546,54 +4714,104 @@ if ('serviceWorker' in navigator) {
                 });
             }
             window.subjectJsonCache = {};
-            alert("Local IndexedDB cache cleared! Reloading fresh from Firebase Cloud...");
             window.location.reload();
         } catch (e) {}
     };
 
-    // 3. Resolve College Code & Version-Aware Subject Key (Supports ?version=ed8)
+    // 3. Resolve College Code & All Possible Subject Key Variations
+    const SUBJECT_ALIASES = {
+        'PHYSIOLOGY': ['PHYSIOLOGY', 'physiology', 'PHYSIO', 'physio'],
+        'PHYSIO': ['PHYSIOLOGY', 'physiology', 'PHYSIO', 'physio'],
+        'ANATOMY': ['ANATOMY', 'anatomy', 'ANAT', 'anat'],
+        'BIOCHEMISTRY': ['BIOCHEMISTRY', 'biochemistry', 'BIOCHEM', 'biochem'],
+        'PATHOLOGY': ['PATHOLOGY', 'pathology', 'PATHO', 'patho'],
+        'PHARMACOLOGY': ['PHARMACOLOGY', 'pharmacology', 'PHARMA', 'pharma'],
+        'MICROBIOLOGY': ['MICROBIOLOGY', 'microbiology', 'MICRO', 'micro'],
+        'FMT': ['FMT', 'fmt', 'FORENSIC', 'forensic'],
+        'CFM': ['CFM', 'cfm', 'PSM', 'psm'],
+        'PSM': ['CFM', 'cfm', 'PSM', 'psm'],
+        'ENT': ['ENT', 'ent'],
+        'OPHTHALMOLOGY': ['OPHTHALMOLOGY', 'ophthalmology', 'OPHTHAL', 'ophthal'],
+        'OPHTHAL': ['OPHTHAL', 'ophthal', 'OPHTHALMOLOGY', 'ophthalmology'],
+        'PSYCHIATRY': ['PSYCHIATRY', 'psychiatry', 'PSYCH', 'psych'],
+        'ORTHOPAEDICS': ['ORTHOPAEDICS', 'orthopaedics', 'ORTHO', 'ortho'],
+        'MEDICINE': ['MEDICINE', 'medicine', 'MED', 'med'],
+        'SURGERY': ['SURGERY', 'surgery', 'SURG', 'surg'],
+        'OBG': ['OBG', 'obg'],
+        'PAEDIATRICS': ['PAEDIATRICS', 'paediatrics', 'PEDIATRICS', 'pediatrics', 'PEDS', 'peds'],
+        'DERMATOLOGY': ['DERMATOLOGY', 'dermatology', 'DERMA', 'derma'],
+        'ANAESTHESIA': ['ANAESTHESIA', 'anaesthesia', 'ANESTHESIA', 'anesthesia'],
+        'RADIOLOGY': ['RADIOLOGY', 'radiology', 'RADIO', 'radio']
+    };
+
     window.MPP_getVaultKeys = function(customCollege, customSubject, customVersion) {
         const params = new URLSearchParams(window.location.search);
         const college = String(customCollege || window.COLLEGE_CODE || params.get('college') || 'deoghar').toLowerCase().trim();
-        const rawSub = String(customSubject || window.SUBJECT_CODE || 'CFM').toUpperCase().trim();
+
+        let detectedSub = customSubject || window.SUBJECT_CODE;
+        if (!detectedSub) {
+            const pathMatch = window.location.pathname.match(/\/([a-z0-9-]+?)-(?:review|clinical)\.html/i);
+            if (pathMatch) detectedSub = pathMatch[1];
+        }
+        const rawSub = String(detectedSub || 'CFM').toUpperCase().trim();
         const ver = String(customVersion !== undefined ? customVersion : (window.VERSION_CODE || params.get('version') || '')).toLowerCase().trim();
         const subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
         const fileName = ver
             ? `${rawSub.toLowerCase()}_aiims_${college}_${ver}_data.json`
             : `${rawSub.toLowerCase()}_aiims_${college}_data.json`;
-        return { college, rawSub, ver, subjectKey, fileName };
+
+        const baseCandidates = SUBJECT_ALIASES[rawSub] || [rawSub, rawSub.toLowerCase()];
+        const candidateKeys = [];
+        baseCandidates.forEach(k => {
+            const withVer = ver ? `${k}_${ver}` : k;
+            if (!candidateKeys.includes(withVer)) candidateKeys.push(withVer);
+        });
+
+        return { college, rawSub, ver, subjectKey, candidateKeys, fileName };
     };
 
-    // 4. Upload a Parsed Subject Payload ({ collegeName, curriculumData, qnaData }) to Firebase Vault
+    // 4. Clean & Upload Subject Payload to Firebase
     window.MPP_uploadBankPayloadToFirebase = async function(college, subjectKey, jsonData) {
-        if (!window.db) throw new Error("Firebase database not initialized yet.");
+        if (!window.db) {
+            const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+            const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            window.db = getDatabase(getApp());
+        }
         const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
-        const collegeName = jsonData.collegeName || (`AIIMS ${college.toUpperCase()}`);
-        const curriculumData = jsonData.curriculumData || [];
-        const qnaData = Array.isArray(jsonData.qnaData) ? jsonData.qnaData : Object.values(jsonData.qnaData || {});
+        const cleanJson = JSON.parse(JSON.stringify(jsonData || {}));
+        const collegeName = cleanJson.collegeName || (`AIIMS ${college.toUpperCase()}`);
+        const curriculumData = cleanJson.curriculumData || [];
+        const rawQna = Array.isArray(cleanJson.qnaData)
+            ? cleanJson.qnaData
+            : (Array.isArray(cleanJson) ? cleanJson : Object.values(cleanJson.qnaData || {}));
+        const qnaData = rawQna.filter(Boolean);
 
-        // Build 20-question Free Preview (10 Theory + 10 MCQ) so Free users never download the full locked bank
+        if (qnaData.length === 0) {
+            throw new Error("No questions found in the JSON payload to upload.");
+        }
+
         const previewTheory = qnaData.filter(q => q && q.type === 'Theory').slice(0, 10);
         const previewMcq = qnaData.filter(q => q && q.type === 'MCQ').slice(0, 10);
         const previewQna = [...previewTheory, ...previewMcq];
 
         const versionStamp = Date.now();
+        const normSubKey = String(subjectKey).toUpperCase().trim();
         const updates = {};
 
-        updates[`question_banks/${college}/${subjectKey}`] = {
-            collegeName: collegeName,
-            curriculumData: curriculumData,
-            qnaData: qnaData,
+        updates[`question_banks/${college}/${normSubKey}`] = {
+            collegeName,
+            curriculumData,
+            qnaData,
             version: versionStamp
         };
-        updates[`question_previews/${college}/${subjectKey}`] = {
-            collegeName: collegeName,
-            curriculumData: curriculumData,
+        updates[`question_previews/${college}/${normSubKey}`] = {
+            collegeName,
+            curriculumData,
             qnaData: previewQna,
             version: versionStamp
         };
-        updates[`bank_meta/${college}/${subjectKey}`] = {
+        updates[`bank_meta/${college}/${normSubKey}`] = {
             version: versionStamp,
             totalQuestions: qnaData.length,
             updatedAt: new Date().toISOString(),
@@ -4602,8 +4820,7 @@ if ('serviceWorker' in navigator) {
 
         await update(ref(window.db), updates);
 
-        // Update local IndexedDB cache immediately
-        const idbKey = `pro_${college}_${subjectKey}`;
+        const idbKey = `pro_${college}_${normSubKey}`;
         await window.MPP_idbSet(idbKey, {
             version: versionStamp,
             collegeName,
@@ -4611,10 +4828,10 @@ if ('serviceWorker' in navigator) {
             qnaData
         });
 
-        return { versionStamp, count: qnaData.length };
+        return { versionStamp, count: qnaData.length, normSubKey };
     };
 
-    // 5. 1-Click Sync Current Page to Firebase
+    // 5. 1-Click Sync Current Page
     window.MPP_syncCurrentPageToFirebase = async function(btn) {
         if (!window.isUserAdmin()) return alert("Admin access required.");
         const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
@@ -4631,29 +4848,30 @@ if ('serviceWorker' in navigator) {
                 };
             } else {
                 const res = await fetch(fileName);
-                if (!res.ok) throw new Error(`Could not fetch ${fileName}`);
+                if (!res.ok) throw new Error(`File "${fileName}" was already removed from GitHub. Please use "📂 Select JSON File(s) to Upload..." above to select it from your device!`);
                 payload = await res.json();
             }
 
             const resInfo = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, payload);
             window.MPP_DataSourceTag = 'firebase-pro';
             window.MPP_updateVaultBadgeUI();
-            alert(`✅ Synced ${resInfo.count} questions to Firebase at question_banks/${college}/${subjectKey}!\n\nYou can now safely delete ${fileName} from GitHub.`);
+            alert(`✅ Synced ${resInfo.count} questions to Firebase at question_banks/${college}/${resInfo.normSubKey}!`);
+            if (window.fetchQuestions) await window.fetchQuestions();
         } catch (err) {
             console.error(err);
-            alert("Sync failed: " + err.message);
+            alert(err.message);
         } finally {
             if (btn) { btn.innerText = origText; btn.disabled = false; }
         }
     };
 
-    // 6. Bulk Multi-File JSON Drag/Select Migrator
+    // 6. Bulk Multi-File JSON Uploader
     window.MPP_handleBulkJsonFiles = async function(fileList) {
         if (!fileList || fileList.length === 0) return;
         const logEl = document.getElementById('mpp-bulk-upload-log');
         if (logEl) {
             logEl.classList.remove('hidden');
-            logEl.innerHTML = `<div>🚀 Starting bulk migration of ${fileList.length} file(s)...</div>`;
+            logEl.innerHTML = `<div>🚀 Starting upload of ${fileList.length} file(s)...</div>`;
         }
 
         let successFiles = 0;
@@ -4662,10 +4880,8 @@ if ('serviceWorker' in navigator) {
                 const text = await file.text();
                 const json = JSON.parse(text);
 
-                // Parse filename pattern: {subject}_aiims_{college}_data.json or {subject}_aiims_{college}_{version}_data.json
-                const cleanName = file.name.replace(/\.json$/i, '');
-                let college = window.COLLEGE_CODE || 'deoghar';
-                let subjectKey = window.SUBJECT_CODE || 'CFM';
+                const cleanName = file.name.replace(/\s*\(\d+\)\s*/g, '').replace(/\.(json|txt)$/i, '');
+                let { college, subjectKey } = window.MPP_getVaultKeys();
 
                 const match = cleanName.match(/^([a-z0-9-]+?)_aiims_([a-z0-9-]+?)(?:_(ed\d+))?_data(?:_.*)?$/i);
                 if (match) {
@@ -4674,7 +4890,7 @@ if ('serviceWorker' in navigator) {
                     const ver = match[3] ? match[3].toLowerCase() : '';
                     subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
                 } else {
-                    const manual = prompt(`Could not auto-detect college/subject from filename "${file.name}".\nEnter as college/SUBJECT (e.g. deoghar/ENT or deoghar/PATHOLOGY_ed8):`, `${college}/${subjectKey}`);
+                    const manual = prompt(`Confirm target college/SUBJECT for "${file.name}":`, `${college}/${subjectKey}`);
                     if (!manual || !manual.includes('/')) continue;
                     const parts = manual.split('/');
                     college = parts[0].trim().toLowerCase();
@@ -4684,7 +4900,7 @@ if ('serviceWorker' in navigator) {
                 if (logEl) logEl.insertAdjacentHTML('beforeend', `<div>⏳ Uploading <b>${file.name}</b> &rarr; <code>${college}/${subjectKey}</code>...</div>`);
                 const info = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, json);
                 successFiles++;
-                if (logEl) logEl.insertAdjacentHTML('beforeend', `<div class="text-emerald-300">✅ Done: <code>${college}/${subjectKey}</code> (${info.count} Qs)</div>`);
+                if (logEl) logEl.insertAdjacentHTML('beforeend', `<div class="text-emerald-300">✅ Done: <code>${college}/${info.normSubKey}</code> (${info.count} Qs)</div>`);
                 logEl.scrollTop = logEl.scrollHeight;
             } catch (e) {
                 if (logEl) logEl.insertAdjacentHTML('beforeend', `<div class="text-red-400">❌ Error in ${file.name}: ${e.message}</div>`);
@@ -4692,16 +4908,25 @@ if ('serviceWorker' in navigator) {
         }
 
         if (logEl) {
-            logEl.insertAdjacentHTML('beforeend', `<div class="text-amber-300 font-bold pt-1 border-t border-slate-700">🎉 Completed ${successFiles}/${fileList.length} files!</div>`);
+            logEl.insertAdjacentHTML('beforeend', `<div class="text-amber-300 font-bold pt-1 border-t border-slate-700">🎉 Uploaded ${successFiles}/${fileList.length} file(s)! Reloading page...</div>`);
         }
-        if (window.fetchQuestions) await window.fetchQuestions();
+        if (successFiles > 0 && typeof window.fetchQuestions === 'function') {
+            setTimeout(() => window.fetchQuestions(), 500);
+        }
     };
 
-    // 7. Inject "☁️ Cloud Vault" Button Into #admin-controls Header Bar
+    // 7. Inject "☁️ Vault" Button Into Navbar & #admin-controls
     window.MPP_updateVaultBadgeUI = function() {
         const subEl = document.getElementById('mpp-vault-status-sub');
         const btnEl = document.getElementById('admin-vault-trigger-btn');
+        const navBtnEl = document.getElementById('nav-admin-vault-btn');
         const { college, subjectKey } = window.MPP_getVaultKeys();
+
+        const isAdm = window.isUserAdmin();
+        if (navBtnEl) {
+            navBtnEl.classList.toggle('hidden', !isAdm);
+            navBtnEl.classList.toggle('flex', isAdm);
+        }
 
         let statusText = `Target: question_banks/${college}/${subjectKey}`;
         if (window.MPP_DataSourceTag === 'firebase-cache') statusText = `⚡ Loaded from IndexedDB Cache (0 KB used) • ${college}/${subjectKey}`;
@@ -4716,37 +4941,352 @@ if ('serviceWorker' in navigator) {
                 btnEl.innerHTML = "⚠️ Migrate JSON to Cloud";
             } else {
                 btnEl.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
-                btnEl.innerHTML = "☁️ Cloud Vault";
+                btnEl.innerHTML = "⚙️ Vault & Controls";
             }
         }
     };
 
-    function injectAdminVaultButton() {
-        const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
-        if (isClinicalPage) return;
+    function injectAdminVaultButtons() {
+        const themeBtn = document.getElementById('theme-icon')?.parentElement;
+        if (themeBtn && themeBtn.parentElement && !document.getElementById('nav-admin-vault-btn')) {
+            const navVaultBtn = document.createElement('button');
+            navVaultBtn.id = 'nav-admin-vault-btn';
+            navVaultBtn.type = 'button';
+            navVaultBtn.onclick = window.MPP_openCloudVaultModal;
+            navVaultBtn.className = `${window.isUserAdmin() ? 'flex' : 'hidden'} items-center gap-1 px-2.5 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-xs font-extrabold transition-all cursor-pointer`;
+            navVaultBtn.title = "Open Admin Control Hub & Cloud Vault";
+            navVaultBtn.innerHTML = `<span>⚙️</span><span class="hidden sm:inline">Controls</span>`;
+            themeBtn.parentElement.insertBefore(navVaultBtn, themeBtn);
+        }
 
         const adminControls = document.getElementById('admin-controls');
         if (adminControls && !document.getElementById('admin-vault-trigger-btn')) {
             const btn = document.createElement('button');
             btn.id = 'admin-vault-trigger-btn';
             btn.type = 'button';
-            btn.onclick = () => {
-                window.MPP_updateVaultBadgeUI();
-                document.getElementById('mpp-cloud-vault-modal').classList.remove('hidden');
-            };
+            btn.onclick = window.MPP_openCloudVaultModal;
             btn.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
-            btn.innerHTML = "☁️ Cloud Vault";
+            btn.innerHTML = "⚙️ Vault & Controls";
             adminControls.insertBefore(btn, adminControls.firstChild);
         }
     }
 
-    // 8. Central Override of window.fetchQuestions & window.processDataForAccess on Review Pages
-    function hookReviewPageDataLoader() {
+    function normalizeCloudBankObject(rawVal, collegeFallback) {
+        if (!rawVal) return null;
+        if (Array.isArray(rawVal) && rawVal.length > 0 && rawVal[0] && rawVal[0].q) {
+            return {
+                collegeName: `AIIMS ${collegeFallback.toUpperCase()}`,
+                curriculumData: [],
+                qnaData: rawVal
+            };
+        }
+        if (rawVal.qnaData) {
+            const qArr = Array.isArray(rawVal.qnaData) ? rawVal.qnaData : Object.values(rawVal.qnaData);
+            if (qArr.length > 0) {
+                return {
+                    collegeName: rawVal.collegeName || `AIIMS ${collegeFallback.toUpperCase()}`,
+                    curriculumData: rawVal.curriculumData || [],
+                    qnaData: qArr
+                };
+            }
+        }
+        return null;
+    }
+
+    // 8. Hook Feature Toggles into Teen Patti, PG Cross-Links & 3D Visual Answer Cards
+    function hookFeatureFlagsAndDataLoader() {
+        injectAdminVaultButtons();
+
+        // Listen to settings/global/features & cross_links/${subject}/shared_q_cache
+        import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js").then(async ({ getApp }) => {
+            const { getDatabase, ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            const db = getDatabase(getApp());
+            window.db = db;
+
+            onValue(ref(db, 'settings/global/features'), (snap) => {
+                const val = snap.val() || {};
+                window.globalFeatureFlags = {
+                    showTeenPatti: val.showTeenPatti !== undefined ? Boolean(val.showTeenPatti) : true,
+                    showCrossExamPG: Boolean(val.showCrossExamPG),
+                    showAnswerCards: Boolean(val.showAnswerCards)
+                };
+                window.MPP_syncFeatureTogglesUI();
+                if (window.displayData && window.displayData.length > 0 && typeof window.populateTable === 'function') {
+                    window.populateTable();
+                }
+                if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
+                    window.renderDeckCard();
+                }
+            });
+
+            // Load cached PG questions from profsDb so students can view them when showCrossExamPG is toggled ON
+            if (window.MPP_state && window.MPP_state.subjectSlug) {
+                onValue(ref(db, `cross_links/${window.MPP_state.subjectSlug}/shared_q_cache`), (snap) => {
+                    const cacheObj = snap.val() || {};
+                    Object.keys(cacheObj).forEach(upKey => {
+                        const rec = cacheObj[upKey];
+                        if (rec) {
+                            if (!window.MPP_allExamLookup) window.MPP_allExamLookup = {};
+                            if (!window.MPP_allExamLookup[upKey]) window.MPP_allExamLookup[upKey] = rec;
+                            if (rec.explanation) {
+                                if (!window.MPP_medpyqExplanations) window.MPP_medpyqExplanations = {};
+                                window.MPP_medpyqExplanations[upKey] = rec.explanation;
+                                if (!window.liveAnswers) window.liveAnswers = {};
+                                if (!window.liveAnswers[rec.q]) window.liveAnswers[rec.q] = { text: rec.explanation };
+                            }
+                        }
+                    });
+                });
+            }
+        }).catch(() => {});
+
+        // Override MPP_filterSequenceByRole so normal users also get PG Cross-Exam cards when showCrossExamPG is ON!
+        window.MPP_filterSequenceByRole = function(rawSeq, fallbackQid, examFilterOverride = null) {
+            const cleanFallback = String(fallbackQid || '').trim();
+            if (!Array.isArray(rawSeq) || rawSeq.length === 0) {
+                return cleanFallback ? [cleanFallback] : [];
+            }
+            const list = [...rawSeq];
+            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags.showCrossExamPG);
+
+            if (!canSeePG) {
+                const aiimsOnly = list.filter(qid => window.MPP_inferExamFromQid(qid) === 'aiims-profs');
+                return aiimsOnly.length > 0 ? aiimsOnly : (cleanFallback ? [cleanFallback] : []);
+            }
+
+            if (examFilterOverride && examFilterOverride !== 'all') {
+                return list.filter(qid => window.MPP_inferExamFromQid(qid) === examFilterOverride);
+            }
+
+            return list;
+        };
+
+        window.MPP_getAvailableTopicsForCard = function(anchorQid, displayedQid) {
+            const seenSlugs = new Set();
+            const topics = [];
+            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags.showCrossExamPG);
+
+            const collect = (qid) => {
+                if (!qid) return;
+                const up = String(qid).trim().toUpperCase();
+                const slugs = (window.MPP_nodeTopicsMap && window.MPP_nodeTopicsMap[up]) || [];
+                slugs.forEach(s => {
+                    if (!seenSlugs.has(s) && window.MPP_crossClustersMap && window.MPP_crossClustersMap[s]) {
+                        const c = window.MPP_crossClustersMap[s];
+                        if (!canSeePG) {
+                            const hasAiims = (c.qids || []).some(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
+                            if (!hasAiims) return;
+                        }
+                        seenSlugs.add(s);
+                        topics.push(c);
+                    }
+                });
+            };
+            collect(displayedQid);
+            collect(anchorQid);
+            return topics;
+        };
+
+        // Hook MPP_saveCrossLinks so saving links also caches PG question data for students
+        const origSaveLinks = window.MPP_saveCrossLinks;
+        if (typeof origSaveLinks === 'function' && !window.MPP_saveLinksHooked) {
+            window.MPP_saveLinksHooked = true;
+            window.MPP_saveCrossLinks = async function() {
+                await origSaveLinks.apply(this, arguments);
+                await window.MPP_syncSharedPGCacheForStudents();
+            };
+        }
+
         const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
-        if (isClinicalPage || !window.SUBJECT_CODE || window.MPP_fetchHooked) return;
+        const isReviewPage = Boolean(document.getElementById('qnaTable')) && !isClinicalPage;
+        if (!isReviewPage || window.MPP_fetchHooked) return;
         window.MPP_fetchHooked = true;
 
-        injectAdminVaultButton();
+        // Hook populateTable & renderDeckCard to respect showTeenPatti, showCrossExamPG, and showAnswerCards for Students!
+        const origPopTable = window.populateTable;
+        if (typeof origPopTable === 'function') {
+            window.populateTable = function() {
+                origPopTable.apply(this, arguments);
+                // If Admin unlocked 3D Visual Answer Cards (ans_image) for normal users, inject into Table View rows
+                if (!window.isUserAdmin() && window.globalFeatureFlags.showAnswerCards && window.displayData) {
+                    const tbody = document.getElementById('tableBody');
+                    if (!tbody) return;
+                    Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
+                        const idx = Number(row.getAttribute('data-index'));
+                        const item = window.displayData[idx];
+                        if (item && item.ans_image && row.cells[1] && !row.cells[1].querySelector(`#container-${item.q}`)) {
+                            row.cells[1].insertAdjacentHTML('beforeend', `
+                                <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
+                                    <div class="flex items-center justify-end mb-3">
+                                        <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
+                                            <span>👁️ View Answer Card</span>
+                                        </button>
+                                    </div>
+                                    <div class="flashcard-container hidden w-full" id="container-${item.q}">
+                                        <div class="flashcard-inner" id="card-${item.q}">
+                                            <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
+                                                <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
+                                            </div>
+                                            <div class="flashcard-back">
+                                                <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`);
+                        }
+                    });
+                }
+            };
+        }
+
+        // Enhance renderDeckCard to respect showTeenPatti, showCrossExamPG, and showAnswerCards for Students
+        const currentRenderDeck = window.renderDeckCard;
+        if (typeof currentRenderDeck === 'function') {
+            window.renderDeckCard = function() {
+                currentRenderDeck.apply(this, arguments);
+
+                const isAdm = window.isUserAdmin();
+                const container = document.getElementById('deck-card-container');
+                if (!container) return;
+
+                // 1. If showTeenPatti is OFF for normal users, hide the < 1/16 > pill & topic bar
+                if (!isAdm && !window.globalFeatureFlags.showTeenPatti) {
+                    container.querySelectorAll('.mpp-cluster-pill, .mpp-topic-dims-bar, .tp-parent-overlay').forEach(el => el.remove());
+                }
+
+                // 2. If showCrossExamPG is ON for normal users and Teen Patti fan is open, also show the 5-Exam Switcher & Scroll-Down Decks!
+                if (!isAdm && window.globalFeatureFlags.showTeenPatti && window.globalFeatureFlags.showCrossExamPG && window.MPP_state && window.MPP_state.fanViewOpen) {
+                    const overlay = container.querySelector('.tp-parent-overlay');
+                    if (overlay && !overlay.querySelector('.tp-admin-extended-section')) {
+                        const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                        if (anchorQ && displayedQ) {
+                            const fullCrossInfo = window.MPP_getActiveClusterInfo(anchorQ.q, displayedQ.q, 'all');
+                            const fullSeq = fullCrossInfo.sequence;
+                            const activeTopicTitle = fullCrossInfo.activeTopic ? fullCrossInfo.activeTopic.title : '';
+                            const aiimsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
+                            const neetSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'neet-pg');
+                            const iniSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'inicet');
+                            const cmsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'upsc-cms');
+                            const fmgeSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'fmge');
+                            const curFilter = window.MPP_state.adminTopFilter || 'all';
+
+                            overlay.insertAdjacentHTML('beforeend', `
+                                <div class="tp-admin-extended-section">
+                                    <div class="tp-admin-switcher">
+                                        <span style="font-size:11px; font-weight:900; color:#ea580c;">&larr;</span>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'all' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('all')">All Exam</button>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'aiims-profs' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('aiims-profs')">AIIMS PYQ</button>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'neet-pg' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('neet-pg')">NEET-PG</button>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'inicet' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('inicet')">INI</button>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'upsc-cms' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('upsc-cms')">CMS</button>
+                                        <button type="button" class="tp-switch-btn ${curFilter === 'fmge' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('fmge')">FMGE</button>
+                                        <span style="font-size:11px; font-weight:900; color:#ea580c;">&rarr;</span>
+                                    </div>
+                                    ${window.MPP_buildFanDeckHTML('admin-aiims', aiimsSeq, '#0ea5e9', window.MPP_state.fanPosMap['admin-aiims'] ?? 0, activeTopicTitle)}
+                                    <div class="tp-exam-label-box">AIIMS PROFS PYQ</div>
+                                    ${window.MPP_buildFanDeckHTML('admin-neet-pg', neetSeq, '#2563eb', window.MPP_state.fanPosMap['admin-neet-pg'] ?? 0, activeTopicTitle)}
+                                    <div class="tp-exam-label-box">NEETPG</div>
+                                    ${window.MPP_buildFanDeckHTML('admin-inicet', iniSeq, '#9333ea', window.MPP_state.fanPosMap['admin-inicet'] ?? 0, activeTopicTitle)}
+                                    <div class="tp-exam-label-box">INICET</div>
+                                    ${window.MPP_buildFanDeckHTML('admin-upsc-cms', cmsSeq, '#eab308', window.MPP_state.fanPosMap['admin-upsc-cms'] ?? 0, activeTopicTitle)}
+                                    <div class="tp-exam-label-box">CMS</div>
+                                    ${window.MPP_buildFanDeckHTML('admin-fmge', fmgeSeq, '#22c55e', window.MPP_state.fanPosMap['admin-fmge'] ?? 0, activeTopicTitle)}
+                                    <div class="tp-exam-label-box">FMGE</div>
+                                </div>`);
+                            if (window.MPP_attachFanInteractions) window.MPP_attachFanInteractions();
+                        }
+                    }
+                }
+
+                // 3. If showAnswerCards is ON for normal users and current card has ans_image, inject "👁️ View Answer Card"
+                if (!isAdm && window.globalFeatureFlags.showAnswerCards && window.MPP_getAnchorAndDisplayedQ) {
+                    const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                    if (displayedQ && displayedQ.ans_image) {
+                        const deckCard = container.querySelector('.deck-card');
+                        const footerRow = deckCard ? deckCard.lastElementChild : null;
+                        if (footerRow && !footerRow.querySelector('[data-student-anscard]')) {
+                            footerRow.insertAdjacentHTML('beforeend', `
+                                <button data-student-anscard="1" onclick="window.openNrLightbox('${displayedQ.ans_image}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-transform active:scale-95 text-xs font-bold shadow-md shadow-brand-500/30 border-none cursor-pointer">
+                                    <span>👁️ View Answer Card</span>
+                                </button>`);
+                        }
+                    }
+                }
+            };
+        }
+
+        // Fix Bookmarking for Teen Patti / < 1/16 > Linked Cards & Cross-Exam MedPYQ Cards
+        window.toggleBookmark = async function(btn, index) {
+            if (!window.currentUserObj) {
+                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
+            }
+
+            let item = null;
+            if (typeof index === 'number' && index >= 0 && window.displayData && window.displayData[index]) {
+                item = window.displayData[index];
+            } else if (window.MPP_getAnchorAndDisplayedQ) {
+                const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                item = displayedQ;
+            }
+            if (!item && btn && btn.id && btn.id.startsWith('bmk-deck-')) {
+                const qidFromBtn = btn.id.replace('bmk-deck-', '');
+                if (window.MPP_resolveQuestionByQid) item = window.MPP_resolveQuestionByQid(qidFromBtn);
+            }
+            if (!item) return;
+
+            const uniqueId = window.getUniqueQuestionId(item.q);
+            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter || 'General'];
+            const chapterString = chArray[0] || 'General';
+            const upKey = String(item.q).trim().toUpperCase();
+            const liveExpl = (window.liveAnswers && window.liveAnswers[item.q] && window.liveAnswers[item.q].text)
+                || (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[upKey])
+                || item.explanation
+                || "";
+
+            const bookmarkData = {
+                q: item.q,
+                type: item.type || "General",
+                text: item.stem || "Saved Question",
+                stemHtml: item.stem || "Saved Question",
+                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
+                collegeCode: window.COLLEGE_CODE || 'deoghar',
+                subjectCode: window.SUBJECT_CODE || '',
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
+
+            if (item.options) bookmarkData.options = item.options;
+            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
+            if (item.ans_image) bookmarkData.ans_image = item.ans_image;
+            if (item.img) bookmarkData.img = item.img;
+            if (liveExpl) bookmarkData.explanation = liveExpl;
+
+            const isSaved = window.isBookmarked(item.q);
+            if (window.executeBookmarkToggle) {
+                await window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
+                if (typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
+            }
+        };
+
+        const origUpdateBmkUI = window.updateBookmarkUI;
+        if (typeof origUpdateBmkUI === 'function') {
+            window.updateBookmarkUI = function() {
+                origUpdateBmkUI.apply(this, arguments);
+                if (window.MPP_getAnchorAndDisplayedQ) {
+                    const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+                    if (displayedQ) {
+                        const dBtn = document.getElementById(`bmk-deck-${displayedQ.q}`);
+                        if (dBtn) {
+                            const isSaved = window.isBookmarked(displayedQ.q);
+                            const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
+                            const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+                            dBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm transition-colors ${isSaved ? savedClass : unsavedClass}`;
+                            dBtn.innerHTML = isSaved ? '⭐ Saved' : '🔖 Save';
+                        }
+                    }
+                }
+            };
+        }
 
         window.MPP_loadedTier = null;
 
@@ -4759,7 +5299,7 @@ if ('serviceWorker' in navigator) {
             window.isDataLoaded = true;
 
             const titleEl = document.getElementById('dynamic-page-title');
-            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE} Review (${window.COLLEGE_NAME})`;
+            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE || ''} Review (${window.COLLEGE_NAME})`;
             const headerEl = document.getElementById('dynamic-college-header');
             if (headerEl) headerEl.innerText = window.COLLEGE_NAME;
 
@@ -4771,24 +5311,46 @@ if ('serviceWorker' in navigator) {
 
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
-            if (tableBody && !window.isDataLoaded) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing ${window.COLLEGE_NAME} Cloud Vault...</p></td></tr>`;
+            if (tableBody && (!window.qnaData || window.qnaData.length === 0)) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing ${window.COLLEGE_NAME || 'AIIMS'} Cloud Vault...</p></td></tr>`;
             }
 
-            const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
-            const tier = window.accessLevel || 'guest';
+            let authInstance = null;
+            try {
+                const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+                const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+                const fbApp = getApp();
+                if (!window.db) window.db = getDatabase(fbApp);
+                authInstance = getAuth(fbApp);
 
-            // 1. Wait for Firebase DB instance if still booting
-            if (!window.db) {
-                try {
-                    const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
-                    const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                    window.db = getDatabase(getApp());
-                } catch (e) {}
+                if (typeof authInstance.authStateReady === 'function') {
+                    await authInstance.authStateReady();
+                } else if (!authInstance.currentUser) {
+                    await new Promise((resolve) => {
+                        const timer = setTimeout(resolve, 1200);
+                        const unsub = onAuthStateChanged(authInstance, () => {
+                            clearTimeout(timer);
+                            unsub();
+                            resolve();
+                        });
+                    });
+                }
+            } catch (e) {}
+
+            const activeUser = (authInstance && authInstance.currentUser) || window.currentUserObj;
+            if (activeUser) window.currentUserObj = activeUser;
+
+            const isAdm = window.isUserAdmin(activeUser);
+            if (isAdm) {
+                window.accessLevel = 'premium';
             }
 
-            // 2. If Guest (Not Logged In): Do NOT download anything over the network
-            if (!window.currentUserObj && tier === 'guest') {
+            const { college, subjectKey, candidateKeys, fileName } = window.MPP_getVaultKeys();
+            window.MPP_updateVaultBadgeUI();
+
+            if (!activeUser) {
+                window.accessLevel = 'guest';
                 window.qnaData = [];
                 window.isDataLoaded = true;
                 window.MPP_loadedTier = 'guest';
@@ -4796,118 +5358,254 @@ if ('serviceWorker' in navigator) {
                 return;
             }
 
+            let tier = window.accessLevel;
+            if (!isAdm && (!tier || tier === 'guest')) {
+                try {
+                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                    const subSnap = await get(ref(window.db, `users/${activeUser.uid}/subscription`));
+                    if (subSnap.exists()) {
+                        const d = subSnap.val();
+                        const today = new Date(); today.setHours(0, 0, 0, 0);
+                        const exp = new Date(d.validUntil); exp.setHours(0, 0, 0, 0);
+                        if (Math.ceil((exp - today) / 86400000) >= 0 && d.status === 'active') {
+                            tier = 'premium';
+                            window.accessLevel = 'premium';
+                        } else {
+                            tier = 'free';
+                            window.accessLevel = 'free';
+                        }
+                    } else {
+                        tier = 'free';
+                        window.accessLevel = 'free';
+                    }
+                } catch (e) {
+                    tier = 'free';
+                }
+            }
+
             try {
                 const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
-                // 3. Pro / VIP / Admin Tier -> Check 10-byte version in bank_meta, then IndexedDB cache, then question_banks
-                if (tier === 'premium' || window.isUserAdmin()) {
-                    const metaSnap = await get(ref(window.db, `bank_meta/${college}/${subjectKey}/version`));
-                    const remoteVersion = metaSnap.exists() ? metaSnap.val() : null;
+                if (tier === 'premium' || isAdm) {
+                    let remoteVersion = null;
+                    for (const k of candidateKeys) {
+                        const metaSnap = await get(ref(window.db, `bank_meta/${college}/${k}/version`)).catch(() => null);
+                        if (metaSnap && metaSnap.exists()) {
+                            remoteVersion = metaSnap.val();
+                            break;
+                        }
+                    }
 
+                    const idbKey = `pro_${college}_${subjectKey}`;
                     if (remoteVersion) {
-                        const idbKey = `pro_${college}_${subjectKey}`;
                         const cached = await window.MPP_idbGet(idbKey);
                         if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
                             applyLoadedBank(cached, 'firebase-cache', 'premium');
                             return;
                         }
+                    }
 
-                        const bankSnap = await get(ref(window.db, `question_banks/${college}/${subjectKey}`));
-                        if (bankSnap.exists()) {
-                            const cloudData = bankSnap.val();
-                            await window.MPP_idbSet(idbKey, {
-                                version: remoteVersion,
-                                collegeName: cloudData.collegeName,
-                                curriculumData: cloudData.curriculumData || [],
-                                qnaData: cloudData.qnaData || []
-                            });
-                            applyLoadedBank(cloudData, 'firebase-pro', 'premium');
-                            return;
+                    const pathsToCheck = [];
+                    candidateKeys.forEach(k => {
+                        pathsToCheck.push(`question_banks/${college}/${k}`);
+                        pathsToCheck.push(`question_banks/${k}`);
+                        pathsToCheck.push(`${college}/${k}`);
+                    });
+                    pathsToCheck.push(fileName.replace(/\.json$/i, ''));
+
+                    for (const path of pathsToCheck) {
+                        const snap = await get(ref(window.db, path)).catch(() => null);
+                        if (snap && snap.exists()) {
+                            const normalized = normalizeCloudBankObject(snap.val(), college);
+                            if (normalized && normalized.qnaData.length > 0) {
+                                await window.MPP_idbSet(idbKey, {
+                                    version: remoteVersion || Date.now(),
+                                    ...normalized
+                                });
+                                applyLoadedBank(normalized, 'firebase-pro', 'premium');
+                                return;
+                            }
                         }
                     }
                 }
 
-                // 4. Free Tier -> Fetch ONLY the 20-question preview node from question_previews
                 if (tier === 'free') {
-                    const prevSnap = await get(ref(window.db, `question_previews/${college}/${subjectKey}`));
-                    if (prevSnap.exists()) {
-                        applyLoadedBank(prevSnap.val(), 'firebase-preview', 'free');
-                        return;
+                    for (const k of candidateKeys) {
+                        const prevSnap = await get(ref(window.db, `question_previews/${college}/${k}`)).catch(() => null);
+                        if (prevSnap && prevSnap.exists()) {
+                            const normalized = normalizeCloudBankObject(prevSnap.val(), college);
+                            if (normalized) {
+                                applyLoadedBank(normalized, 'firebase-preview', 'free');
+                                return;
+                            }
+                        }
                     }
                 }
             } catch (cloudErr) {
-                console.warn("Firebase Vault lookup warning (falling back if needed):", cloudErr.message);
+                console.warn("Firebase Vault read warning:", cloudErr.message);
             }
 
-            // 5. Graceful Fallback to GitHub .json (Only if subject has not been migrated to Firebase yet)
             try {
                 const response = await fetch(fileName);
-                if (!response.ok) throw new Error("Not in Firebase or GitHub");
+                if (!response.ok) throw new Error("Not on GitHub");
                 const jsonData = await response.json();
                 applyLoadedBank(jsonData, 'github-fallback', tier);
             } catch (fallbackErr) {
-                console.error("Failed to load question bank:", fallbackErr);
+                window.isDataLoaded = true;
                 if (tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-red-500"><p class="font-bold text-lg">⚠️ Question Bank Not Uploaded Yet (${college}/${subjectKey}).</p><p class="text-sm">Admins: Click <b>☁️ Cloud Vault</b> in the top right to upload this subject's JSON to Firebase.</p></td></tr>`;
+                    const adminActionBtn = isAdm
+                        ? `<button type="button" onclick="window.MPP_openCloudVaultModal()" class="mt-4 px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg border-none cursor-pointer">⚙️ Open Cloud Vault to Upload ${fileName}</button>`
+                        : `<p class="text-xs text-slate-400 mt-2">This subject bank is being updated. Please check back shortly.</p>`;
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="p-12 text-center">
+                                <p class="font-extrabold text-lg text-red-500 mb-1">⚠️ Question Bank Not in Firebase Yet (${college}/${subjectKey})</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Neither <code>question_banks/${college}/${subjectKey}</code> in Firebase nor <code>${fileName}</code> on GitHub was found.</p>
+                                ${adminActionBtn}
+                            </td>
+                        </tr>`;
                 }
             }
         };
 
-        // Re-fetch automatically when Auth / Subscription status upgrades window.accessLevel (e.g. guest -> free -> premium)
-        const origProc = window.processDataForAccess;
-        if (typeof origProc === 'function') {
-            window.processDataForAccess = function() {
-                injectAdminVaultButton();
-                const currentTier = window.accessLevel || 'guest';
-                if (window.isDataLoaded && window.MPP_loadedTier !== currentTier && (currentTier === 'premium' || currentTier === 'free')) {
-                    window.MPP_loadedTier = currentTier;
+        import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js").then(async ({ getApp }) => {
+            const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+            onAuthStateChanged(getAuth(getApp()), (u) => {
+                window.currentUserObj = u;
+                injectAdminVaultButtons();
+                window.MPP_updateVaultBadgeUI();
+                if (u && (!window.qnaData || window.qnaData.length === 0)) {
                     window.fetchQuestions();
-                    return;
                 }
-                return origProc.apply(this, arguments);
-            };
-        }
+            });
+        }).catch(() => {});
     }
 
-    // 9. Upgrade recoverRichQuestionData so Neuro-Recall Bookmarks Pull Images from IndexedDB / Firebase Vault First
-    const origRecoverRich = window.recoverRichQuestionData;
+    // 9. Upgrade Neuro-Recall Image & Live Edit Recovery
     window.recoverRichQuestionData = async function(bm) {
         if (!bm) return { stemHtml: "Saved Question", ansImage: null, img: null };
         let stemHtml = bm.stemHtml || bm.text || "Saved Question";
         let ansImage = bm.ans_image || null;
         let img = bm.img || null;
+        const upQ = String(bm.q || '').trim().toUpperCase();
 
-        if (!stemHtml.includes('<img') && bm.q) {
+        if (Array.isArray(window.qnaData) && bm.q) {
+            const localMatch = window.qnaData.find(x => x && String(x.q).trim().toUpperCase() === upQ);
+            if (localMatch) {
+                if (localMatch.stem) stemHtml = localMatch.stem;
+                if (localMatch.ans_image) ansImage = localMatch.ans_image;
+                if (localMatch.img) img = localMatch.img;
+                if (localMatch.options) bm.options = localMatch.options;
+                if (localMatch.ans_key) bm.ans_key = localMatch.ans_key;
+                return { stemHtml, ansImage, img };
+            }
+        }
+        if (window.MPP_allExamLookup && window.MPP_allExamLookup[upQ]) {
+            const medMatch = window.MPP_allExamLookup[upQ];
+            if (medMatch.stem) stemHtml = medMatch.stem;
+            if (medMatch.img) img = medMatch.img;
+            if (medMatch.options) bm.options = medMatch.options;
+            if (medMatch.ans_key) bm.ans_key = medMatch.ans_key;
+            return { stemHtml, ansImage, img };
+        }
+
+        let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
+        let subCode = (bm.subjectCode || '').toUpperCase().trim();
+        if (!subCode && bm.subject) {
+            const parts = bm.subject.split(' - ');
+            if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
+            if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
+        }
+
+        if (window.db && colCode && subCode && upQ) {
             try {
-                let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
-                let subCode = (bm.subjectCode || '').toUpperCase().trim();
-                if (!subCode && bm.subject) {
-                    const parts = bm.subject.split(' - ');
-                    if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
-                    if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
+                const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                const ovSnap = await get(ref(window.db, `question_edits/${colCode}/${subCode}/overrides/${upQ}`)).catch(() => null);
+                if (ovSnap && ovSnap.exists()) {
+                    const ov = ovSnap.val();
+                    if (ov.ans_key) bm.ans_key = ov.ans_key;
+                    if (Array.isArray(ov.options) && ov.options.length > 0) bm.options = ov.options;
+                    if (ov.stem) stemHtml = ov.stem;
                 }
-                if (colCode && subCode) {
-                    const cached = await window.MPP_idbGet(`pro_${colCode}_${subCode}`);
-                    if (cached && Array.isArray(cached.qnaData)) {
-                        const found = cached.qnaData.find(x => x && x.q === bm.q);
-                        if (found) {
-                            if (found.stem) stemHtml = found.stem;
-                            if (found.ans_image) ansImage = found.ans_image;
-                            if (found.img) img = found.img;
-                            return { stemHtml, ansImage, img };
+            } catch (e) {}
+        }
+
+        if (!stemHtml.includes('<img') && colCode && subCode && bm.q) {
+            try {
+                let cached = await window.MPP_idbGet(`pro_${colCode}_${subCode}`);
+                if (!cached && window.db) {
+                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                    const bankSnap = await get(ref(window.db, `question_banks/${colCode}/${subCode}`)).catch(() => null);
+                    if (bankSnap && bankSnap.exists()) {
+                        const normalized = normalizeCloudBankObject(bankSnap.val(), colCode);
+                        if (normalized) {
+                            cached = normalized;
+                            await window.MPP_idbSet(`pro_${colCode}_${subCode}`, { version: Date.now(), ...normalized });
                         }
+                    }
+                }
+                if (cached && Array.isArray(cached.qnaData)) {
+                    const found = cached.qnaData.find(x => x && String(x.q).trim().toUpperCase() === upQ);
+                    if (found) {
+                        if (found.stem) stemHtml = found.stem;
+                        if (found.ans_image) ansImage = found.ans_image;
+                        if (found.img) img = found.img;
+                        if (found.options && !bm.options) bm.options = found.options;
+                        if (found.ans_key && !bm.ans_key) bm.ans_key = found.ans_key;
                     }
                 }
             } catch (e) {}
         }
-        return typeof origRecoverRich === 'function' ? origRecoverRich(bm) : { stemHtml, ansImage, img };
+
+        return { stemHtml, ansImage, img };
     };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', hookReviewPageDataLoader);
-    } else {
-        hookReviewPageDataLoader();
+    // 10. Upgrade Neuro-Recall "Neuro-Link" Explanation Resolver
+    if (window.neuroRecallApp) {
+        window.neuroRecallApp.getExplanationForBookmark = async function(bm) {
+            if (!bm) return "";
+            const upQ = String(bm.q || '').trim().toUpperCase();
+
+            if (window.liveAnswers && bm.q && window.liveAnswers[bm.q] && window.liveAnswers[bm.q].text) {
+                return window.liveAnswers[bm.q].text;
+            }
+            if (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[upQ]) {
+                return window.MPP_medpyqExplanations[upQ];
+            }
+
+            if (window.db && bm.q) {
+                try {
+                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                    let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
+                    let subCode = (bm.subjectCode || '').toUpperCase().trim();
+                    if (!subCode && bm.subject) {
+                        const parts = bm.subject.split(' - ');
+                        if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
+                        if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
+                    }
+                    if (colCode && subCode) {
+                        const ovSnap = await get(ref(window.db, `question_edits/${colCode}/${subCode}/overrides/${upQ}/explanation`)).catch(() => null);
+                        if (ovSnap && ovSnap.exists() && ovSnap.val()) return ovSnap.val();
+
+                        const isClin = (bm.subject && bm.subject.includes('Clinical')) || String(bm.q).startsWith('CLIN-');
+                        const path = isClin
+                            ? `clinical_data/${colCode}/${subCode}/${bm.q}/answer`
+                            : `answers/${colCode}/${subCode}/${bm.q}/text`;
+                        const snap = await get(ref(window.db, path)).catch(() => null);
+                        if (snap && snap.exists() && snap.val()) return snap.val();
+                    }
+                } catch (e) {}
+            }
+
+            return bm.explanation || "";
+        };
     }
-    window.addEventListener('load', hookReviewPageDataLoader);
-    setTimeout(hookReviewPageDataLoader, 400);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hookFeatureFlagsAndDataLoader);
+    } else {
+        hookFeatureFlagsAndDataLoader();
+    }
+    window.addEventListener('load', hookFeatureFlagsAndDataLoader);
+    setTimeout(hookFeatureFlagsAndDataLoader, 400);
 })();

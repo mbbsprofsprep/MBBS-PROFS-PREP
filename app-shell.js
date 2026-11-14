@@ -4485,11 +4485,28 @@ if ('serviceWorker' in navigator) {
             .catch(() => {});
     });
 }
-
 // ====================================================
 // 17. SELF-INITIALIZING FIREBASE CLOUD VAULT, ADMIN HUB & CACHE ENGINE
 // ====================================================
 (function initFirebaseCloudVault() {
+    // Upgrade sanitizer so chapter & examBatch arrays/numbers never crash older HTML templates
+    const baseSanitizer = window.MPP_sanitizeBankData;
+    window.MPP_sanitizeBankData = function(rawPayload, collegeFallback) {
+        const res = baseSanitizer ? baseSanitizer(rawPayload, collegeFallback) : null;
+        if (!res || !Array.isArray(res.qnaData)) return res;
+        res.qnaData = res.qnaData.map(item => {
+            const clean = { ...item };
+            clean.chapter = Array.isArray(item.chapter)
+                ? item.chapter.filter(Boolean).map(c => String(c))
+                : String(item.chapter || "General");
+            clean.examBatch = Array.isArray(item.examBatch)
+                ? item.examBatch.filter(Boolean).map(e => String(e))
+                : String(item.examBatch || "Prof Exam");
+            return clean;
+        });
+        return res;
+    };
+
     window.MPP_ensureProfsFirebase = async function() {
         const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
         const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
@@ -4765,8 +4782,10 @@ if ('serviceWorker' in navigator) {
         'ANATOMY': ['ANATOMY', 'anatomy', 'ANAT', 'anat'],
         'BIOCHEMISTRY': ['BIOCHEMISTRY', 'biochemistry', 'BIOCHEM', 'biochem'],
         'PATHOLOGY': ['PATHOLOGY', 'pathology', 'PATHO', 'patho'],
+        'PATHO': ['PATHOLOGY', 'pathology', 'PATHO', 'patho'],
         'PHARMACOLOGY': ['PHARMACOLOGY', 'pharmacology', 'PHARMA', 'pharma'],
         'MICROBIOLOGY': ['MICROBIOLOGY', 'microbiology', 'MICRO', 'micro'],
+        'MICRO': ['MICROBIOLOGY', 'microbiology', 'MICRO', 'micro'],
         'FMT': ['FMT', 'fmt', 'FORENSIC', 'forensic'],
         'CFM': ['CFM', 'cfm', 'PSM', 'psm'],
         'PSM': ['CFM', 'cfm', 'PSM', 'psm'],
@@ -4784,6 +4803,7 @@ if ('serviceWorker' in navigator) {
         'RADIOLOGY': ['RADIOLOGY', 'radiology', 'RADIO', 'radio']
     };
 
+    // Multi-Version Aware Vault Key & Filename Resolver (Handles Pathology & Microbiology Standard + Ed 8!)
     window.MPP_getVaultKeys = function(customCollege, customSubject, customVersion) {
         const params = new URLSearchParams(window.location.search);
         const college = String(customCollege || window.COLLEGE_CODE || params.get('college') || 'deoghar').toLowerCase().trim();
@@ -4793,21 +4813,83 @@ if ('serviceWorker' in navigator) {
             const pathMatch = window.location.pathname.match(/\/([a-z0-9-]+?)-(?:review|clinical)\.html/i);
             if (pathMatch) detectedSub = pathMatch[1];
         }
-        const rawSub = String(detectedSub || 'CFM').toUpperCase().trim();
-        const ver = String(customVersion !== undefined ? customVersion : (window.VERSION_CODE || params.get('version') || '')).toLowerCase().trim();
-        const subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
-        const fileName = ver
-            ? `${rawSub.toLowerCase()}_aiims_${college}_${ver}_data.json`
-            : `${rawSub.toLowerCase()}_aiims_${college}_data.json`;
 
-        const baseCandidates = SUBJECT_ALIASES[rawSub] || [rawSub, rawSub.toLowerCase()];
+        // Strip any accidental _ED8 or _STANDARD already appended to window.SUBJECT_CODE so we never double-append!
+        let cleanSub = String(detectedSub || 'CFM').toUpperCase().trim();
+        let embeddedVer = '';
+        const embMatch = cleanSub.match(/^(.*?)_(ED\d+|STANDARD)$/i);
+        if (embMatch) {
+            cleanSub = embMatch[1].toUpperCase();
+            embeddedVer = embMatch[2].toLowerCase();
+        }
+        if (cleanSub === 'PATHO') cleanSub = 'PATHOLOGY';
+        if (cleanSub === 'MICRO') cleanSub = 'MICROBIOLOGY';
+
+        let rawVer = String(customVersion !== undefined ? customVersion : (params.get('version') || window.VERSION_CODE || embeddedVer || '')).toLowerCase().trim();
+        // Treat "standard" or "default" as standard (empty version suffix)
+        const isStandard = !rawVer || rawVer === 'standard' || rawVer === 'default' || rawVer === 'std';
+        const ver = isStandard ? '' : rawVer;
+        const verUpper = ver.toUpperCase();
+
+        // Always normalize primary subjectKey to UPPERCASE (e.g. PATHOLOGY or PATHOLOGY_ED8) to match upload key!
+        const subjectKey = ver ? `${cleanSub}_${verUpper}` : cleanSub;
+
+        const baseCandidates = SUBJECT_ALIASES[cleanSub] || [cleanSub, cleanSub.toLowerCase()];
         const candidateKeys = [];
-        baseCandidates.forEach(k => {
-            const withVer = ver ? `${k}_${ver}` : k;
-            if (!candidateKeys.includes(withVer)) candidateKeys.push(withVer);
-        });
+        const addCand = (k) => { if (k && !candidateKeys.includes(k)) candidateKeys.push(k); };
 
-        return { college, rawSub, ver, subjectKey, candidateKeys, fileName };
+        if (ver) {
+            // Check BOTH uppercase (_ED8) and lowercase (_ed8) and prefix variations in Firebase!
+            baseCandidates.forEach(k => {
+                addCand(`${k}_${verUpper}`);
+                addCand(`${k}_${ver}`);
+                addCand(`${k}-${verUpper}`);
+                addCand(`${k}-${ver}`);
+                addCand(`${verUpper}_${k}`);
+                addCand(`${ver}_${k}`);
+            });
+        } else {
+            // Standard mode: check base keys AND _STANDARD / _standard keys in Firebase
+            baseCandidates.forEach(k => {
+                addCand(k);
+                addCand(`${k}_STANDARD`);
+                addCand(`${k}_standard`);
+            });
+        }
+
+        // Build all possible GitHub .json fallback filenames so whichever naming convention was used on GitHub is found!
+        const subLower = cleanSub.toLowerCase();
+        const shortLower = subLower === 'pathology' ? 'patho' : (subLower === 'microbiology' ? 'micro' : subLower);
+        const candidateFileNames = [];
+        const addFile = (f) => { if (f && !candidateFileNames.includes(f)) candidateFileNames.push(f); };
+
+        if (ver) {
+            addFile(`${subLower}_aiims_${college}_${ver}_data.json`);
+            addFile(`${subLower}_${ver}_aiims_${college}_data.json`);
+            addFile(`${subLower}_aiims_${college}_data_${ver}.json`);
+            addFile(`${subLower}_aiims_${college}_${ver}.json`);
+            if (shortLower !== subLower) {
+                addFile(`${shortLower}_aiims_${college}_${ver}_data.json`);
+                addFile(`${shortLower}_${ver}_aiims_${college}_data.json`);
+                addFile(`${shortLower}_aiims_${college}_data_${ver}.json`);
+            }
+        } else {
+            addFile(`${subLower}_aiims_${college}_data.json`);
+            if (shortLower !== subLower) addFile(`${shortLower}_aiims_${college}_data.json`);
+            addFile(`${subLower}_aiims_${college}_standard_data.json`);
+            addFile(`${subLower}_standard_aiims_${college}_data.json`);
+            addFile(`${subLower}_aiims_${college}_data_standard.json`);
+        }
+
+        return {
+            college,
+            rawSub: cleanSub,
+            ver,
+            subjectKey,
+            candidateKeys,
+            fileName: candidateFileNames[0],
+            candidateFileNames
+        };
     };
 
     window.MPP_uploadBankPayloadToFirebase = async function(college, subjectKey, jsonData) {
@@ -4825,7 +4907,7 @@ if ('serviceWorker' in navigator) {
         const previewQna = [...previewTheory, ...previewMcq];
 
         const versionStamp = Date.now();
-        const normSubKey = String(subjectKey).toUpperCase().trim();
+        const normSubKey = String(subjectKey).toUpperCase().trim().replace(/_STANDARD$/i, '');
         const updates = {};
 
         updates[`question_banks/${college}/${normSubKey}`] = {
@@ -4862,7 +4944,7 @@ if ('serviceWorker' in navigator) {
 
     window.MPP_syncCurrentPageToFirebase = async function(btn) {
         if (!window.isUserAdmin()) return alert("Admin access required.");
-        const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
+        const { college, subjectKey, candidateFileNames } = window.MPP_getVaultKeys();
         const origText = btn ? btn.innerText : "";
         if (btn) { btn.innerText = "⏳ Uploading to Firebase Cloud..."; btn.disabled = true; }
 
@@ -4875,9 +4957,14 @@ if ('serviceWorker' in navigator) {
                     qnaData: window.qnaData
                 };
             } else {
-                const res = await fetch(fileName);
-                if (!res.ok) throw new Error(`File "${fileName}" not found on GitHub. Use "📂 Select JSON File(s) to Upload..." above!`);
-                payload = await res.json();
+                for (const fname of candidateFileNames) {
+                    const res = await fetch(fname).catch(() => null);
+                    if (res && res.ok) {
+                        payload = await res.json();
+                        break;
+                    }
+                }
+                if (!payload) throw new Error(`Could not fetch JSON from GitHub. Use "📂 Select JSON File(s) to Upload..." above!`);
             }
 
             const resInfo = await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, payload);
@@ -4892,6 +4979,7 @@ if ('serviceWorker' in navigator) {
         }
     };
 
+    // Smart Multi-File JSON Uploader (Detects ed8 anywhere in filename: before _aiims_, before _data, or after _data!)
     window.MPP_handleBulkJsonFiles = async function(fileList) {
         if (!fileList || fileList.length === 0) return;
         const logEl = document.getElementById('mpp-bulk-upload-log');
@@ -4909,14 +4997,24 @@ if ('serviceWorker' in navigator) {
                 const cleanName = file.name.replace(/\s*\(\d+\)\s*/g, '').replace(/\.(json|txt)$/i, '');
                 let { college, subjectKey } = window.MPP_getVaultKeys();
 
-                const match = cleanName.match(/^([a-z0-9-]+?)_aiims_([a-z0-9-]+?)(?:_(ed\d+))?_data(?:_.*)?$/i);
+                // Detect version tag (e.g. ed8) anywhere in the filename
+                const verMatch = cleanName.match(/(?:^|_|-)(ed\d+)(?:_|-|$)/i);
+                const detectedVer = verMatch ? verMatch[1].toUpperCase() : '';
+
+                // Strip version and _data/timestamps to isolate {subject}_aiims_{college}
+                const strippedName = cleanName
+                    .replace(/(?:^|_|-)(?:ed\d+|standard)(?=_|-|$)/gi, '')
+                    .replace(/_data.*$/i, '');
+
+                const match = strippedName.match(/^([a-z0-9-]+?)_aiims_([a-z0-9-]+?)$/i);
                 if (match) {
-                    const rawSub = match[1].toUpperCase();
+                    let rawSub = match[1].toUpperCase();
+                    if (rawSub === 'PATHO') rawSub = 'PATHOLOGY';
+                    if (rawSub === 'MICRO') rawSub = 'MICROBIOLOGY';
                     college = match[2].toLowerCase();
-                    const ver = match[3] ? match[3].toLowerCase() : '';
-                    subjectKey = ver ? `${rawSub}_${ver}` : rawSub;
+                    subjectKey = detectedVer ? `${rawSub}_${detectedVer}` : rawSub;
                 } else {
-                    const manual = prompt(`Confirm target college/SUBJECT for "${file.name}":`, `${college}/${subjectKey}`);
+                    const manual = prompt(`Confirm target college/SUBJECT for "${file.name}" (e.g. deoghar/PATHOLOGY or deoghar/PATHOLOGY_ED8):`, `${college}/${subjectKey}`);
                     if (!manual || !manual.includes('/')) continue;
                     const parts = manual.split('/');
                     college = parts[0].trim().toLowerCase();
@@ -4991,12 +5089,270 @@ if ('serviceWorker' in navigator) {
         }
     }
 
-    // 8. Hook Feature Toggles & Central Data Loader
-    async function hookFeatureFlagsAndDataLoader() {
+    // 8. SYNCHRONOUSLY Hook Review Page Loader FIRST (So window.onload never runs un-hooked!)
+    function hookFeatureFlagsAndDataLoader() {
         injectAdminVaultButtons();
 
-        try {
-            const { dbInstance, authInstance } = await window.MPP_ensureProfsFirebase();
+        const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
+        const isReviewPage = Boolean(document.getElementById('qnaTable')) && !isClinicalPage;
+
+        if (isReviewPage && !window.MPP_fetchHooked) {
+            window.MPP_fetchHooked = true;
+
+            const origProcessData = window.processDataForAccess;
+            if (typeof origProcessData === 'function') {
+                window.processDataForAccess = function() {
+                    if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+                        const sanitized = window.MPP_sanitizeBankData({
+                            collegeName: window.COLLEGE_NAME,
+                            curriculumData: window.curriculumData,
+                            qnaData: window.qnaData
+                        }, window.COLLEGE_CODE);
+                        if (sanitized) {
+                            window.curriculumData = sanitized.curriculumData;
+                            window.qnaData = sanitized.qnaData;
+                        }
+                    }
+                    Object.keys(window.MPP_questionEditsMap || {}).forEach(upKey => {
+                        if (window.MPP_applyOverrideToMemory) {
+                            window.MPP_applyOverrideToMemory(upKey, window.MPP_questionEditsMap[upKey]);
+                        }
+                    });
+                    try {
+                        return origProcessData.apply(this, arguments);
+                    } catch (renderErr) {
+                        console.error("Render error caught safely in processDataForAccess:", renderErr);
+                    }
+                };
+            }
+
+            const origPopTable = window.populateTable;
+            if (typeof origPopTable === 'function') {
+                window.populateTable = function() {
+                    origPopTable.apply(this, arguments);
+                    if (!window.isUserAdmin() && window.globalFeatureFlags && window.globalFeatureFlags.showAnswerCards && window.displayData) {
+                        const tbody = document.getElementById('tableBody');
+                        if (!tbody) return;
+                        Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
+                            const idx = Number(row.getAttribute('data-index'));
+                            const item = window.displayData[idx];
+                            if (item && item.ans_image && row.cells[1] && !row.cells[1].querySelector(`#container-${item.q}`)) {
+                                row.cells[1].insertAdjacentHTML('beforeend', `
+                                    <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
+                                        <div class="flex items-center justify-end mb-3">
+                                            <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
+                                                <span>👁️ View Answer Card</span>
+                                            </button>
+                                        </div>
+                                        <div class="flashcard-container hidden w-full" id="container-${item.q}">
+                                            <div class="flashcard-inner" id="card-${item.q}">
+                                                <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
+                                                    <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
+                                                </div>
+                                                <div class="flashcard-back">
+                                                    <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>`);
+                            }
+                        });
+                    }
+                };
+            }
+
+            const applyLoadedBank = (rawBankData, sourceTag, tier) => {
+                const { college, rawSub, ver } = window.MPP_getVaultKeys();
+                const sanitized = window.MPP_sanitizeBankData(rawBankData, college);
+                if (!sanitized) return false;
+
+                window.MPP_DataSourceTag = sourceTag;
+                window.MPP_loadedTier = tier;
+                window.accessLevel = tier;
+                window.COLLEGE_NAME = sanitized.collegeName || window.COLLEGE_NAME;
+                window.curriculumData = sanitized.curriculumData || [];
+                window.qnaData = sanitized.qnaData || [];
+                window.isDataLoaded = true;
+
+                const verLabel = ver ? ` (${ver.toUpperCase()})` : '';
+                const titleEl = document.getElementById('dynamic-page-title');
+                if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${rawSub}${verLabel} Review (${window.COLLEGE_NAME})`;
+                const headerEl = document.getElementById('dynamic-college-header');
+                if (headerEl) headerEl.innerText = window.COLLEGE_NAME;
+
+                window.MPP_updateVaultBadgeUI();
+                if (typeof window.processDataForAccess === 'function') {
+                    window.processDataForAccess();
+                }
+                return true;
+            };
+
+            window.fetchQuestions = async function() {
+                const tableBody = document.getElementById('tableBody');
+                if (tableBody && (!window.qnaData || window.qnaData.length === 0)) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Loading ${window.COLLEGE_NAME || 'AIIMS'} Question Bank...</p></td></tr>`;
+                }
+
+                let dbInstance = window.db;
+                let authInstance = window.profsAuth;
+                try {
+                    const ens = await window.MPP_ensureProfsFirebase();
+                    dbInstance = ens.dbInstance;
+                    authInstance = ens.authInstance;
+                    const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+
+                    if (typeof authInstance.authStateReady === 'function') {
+                        await authInstance.authStateReady();
+                    } else if (!authInstance.currentUser) {
+                        await new Promise((resolve) => {
+                            const timer = setTimeout(resolve, 1500);
+                            const unsub = onAuthStateChanged(authInstance, () => {
+                                clearTimeout(timer);
+                                unsub();
+                                resolve();
+                            });
+                        });
+                    }
+                } catch (e) {}
+
+                const activeUser = (authInstance && authInstance.currentUser) || window.currentUserObj;
+                if (activeUser) window.currentUserObj = activeUser;
+
+                const isAdm = window.isUserAdmin(activeUser);
+                const { college, subjectKey, candidateKeys, candidateFileNames } = window.MPP_getVaultKeys();
+                window.MPP_updateVaultBadgeUI();
+
+                if (!activeUser) {
+                    window.accessLevel = 'guest';
+                    window.qnaData = [];
+                    window.isDataLoaded = true;
+                    window.MPP_loadedTier = 'guest';
+                    if (typeof window.processDataForAccess === 'function') window.processDataForAccess();
+                    return;
+                }
+
+                let tier = isAdm ? 'premium' : (window.accessLevel && window.accessLevel !== 'guest' ? window.accessLevel : 'free');
+                if (!isAdm) {
+                    try {
+                        const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                        const subSnap = await get(ref(dbInstance, `users/${activeUser.uid}/subscription`));
+                        if (subSnap.exists()) {
+                            const d = subSnap.val();
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const exp = new Date(d.validUntil); exp.setHours(0, 0, 0, 0);
+                            tier = (Math.ceil((exp - today) / 86400000) >= 0 && d.status === 'active') ? 'premium' : 'free';
+                        }
+                    } catch (e) {}
+                }
+                window.accessLevel = tier;
+
+                let loadedPayload = null;
+                let loadedSource = '';
+
+                // 1. Check Firebase Cloud Vault (IndexedDB Cache -> All Candidate Keys in question_banks / question_previews)
+                try {
+                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+                    if (tier === 'premium' || isAdm) {
+                        let remoteVersion = null;
+                        for (const k of candidateKeys) {
+                            const metaSnap = await get(ref(dbInstance, `bank_meta/${college}/${k}/version`)).catch(() => null);
+                            if (metaSnap && metaSnap.exists()) {
+                                remoteVersion = metaSnap.val();
+                                break;
+                            }
+                        }
+
+                        const idbKey = `pro_${college}_${subjectKey}`;
+                        if (remoteVersion) {
+                            const cached = await window.MPP_idbGet(idbKey);
+                            if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
+                                loadedPayload = cached;
+                                loadedSource = 'firebase-cache';
+                            }
+                        }
+
+                        if (!loadedPayload) {
+                            for (const k of candidateKeys) {
+                                const snap = await get(ref(dbInstance, `question_banks/${college}/${k}`)).catch(() => null);
+                                if (snap && snap.exists()) {
+                                    const sanitized = window.MPP_sanitizeBankData(snap.val(), college);
+                                    if (sanitized && sanitized.qnaData.length > 0) {
+                                        await window.MPP_idbSet(idbKey, {
+                                            version: remoteVersion || Date.now(),
+                                            ...sanitized
+                                        });
+                                        loadedPayload = sanitized;
+                                        loadedSource = 'firebase-pro';
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (tier === 'free') {
+                        for (const k of candidateKeys) {
+                            const prevSnap = await get(ref(dbInstance, `question_previews/${college}/${k}`)).catch(() => null);
+                            if (prevSnap && prevSnap.exists()) {
+                                const sanitized = window.MPP_sanitizeBankData(prevSnap.val(), college);
+                                if (sanitized && sanitized.qnaData.length > 0) {
+                                    loadedPayload = sanitized;
+                                    loadedSource = 'firebase-preview';
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (cloudErr) {
+                    console.warn("Firebase read warning:", cloudErr);
+                }
+
+                // 2. If Not in Firebase Yet -> Try All Possible GitHub .json Filenames (Handles Ed 8 & Standard naming variations!)
+                if (!loadedPayload) {
+                    for (const fname of candidateFileNames) {
+                        try {
+                            const response = await fetch(fname);
+                            if (response.ok) {
+                                const jsonData = await response.json();
+                                loadedPayload = jsonData;
+                                loadedSource = 'github-fallback';
+                                break;
+                            }
+                        } catch (ghErr) {}
+                    }
+                }
+
+                // 3. Render Loaded Bank
+                if (loadedPayload) {
+                    applyLoadedBank(loadedPayload, loadedSource, tier);
+                    return;
+                }
+
+                // 4. Only if neither Firebase nor any GitHub filename had the bank
+                window.isDataLoaded = true;
+                if (tableBody) {
+                    const adminActionBtn = isAdm
+                        ? `<button type="button" onclick="window.MPP_openCloudVaultModal()" class="mt-4 px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg border-none cursor-pointer">⚙️ Open Cloud Vault &amp; Controls</button>`
+                        : '';
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="p-12 text-center">
+                                <p class="font-extrabold text-lg text-red-500 mb-1">⚠️ Question Bank Not Found (${college}/${subjectKey})</p>
+                                <p class="text-xs text-slate-400">Checked Firebase keys: <code>${candidateKeys.slice(0, 4).join(', ')}</code> &amp; GitHub files: <code>${candidateFileNames.slice(0, 3).join(', ')}</code></p>
+                                ${adminActionBtn}
+                            </td>
+                        </tr>`;
+                }
+            };
+
+            if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+                window.processDataForAccess();
+            } else {
+                window.fetchQuestions();
+            }
+        }
+
+        // Connect Firebase listeners in background
+        window.MPP_ensureProfsFirebase().then(async ({ dbInstance, authInstance }) => {
             const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
             const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
 
@@ -5024,263 +5380,7 @@ if ('serviceWorker' in navigator) {
                     window.fetchQuestions();
                 }
             });
-        } catch (e) {}
-
-        const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
-        const isReviewPage = Boolean(document.getElementById('qnaTable')) && !isClinicalPage;
-        if (!isReviewPage || window.MPP_fetchHooked) return;
-        window.MPP_fetchHooked = true;
-
-        // Sanitize window.qnaData inside processDataForAccess so even if the page's native fetchQuestions ran first, numeric options in Physiology never crash populateTable()!
-        const origProcessData = window.processDataForAccess;
-        if (typeof origProcessData === 'function') {
-            window.processDataForAccess = function() {
-                if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
-                    const sanitized = window.MPP_sanitizeBankData({
-                        collegeName: window.COLLEGE_NAME,
-                        curriculumData: window.curriculumData,
-                        qnaData: window.qnaData
-                    }, window.COLLEGE_CODE);
-                    if (sanitized) {
-                        window.curriculumData = sanitized.curriculumData;
-                        window.qnaData = sanitized.qnaData;
-                    }
-                }
-                Object.keys(window.MPP_questionEditsMap || {}).forEach(upKey => {
-                    if (window.MPP_applyOverrideToMemory) {
-                        window.MPP_applyOverrideToMemory(upKey, window.MPP_questionEditsMap[upKey]);
-                    }
-                });
-                try {
-                    return origProcessData.apply(this, arguments);
-                } catch (renderErr) {
-                    console.error("Render error caught safely in processDataForAccess:", renderErr);
-                }
-            };
-        }
-
-        // Hook populateTable to also support 3D Visual Answer Cards (ans_image) for normal students when toggled ON
-        const origPopTable = window.populateTable;
-        if (typeof origPopTable === 'function') {
-            window.populateTable = function() {
-                origPopTable.apply(this, arguments);
-                if (!window.isUserAdmin() && window.globalFeatureFlags && window.globalFeatureFlags.showAnswerCards && window.displayData) {
-                    const tbody = document.getElementById('tableBody');
-                    if (!tbody) return;
-                    Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
-                        const idx = Number(row.getAttribute('data-index'));
-                        const item = window.displayData[idx];
-                        if (item && item.ans_image && row.cells[1] && !row.cells[1].querySelector(`#container-${item.q}`)) {
-                            row.cells[1].insertAdjacentHTML('beforeend', `
-                                <div class="mt-4 border-t border-brand-100 dark:border-slate-800 pt-4">
-                                    <div class="flex items-center justify-end mb-3">
-                                        <button onclick="window.toggleFlashcard('${item.q}')" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-transform active:scale-95 shadow-lg shadow-brand-500/30">
-                                            <span>👁️ View Answer Card</span>
-                                        </button>
-                                    </div>
-                                    <div class="flashcard-container hidden w-full" id="container-${item.q}">
-                                        <div class="flashcard-inner" id="card-${item.q}">
-                                            <div class="flashcard-front bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center justify-center min-h-[100px] border border-slate-200 dark:border-slate-700">
-                                                <p class="text-slate-400 font-bold animate-pulse">Flipping page...</p>
-                                            </div>
-                                            <div class="flashcard-back">
-                                                <img src="${item.ans_image}" class="w-full h-auto rounded-xl shadow-2xl border border-brand-200 dark:border-brand-800" alt="Answer for ${item.q}" loading="lazy">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>`);
-                        }
-                    });
-                }
-            };
-        }
-
-        const applyLoadedBank = (rawBankData, sourceTag, tier) => {
-            const { college } = window.MPP_getVaultKeys();
-            const sanitized = window.MPP_sanitizeBankData(rawBankData, college);
-            if (!sanitized) return false;
-
-            window.MPP_DataSourceTag = sourceTag;
-            window.MPP_loadedTier = tier;
-            window.accessLevel = tier;
-            window.COLLEGE_NAME = sanitized.collegeName || window.COLLEGE_NAME;
-            window.curriculumData = sanitized.curriculumData || [];
-            window.qnaData = sanitized.qnaData || [];
-            window.isDataLoaded = true;
-
-            const titleEl = document.getElementById('dynamic-page-title');
-            if (titleEl) titleEl.innerText = `MBBS PROFS PREP - ${window.SUBJECT_CODE || ''} Review (${window.COLLEGE_NAME})`;
-            const headerEl = document.getElementById('dynamic-college-header');
-            if (headerEl) headerEl.innerText = window.COLLEGE_NAME;
-
-            window.MPP_updateVaultBadgeUI();
-            if (typeof window.processDataForAccess === 'function') {
-                window.processDataForAccess();
-            }
-            return true;
-        };
-
-        window.fetchQuestions = async function() {
-            const tableBody = document.getElementById('tableBody');
-            if (tableBody && (!window.qnaData || window.qnaData.length === 0)) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Loading ${window.COLLEGE_NAME || 'AIIMS'} Question Bank...</p></td></tr>`;
-            }
-
-            let dbInstance = window.db;
-            let authInstance = window.profsAuth;
-            try {
-                const ens = await window.MPP_ensureProfsFirebase();
-                dbInstance = ens.dbInstance;
-                authInstance = ens.authInstance;
-                const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
-
-                if (typeof authInstance.authStateReady === 'function') {
-                    await authInstance.authStateReady();
-                } else if (!authInstance.currentUser) {
-                    await new Promise((resolve) => {
-                        const timer = setTimeout(resolve, 1500);
-                        const unsub = onAuthStateChanged(authInstance, () => {
-                            clearTimeout(timer);
-                            unsub();
-                            resolve();
-                        });
-                    });
-                }
-            } catch (e) {}
-
-            const activeUser = (authInstance && authInstance.currentUser) || window.currentUserObj;
-            if (activeUser) window.currentUserObj = activeUser;
-
-            const isAdm = window.isUserAdmin(activeUser);
-            const { college, subjectKey, candidateKeys, fileName } = window.MPP_getVaultKeys();
-            window.MPP_updateVaultBadgeUI();
-
-            if (!activeUser) {
-                window.accessLevel = 'guest';
-                window.qnaData = [];
-                window.isDataLoaded = true;
-                window.MPP_loadedTier = 'guest';
-                if (typeof window.processDataForAccess === 'function') window.processDataForAccess();
-                return;
-            }
-
-            let tier = isAdm ? 'premium' : (window.accessLevel && window.accessLevel !== 'guest' ? window.accessLevel : 'free');
-            if (!isAdm) {
-                try {
-                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                    const subSnap = await get(ref(dbInstance, `users/${activeUser.uid}/subscription`));
-                    if (subSnap.exists()) {
-                        const d = subSnap.val();
-                        const today = new Date(); today.setHours(0, 0, 0, 0);
-                        const exp = new Date(d.validUntil); exp.setHours(0, 0, 0, 0);
-                        tier = (Math.ceil((exp - today) / 86400000) >= 0 && d.status === 'active') ? 'premium' : 'free';
-                    }
-                } catch (e) {}
-            }
-            window.accessLevel = tier;
-
-            let loadedPayload = null;
-            let loadedSource = '';
-
-            // 1. Try Firebase Cloud Vault (IndexedDB Cache -> question_banks / question_previews)
-            try {
-                const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-
-                if (tier === 'premium' || isAdm) {
-                    let remoteVersion = null;
-                    for (const k of candidateKeys) {
-                        const metaSnap = await get(ref(dbInstance, `bank_meta/${college}/${k}/version`)).catch(() => null);
-                        if (metaSnap && metaSnap.exists()) {
-                            remoteVersion = metaSnap.val();
-                            break;
-                        }
-                    }
-
-                    const idbKey = `pro_${college}_${subjectKey}`;
-                    if (remoteVersion) {
-                        const cached = await window.MPP_idbGet(idbKey);
-                        if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
-                            loadedPayload = cached;
-                            loadedSource = 'firebase-cache';
-                        }
-                    }
-
-                    if (!loadedPayload) {
-                        for (const k of candidateKeys) {
-                            const snap = await get(ref(dbInstance, `question_banks/${college}/${k}`)).catch(() => null);
-                            if (snap && snap.exists()) {
-                                const sanitized = window.MPP_sanitizeBankData(snap.val(), college);
-                                if (sanitized && sanitized.qnaData.length > 0) {
-                                    await window.MPP_idbSet(idbKey, {
-                                        version: remoteVersion || Date.now(),
-                                        ...sanitized
-                                    });
-                                    loadedPayload = sanitized;
-                                    loadedSource = 'firebase-pro';
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                } else if (tier === 'free') {
-                    for (const k of candidateKeys) {
-                        const prevSnap = await get(ref(dbInstance, `question_previews/${college}/${k}`)).catch(() => null);
-                        if (prevSnap && prevSnap.exists()) {
-                            const sanitized = window.MPP_sanitizeBankData(prevSnap.val(), college);
-                            if (sanitized && sanitized.qnaData.length > 0) {
-                                loadedPayload = sanitized;
-                                loadedSource = 'firebase-preview';
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (cloudErr) {
-                console.warn("Firebase read warning:", cloudErr);
-            }
-
-            // 2. If Not Found in Firebase Yet -> Fetch GitHub JSON Fallback
-            if (!loadedPayload) {
-                try {
-                    const response = await fetch(fileName);
-                    if (response.ok) {
-                        const jsonData = await response.json();
-                        loadedPayload = jsonData;
-                        loadedSource = 'github-fallback';
-                    }
-                } catch (ghErr) {
-                    console.warn("GitHub JSON fallback warning:", ghErr);
-                }
-            }
-
-            // 3. Apply Loaded Bank OUTSIDE the network try/catch so a UI error never shows "Not Uploaded Yet"
-            if (loadedPayload) {
-                applyLoadedBank(loadedPayload, loadedSource, tier);
-                return;
-            }
-
-            // 4. Only if BOTH Firebase and GitHub failed to return data
-            window.isDataLoaded = true;
-            if (tableBody) {
-                const adminActionBtn = isAdm
-                    ? `<button type="button" onclick="window.MPP_openCloudVaultModal()" class="mt-4 px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg border-none cursor-pointer">⚙️ Open Cloud Vault &amp; Controls</button>`
-                    : '';
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="p-12 text-center">
-                            <p class="font-extrabold text-lg text-red-500 mb-1">⚠️ Question Bank Not Found (${college}/${subjectKey})</p>
-                            ${adminActionBtn}
-                        </td>
-                    </tr>`;
-            }
-        };
-
-        // Re-run immediately if window.qnaData already loaded with unsanitized items or if table is waiting
-        if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
-            window.processDataForAccess();
-        } else {
-            window.fetchQuestions();
-        }
+        }).catch(() => {});
     }
 
     if (document.readyState === 'loading') {

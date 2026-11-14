@@ -2528,9 +2528,87 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================================================
 // 15. CROSS-FIREBASE TEEN PATTI DECK, MULTI-TOPIC LINKER & REAL-TIME EDITOR
 // ====================================================
+window.PROFS_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDvPdEhkK1VDkuAqIhlSXPL2MXxlv7Mo9c",
+    authDomain: "mbbs-profs-prep48c.firebaseapp.com",
+    databaseURL: "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com",
+    projectId: "mbbs-profs-prep48c",
+    storageBucket: "mbbs-profs-prep48c.firebasestorage.app",
+    messagingSenderId: "378639777472",
+    appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
+};
+
+window.globalFeatureFlags = {
+    showTeenPatti: true,
+    showCrossExamPG: false,
+    showAnswerCards: false
+};
+
+window.MPP_medpyqExplanations = window.MPP_medpyqExplanations || {};
+window.MPP_allExamLookup = window.MPP_allExamLookup || {};
+window.MPP_questionEditsMap = window.MPP_questionEditsMap || {};
+
+// Sanitize any loaded question bank so numeric options (e.g. 120, 7.4 in Physiology) or Firebase objects never crash populateTable()
+window.MPP_sanitizeBankData = function(rawPayload, collegeFallback) {
+    if (!rawPayload) return null;
+    let rawList = [];
+    let collegeName = `AIIMS ${(collegeFallback || 'deoghar').toUpperCase()}`;
+    let rawCurr = [];
+
+    if (Array.isArray(rawPayload)) {
+        rawList = rawPayload;
+    } else if (rawPayload && typeof rawPayload === 'object') {
+        if (rawPayload.collegeName) collegeName = String(rawPayload.collegeName);
+        if (rawPayload.curriculumData) {
+            rawCurr = Array.isArray(rawPayload.curriculumData)
+                ? rawPayload.curriculumData
+                : Object.values(rawPayload.curriculumData);
+        }
+        if (rawPayload.qnaData) {
+            rawList = Array.isArray(rawPayload.qnaData)
+                ? rawPayload.qnaData
+                : Object.values(rawPayload.qnaData);
+        }
+    }
+
+    const curriculumData = rawCurr.filter(Boolean).map(group => {
+        if (typeof group === 'string') return group;
+        if (group && typeof group === 'object') {
+            return {
+                ...group,
+                unit: String(group.unit || ''),
+                chapters: Array.isArray(group.chapters)
+                    ? group.chapters.map(c => String(c))
+                    : Object.values(group.chapters || {}).map(c => String(c))
+            };
+        }
+        return String(group);
+    });
+
+    const qnaData = rawList.filter(Boolean).map((item, idx) => {
+        const cleanItem = { ...item };
+        cleanItem.q = String(item.q || `Q${idx + 1}`).trim();
+        cleanItem.stem = String(item.stem ?? "");
+        cleanItem.type = String(item.type || (item.options ? "MCQ" : "Theory"));
+        cleanItem.ans_key = String(item.ans_key ?? "").trim();
+        cleanItem.examBatch = item.examBatch || "Prof Exam";
+        cleanItem.chapter = item.chapter || "General";
+
+        if (item.options) {
+            const optArr = Array.isArray(item.options) ? item.options : Object.values(item.options);
+            cleanItem.options = optArr.map(o => String(o ?? ""));
+        }
+        return cleanItem;
+    });
+
+    return { collegeName, curriculumData, qnaData };
+};
+
 window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
+    if (window.MPP_engineInitialized) return;
+    window.MPP_engineInitialized = true;
+
     try {
-        // Inject unboxed, free-floating top-layer styles + image thumbnail styles
         if (!document.getElementById('tp-unboxed-floating-styles')) {
             const unboxedStyles = `
             <style id="tp-unboxed-floating-styles">
@@ -2627,7 +2705,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             document.head.insertAdjacentHTML('beforeend', unboxedStyles);
         }
 
-        // Allow clicking any image in Deck View or Table View to zoom in full-screen lightbox
         if (!window.MPP_imgZoomBound) {
             window.MPP_imgZoomBound = true;
             document.addEventListener('click', (e) => {
@@ -2643,7 +2720,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         const { getAuth, signInWithEmailAndPassword, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
         const { getDatabase, ref, get, set, update, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
-        // 1. Normalize Subject Slug
         const SUBJECT_BRIDGE_MAP = {
             'psm': 'cfm',
             'cfm': 'cfm',
@@ -2656,14 +2732,20 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             'anesthesia': 'anaesthesia',
             'anaesthesia': 'anaesthesia',
             'orthopedics': 'orthopaedics',
-            'orthopaedics': 'orthopaedics'
+            'orthopaedics': 'orthopaedics',
+            'physio': 'physiology',
+            'physiology': 'physiology'
         };
-        const rawSub = String(window.SUBJECT_CODE || 'cfm').toLowerCase().trim();
+        let detectedSub = window.SUBJECT_CODE;
+        if (!detectedSub) {
+            const m = window.location.pathname.match(/\/([a-z0-9-]+?)-(?:review|clinical)\.html/i);
+            if (m) detectedSub = m[1];
+        }
+        const rawSub = String(detectedSub || 'cfm').toLowerCase().trim();
         const activeSubjectSlug = SUBJECT_BRIDGE_MAP[rawSub] || rawSub;
         const collegeCode = String(window.COLLEGE_CODE || 'deoghar').toLowerCase().trim();
-        const subjectCodeUpper = String(window.SUBJECT_CODE || 'CFM').toUpperCase().trim();
+        const subjectCodeUpper = String(detectedSub || 'CFM').toUpperCase().trim();
 
-        // 2. Global State
         window.MPP_state = {
             subjectSlug: activeSubjectSlug,
             overrideQid: null,
@@ -2679,31 +2761,24 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         window.MPP_crossClustersMap = {};
         window.MPP_nodeTopicsMap = {};
         window.MPP_crossLinksHistory = [];
-        window.MPP_allExamLookup = {};
-        window.MPP_medpyqExplanations = {}; // Persistent store so onValue(answersRef) never wipes MedPYQ explanations
-        window.MPP_questionEditsMap = {};
         window.MPP_undoStack = [];
         window.MPP_redoStack = [];
         window.MPP_longPressTimer = null;
         window.MPP_longPressTriggered = false;
         window.MPP_editingAnchorQid = null;
 
-        // Helper: Normalize image URLs (handles Google Drive links, relative paths, and raw image URLs)
         window.MPP_normalizeImgUrl = function(rawUrl) {
             if (!rawUrl) return "";
             let u = String(rawUrl).trim();
             if (!u || u === "null" || u === "undefined") return "";
             const gDriveMatch = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
-            if (gDriveMatch) {
-                return `https://lh3.googleusercontent.com/d/${gDriveMatch[1]}`;
-            }
+            if (gDriveMatch) return `https://lh3.googleusercontent.com/d/${gDriveMatch[1]}`;
             if (!/^https?:\/\//i.test(u) && !u.startsWith('data:')) {
                 u = 'https://medpyq.github.io/' + u.replace(/^\/+/, '');
             }
             return u;
         };
 
-        // Helper: Extract first image URL from question object (checks qObj.img, qObj.image, or <img src="..."> in stem)
         window.MPP_extractQuestionImage = function(qObj) {
             if (!qObj) return "";
             const directImg = qObj.img || qObj.image || qObj.q_img || qObj.imgUrl || "";
@@ -2717,7 +2792,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return "";
         };
 
-        // Helper: Ensure stem HTML includes the question's image if stored separately in qObj.img
         window.MPP_buildStemWithImage = function(stemHtml, imgUrl) {
             let s = String(stemHtml || "");
             const normImg = window.MPP_normalizeImgUrl(imgUrl);
@@ -2727,23 +2801,18 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             return s;
         };
 
-        // Helper: Ensure explanation HTML/Markdown renders all embedded images, raw image URLs & ans_image
         window.MPP_buildExplanationWithImages = function(rawExpl, item) {
             let expl = String(rawExpl || "");
             const extraImg = (item && (item.expl_img || item.explanation_img || item.ans_image)) ? window.MPP_normalizeImgUrl(item.expl_img || item.explanation_img || item.ans_image) : "";
-
-            // Convert bare image URLs (not already inside src="..." or markdown ![](...)) into <img> tags
             expl = expl.replace(/(^|[\s>])(https?:\/\/[^\s<"')]+\.(?:png|jpe?g|webp|gif|svg)(?:\?[^\s<"')]*)?)/gi, (match, prefix, url) => {
                 return `${prefix}<div class="my-3 text-center"><img src="${url}" class="max-w-full max-h-80 w-auto h-auto mx-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-zoom-in" alt="Explanation Image"></div>`;
             });
-
             if (extraImg && !expl.includes(extraImg)) {
                 expl = `<div class="my-3 text-center"><img src="${extraImg}" class="max-w-full max-h-80 w-auto h-auto mx-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-zoom-in" alt="Explanation Image"></div>\n` + expl;
             }
             return expl;
         };
 
-        // 3. Initialize Secondary Firebase App ("MedPYQBridge")
         const medpyqConfig = {
             apiKey: "AIzaSyAp8tKgVyc6PC-yt0Nv4nOOtH8B8jCaSYE",
             authDomain: "medpyq-elearning.firebaseapp.com",
@@ -2752,9 +2821,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         };
 
         let medpyqApp = getApps().find(a => a.name === "MedPYQBridge");
-        if (!medpyqApp) {
-            medpyqApp = initializeApp(medpyqConfig, "MedPYQBridge");
-        }
+        if (!medpyqApp) medpyqApp = initializeApp(medpyqConfig, "MedPYQBridge");
         const medpyqAuth = getAuth(medpyqApp);
         const medpyqDb = getDatabase(medpyqApp);
         window.medpyqDb = medpyqDb;
@@ -2778,7 +2845,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             const defaultEmail = (window.currentUserObj && window.currentUserObj.email) ? window.currentUserObj.email : "educateindiainstitute@gmail.com";
             const email = prompt("MedPYQ Admin Email (for NEET-PG / INI-CET / CMS / FMGE sync):", defaultEmail);
             if (!email) return;
-            const pass = prompt(`Enter your MedPYQ password for ${email} (saved locally so it auto-connects next time):`);
+            const pass = prompt(`Enter your MedPYQ password for ${email}:`);
             if (!pass) return;
             try {
                 await signInWithEmailAndPassword(medpyqAuth, email.trim(), pass);
@@ -2787,7 +2854,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 window.MPP_state.banksPreloaded = false;
                 await window.MPP_preloadMedPYQBanks();
                 window.MPP_updateBridgeBadgeUI();
-                alert(`MedPYQ Bridge connected! Loaded ${Object.keys(window.MPP_allExamLookup).length} cross-exam questions for ${activeSubjectSlug.toUpperCase()}.`);
+                alert(`MedPYQ Bridge connected! Loaded ${Object.keys(window.MPP_allExamLookup).length} cross-exam questions.`);
             } catch (e) {
                 alert("MedPYQ Bridge login failed: " + e.message);
             }
@@ -2795,13 +2862,10 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
         const tryConnectAndPreloadMedPYQ = async () => {
             if (!window.isUserAdmin()) return;
-
             if (medpyqAuth.currentUser) {
                 window.MPP_state.medpyqConnected = true;
                 window.MPP_updateBridgeBadgeUI();
-                if (!window.MPP_state.banksPreloaded) {
-                    await window.MPP_preloadMedPYQBanks();
-                }
+                if (!window.MPP_state.banksPreloaded) await window.MPP_preloadMedPYQBanks();
             } else {
                 try {
                     const cached = JSON.parse(localStorage.getItem('medpyq_bridge_creds') || 'null');
@@ -2810,9 +2874,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     } else {
                         await window.MPP_preloadMedPYQBanks();
                     }
-                } catch (e) {
-                    console.warn("MedPYQ Bridge awaiting one-time password connect:", e.message);
-                }
+                } catch (e) {}
             }
         };
 
@@ -2826,16 +2888,12 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
         onAuthStateChanged(profsAuth, (pUser) => {
             window.currentUserObj = pUser;
-            if (window.isUserAdmin(pUser)) {
-                tryConnectAndPreloadMedPYQ();
-            }
+            if (window.isUserAdmin(pUser)) tryConnectAndPreloadMedPYQ();
         });
 
-        // 4. Exam Classifier & 5-Deck Color Coding
         window.MPP_inferExamFromQid = function(qid) {
             if (!qid) return 'aiims-profs';
             const clean = String(qid).trim().toUpperCase();
-
             if (Array.isArray(window.qnaData) && window.qnaData.some(x => x && String(x.q).trim().toUpperCase() === clean)) {
                 return 'aiims-profs';
             }
@@ -2851,14 +2909,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
         window.MPP_getExamBorderColor = function(qid) {
             const ex = window.MPP_inferExamFromQid(qid);
-            if (ex === 'neet-pg') return '#2563eb';   // Royal Blue
-            if (ex === 'inicet') return '#9333ea';    // Purple
-            if (ex === 'upsc-cms') return '#eab308';  // Yellow/Gold
-            if (ex === 'fmge') return '#22c55e';      // Green
-            return '#0ea5e9';                         // Sky Blue (AIIMS Profs PYQ)
+            if (ex === 'neet-pg') return '#2563eb';
+            if (ex === 'inicet') return '#9333ea';
+            if (ex === 'upsc-cms') return '#eab308';
+            if (ex === 'fmge') return '#22c55e';
+            return '#0ea5e9';
         };
 
-        // 5. Preload MedPYQ 4 Exam Banks (Preserving & Embedding Stem + Explanation Images)
         window.MPP_preloadMedPYQBanks = async function() {
             const pgExams = [
                 { key: 'neet-pg', prefix: 'N' },
@@ -2866,7 +2923,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 { key: 'upsc-cms', prefix: 'CMS' },
                 { key: 'fmge', prefix: 'F' }
             ];
-
             let loadedAny = false;
             await Promise.all(pgExams.map(async ({ key: ex, prefix }) => {
                 try {
@@ -2894,10 +2950,10 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 q: rawUid,
                                 uid: rawUid,
                                 type: 'MCQ',
-                                rawStem: item.stem || "",
+                                rawStem: String(item.stem || ""),
                                 stem: enrichedStem,
-                                options: Array.isArray(item.options) ? item.options : ["Option A", "Option B", "Option C", "Option D"],
-                                ans_key: item.ans_key || "A",
+                                options: Array.isArray(item.options) ? item.options.map(o => String(o ?? "")) : ["Option A", "Option B", "Option C", "Option D"],
+                                ans_key: String(item.ans_key || "A"),
                                 chapter: ch,
                                 examBatch: fullYear,
                                 explanation: enrichedExpl,
@@ -2914,16 +2970,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                                 window.MPP_medpyqExplanations[up] = enrichedExpl;
                                 window.MPP_medpyqExplanations[prefixedAlias] = enrichedExpl;
                                 if (ex === 'inicet') window.MPP_medpyqExplanations[`INI${numPart}`] = enrichedExpl;
-
                                 if (!window.liveAnswers) window.liveAnswers = {};
                                 window.liveAnswers[rawUid] = { text: enrichedExpl };
                                 window.liveAnswers[prefixedAlias] = { text: enrichedExpl };
                             }
                         });
                     }
-                } catch (e) {
-                    console.warn(`MedPYQ preload (${ex}/${activeSubjectSlug}):`, e.message);
-                }
+                } catch (e) {}
             }));
 
             if (loadedAny) {
@@ -2949,9 +3002,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         }
                     });
                 });
-            } catch (e) {}
-
-            try {
                 onValue(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), (snap) => {
                     if (snap.exists()) ingestCrossLinksData(snap.val());
                 });
@@ -2975,10 +3025,10 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                         q: k,
                         uid: k,
                         type: d.type || "Theory",
-                        rawStem: d.stem || "",
+                        rawStem: String(d.stem || ""),
                         stem: enrichedStem,
-                        options: d.options || null,
-                        ans_key: d.ans_key || "",
+                        options: Array.isArray(d.options) ? d.options.map(o => String(o ?? "")) : null,
+                        ans_key: String(d.ans_key || ""),
                         chapter: Array.isArray(d.chapter) ? d.chapter : [d.chapter || "Clinical Case"],
                         examBatch: d.examBatch || "Clinical Wards",
                         explanation: enrichedExpl,
@@ -2994,7 +3044,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             });
         });
 
-        // 6. Resolve Any QID (Ensures stem image & explanation are always attached)
         window.MPP_resolveQuestionByQid = function(qid) {
             if (!qid) return null;
             const clean = String(qid).trim();
@@ -3011,7 +3060,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     if (ov) {
                         if (ov.stem) localMatch.stem = window.MPP_buildStemWithImage(ov.stem, localMatch.img);
                         if (ov.ans_key) localMatch.ans_key = ov.ans_key;
-                        if (Array.isArray(ov.options)) localMatch.options = ov.options;
+                        if (Array.isArray(ov.options)) localMatch.options = ov.options.map(o => String(o ?? ""));
                     }
                     return localMatch;
                 }
@@ -3023,9 +3072,8 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 if (ov) {
                     if (ov.stem) found.stem = window.MPP_buildStemWithImage(ov.stem, found.img);
                     if (ov.ans_key) found.ans_key = ov.ans_key;
-                    if (Array.isArray(ov.options)) found.options = ov.options;
+                    if (Array.isArray(ov.options)) found.options = ov.options.map(o => String(o ?? ""));
                 }
-                // Always restore explanation into window.liveAnswers in case onValue(answersRef) cleared it
                 const savedExpl = window.MPP_medpyqExplanations[up] || found.explanation;
                 if (savedExpl) {
                     if (!window.liveAnswers) window.liveAnswers = {};
@@ -3055,7 +3103,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             };
         };
 
-        // 7. Subscribe to Subject-Partitioned Cross-Links & Real-Time Question Edits
         window.MPP_makeTopicSlug = function(rawTitle, fallbackSeedQid) {
             const clean = String(rawTitle || '').trim();
             if (!clean || clean.toLowerCase() === 'linked concept') {
@@ -3123,6 +3170,20 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 window.MPP_crossLinksHistory = (Array.isArray(rawHist) ? rawHist : Object.values(rawHist)).filter(Boolean).slice(0, 10);
             }
 
+            if (val.shared_q_cache && typeof val.shared_q_cache === 'object') {
+                Object.keys(val.shared_q_cache).forEach(upKey => {
+                    const rec = val.shared_q_cache[upKey];
+                    if (rec) {
+                        if (!window.MPP_allExamLookup[upKey]) window.MPP_allExamLookup[upKey] = rec;
+                        if (rec.explanation) {
+                            window.MPP_medpyqExplanations[upKey] = rec.explanation;
+                            if (!window.liveAnswers) window.liveAnswers = {};
+                            if (!window.liveAnswers[rec.q]) window.liveAnswers[rec.q] = { text: rec.explanation };
+                        }
+                    }
+                });
+            }
+
             const modalEl = document.getElementById('mpp-admin-link-modal');
             if (modalEl && !modalEl.classList.contains('hidden')) {
                 window.MPP_renderTopicChips();
@@ -3148,7 +3209,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
                 if (ov) {
                     if (ov.ans_key) item.ans_key = ov.ans_key;
-                    if (Array.isArray(ov.options) && ov.options.length > 0) item.options = [...ov.options];
+                    if (Array.isArray(ov.options) && ov.options.length > 0) item.options = ov.options.map(o => String(o ?? ""));
                     if (ov.stem) item.stem = window.MPP_buildStemWithImage(ov.stem, item.img);
                     if (ov.explanation !== undefined) {
                         const enriched = window.MPP_buildExplanationWithImages(ov.explanation, item);
@@ -3177,28 +3238,17 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             window.MPP_redoStack = (Array.isArray(rawR) ? rawR : Object.values(rawR)).filter(Boolean).slice(0, 10);
 
             if (window.displayData && window.displayData.length > 0 && typeof window.populateTable === 'function') {
-                window.populateTable();
+                try { window.populateTable(); } catch (e) {}
             }
             if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
                 const editBox = document.getElementById('mpp-inline-rt-editor');
                 if (!editBox || editBox.classList.contains('hidden')) {
-                    window.renderDeckCard();
+                    try { window.renderDeckCard(); } catch (e) {}
                 } else {
                     window.MPP_updateUndoRedoUI();
                 }
             }
         });
-
-        const origProcessData = window.processDataForAccess;
-        if (typeof origProcessData === 'function') {
-            window.processDataForAccess = function() {
-                Object.keys(window.MPP_questionEditsMap || {}).forEach(upKey => {
-                    window.MPP_applyOverrideToMemory(upKey, window.MPP_questionEditsMap[upKey]);
-                });
-                return origProcessData.apply(this, arguments);
-            };
-        }
-
         // 8. Multi-Dimensional Sub-Topic Sequence Filtering
         window.MPP_filterSequenceByRole = function(rawSeq, fallbackQid, examFilterOverride = null) {
             const cleanFallback = String(fallbackQid || '').trim();
@@ -3206,8 +3256,9 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 return cleanFallback ? [cleanFallback] : [];
             }
             const list = [...rawSeq];
+            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags && window.globalFeatureFlags.showCrossExamPG);
 
-            if (!window.isUserAdmin()) {
+            if (!canSeePG) {
                 const aiimsOnly = list.filter(qid => window.MPP_inferExamFromQid(qid) === 'aiims-profs');
                 return aiimsOnly.length > 0 ? aiimsOnly : (cleanFallback ? [cleanFallback] : []);
             }
@@ -3222,6 +3273,8 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
         window.MPP_getAvailableTopicsForCard = function(anchorQid, displayedQid) {
             const seenSlugs = new Set();
             const topics = [];
+            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags && window.globalFeatureFlags.showCrossExamPG);
+
             const collect = (qid) => {
                 if (!qid) return;
                 const up = String(qid).trim().toUpperCase();
@@ -3229,7 +3282,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 slugs.forEach(s => {
                     if (!seenSlugs.has(s) && window.MPP_crossClustersMap[s]) {
                         const c = window.MPP_crossClustersMap[s];
-                        if (!window.isUserAdmin()) {
+                        if (!canSeePG) {
                             const hasAiims = (c.qids || []).some(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
                             if (!hasAiims) return;
                         }
@@ -3352,11 +3405,11 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             window.renderDeckCard();
         };
 
-        // 10. Teen Patti Fanned Card Deck Builder (Renders Image Thumbnails Inside Cards!)
+        // 10. Teen Patti Fanned Card Deck Builder
         window.MPP_stripHtml = function(htmlStr) {
             if (!htmlStr) return "";
             const tmp = document.createElement("div");
-            tmp.innerHTML = htmlStr;
+            tmp.innerHTML = String(htmlStr);
             return (tmp.textContent || tmp.innerText || "").trim();
         };
 
@@ -3910,6 +3963,9 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 if (window.MPP_state.medpyqConnected) {
                     await update(ref(medpyqDb, `cross_links/${activeSubjectSlug}`), updates).catch(() => {});
                 }
+                if (typeof window.MPP_syncSharedPGCacheForStudents === 'function') {
+                    await window.MPP_syncSharedPGCacheForStudents();
+                }
                 document.getElementById('mpp-admin-link-modal').classList.add('hidden');
             } catch (err) {
                 alert("Failed to sync cross-links: " + err.message);
@@ -3979,7 +4035,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
             const newOptions = isMCQ
                 ? [0, 1, 2, 3].map(i => {
                     const el = document.getElementById(`mpp-edit-opt-${i}`);
-                    return el ? el.value.trim() : ((qObj.options && qObj.options[i]) || '');
+                    return el ? el.value.trim() : String((qObj.options && qObj.options[i]) || '');
                 })
                 : null;
             const upKey = String(qObj.q).trim().toUpperCase();
@@ -4158,7 +4214,6 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                             if (window.optionLetters[i] === c) b.classList.add('deck-opt-correct');
                         });
                     }
-                    // Automatically reveal the explanation panel (and its images) when an MCQ option is selected
                     if (displayedQ) {
                         const panel = document.getElementById(`deck-ans-panel-${displayedQ.q}`);
                         if (panel && panel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
@@ -4183,8 +4238,11 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     }
                 }
 
-                // Ensure any preloaded MedPYQ explanation (and its images) is in window.liveAnswers BEFORE origRenderDeckCard runs
                 if (displayedQ) {
+                    displayedQ.stem = String(displayedQ.stem ?? "");
+                    if (Array.isArray(displayedQ.options)) {
+                        displayedQ.options = displayedQ.options.map(o => String(o ?? ""));
+                    }
                     const upKey = String(displayedQ.q).trim().toUpperCase();
                     const medExpl = window.MPP_medpyqExplanations[upKey] || displayedQ.explanation;
                     if (medExpl) {
@@ -4216,10 +4274,13 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 if (!deckCard) return;
 
                 const isAdmin = window.isUserAdmin();
+                const showTPForUser = isAdmin || Boolean(window.globalFeatureFlags && window.globalFeatureFlags.showTeenPatti);
+                const showPGForUser = isAdmin || Boolean(window.globalFeatureFlags && window.globalFeatureFlags.showCrossExamPG);
+
                 const clusterInfo = window.MPP_getActiveClusterInfo(
                     anchorQ.q,
                     displayedQ.q,
-                    (isAdmin && window.MPP_state.fanViewOpen) ? window.MPP_state.adminTopFilter : null
+                    (showPGForUser && window.MPP_state.fanViewOpen) ? window.MPP_state.adminTopFilter : null
                 );
                 const clusterSeq = clusterInfo.sequence;
                 const availableTopics = clusterInfo.topics;
@@ -4233,7 +4294,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
 
                 const headerRow = deckCard.firstElementChild;
                 const qBadge = headerRow ? headerRow.querySelector('span') : null;
-                if (headerRow && qBadge && !headerRow.querySelector('.mpp-cluster-pill')) {
+                if (showTPForUser && headerRow && qBadge && !headerRow.querySelector('.mpp-cluster-pill')) {
                     const leftWrap = document.createElement('div');
                     leftWrap.className = 'flex items-center gap-2 flex-wrap';
                     qBadge.parentNode.insertBefore(leftWrap, qBadge);
@@ -4261,7 +4322,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                 const scrollArea = deckCard.children[1];
                 if (!scrollArea) return;
 
-                const showTopicBar = availableTopics.length > 1 || (availableTopics.length === 1 && availableTopics[0].title !== 'Linked Concept');
+                const showTopicBar = showTPForUser && (availableTopics.length > 1 || (availableTopics.length === 1 && availableTopics[0].title !== 'Linked Concept'));
                 if (showTopicBar) {
                     const pillsHtml = availableTopics.map(tObj => {
                         const isAct = activeTopicObj && activeTopicObj.slug === tObj.slug;
@@ -4278,7 +4339,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     scrollArea.insertAdjacentHTML('afterbegin', `<div class="mpp-topic-dims-bar">${pillsHtml}</div>`);
                 }
 
-                if (window.MPP_state.fanViewOpen) {
+                if (showTPForUser && window.MPP_state.fanViewOpen) {
                     const stemBlockIndex = showTopicBar ? 1 : 0;
                     Array.from(scrollArea.children).forEach((child, idx) => {
                         if (idx > stemBlockIndex) {
@@ -4290,7 +4351,7 @@ window.MPP_initCrossExamTeenPattiEngine = async function(profsDb, profsAuth) {
                     const mainFanHtml = window.MPP_buildFanDeckHTML('main', clusterSeq, 'auto', clusterPos, activeTopicTitle);
 
                     let adminExtendedHtml = '';
-                    if (isAdmin) {
+                    if (showPGForUser) {
                         const fullCrossInfo = window.MPP_getActiveClusterInfo(anchorQ.q, displayedQ.q, 'all');
                         const fullSeq = fullCrossInfo.sequence;
                         const aiimsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
@@ -4419,25 +4480,35 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
             .then((registration) => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                registration.update().catch(() => {});
             })
-            .catch((error) => {
-                console.log('ServiceWorker registration failed: ', error);
-            });
+            .catch(() => {});
     });
-            }
+}
+
 // ====================================================
-// 17. ADMIN FEATURE TOGGLES HUB, FIREBASE JSON VAULT & STUDENT PG CACHE
+// 17. SELF-INITIALIZING FIREBASE CLOUD VAULT, ADMIN HUB & CACHE ENGINE
 // ====================================================
 (function initFirebaseCloudVault() {
-    // Global Admin Feature Flags (Synced Live via Firebase settings/global/features)
-    window.globalFeatureFlags = {
-        showTeenPatti: true,     // Normal users can use < 1/16 > & Teen Patti for AIIMS PYQs
-        showCrossExamPG: false,  // Normal users can see NEET-PG / INI-CET / CMS / FMGE decks
-        showAnswerCards: false   // Normal users can flip 3D Visual Answer Cards (ans_image)
+    window.MPP_ensureProfsFirebase = async function() {
+        const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+        const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+        const { getAuth } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
+
+        const existingApps = getApps();
+        const defaultApp = existingApps.find(a => a.name === '[DEFAULT]') || initializeApp(window.PROFS_FIREBASE_CONFIG);
+        const dbInstance = getDatabase(defaultApp);
+        const authInstance = getAuth(defaultApp);
+        window.db = dbInstance;
+        window.profsAuth = authInstance;
+
+        if (!window.MPP_engineInitialized && typeof window.MPP_initCrossExamTeenPattiEngine === 'function') {
+            window.MPP_initCrossExamTeenPattiEngine(dbInstance, authInstance);
+        }
+
+        return { appInstance: defaultApp, dbInstance, authInstance };
     };
 
-    // 1. Inject Admin Cloud Vault & Feature Control Hub Modal HTML
     const vaultModalHTML = `
     <div id="mpp-cloud-vault-modal" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[33000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[92vh] text-left">
@@ -4452,14 +4523,12 @@ if ('serviceWorker' in navigator) {
             </div>
 
             <div class="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-                <!-- MASTER STUDENT FEATURE TOGGLES -->
                 <div class="p-4 rounded-xl bg-amber-50/70 dark:bg-slate-800/80 border border-amber-200 dark:border-amber-800/60 space-y-3">
                     <div class="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
                         <span>🎛️ Extend Admin Features to Normal Users</span>
                         <span class="text-[10px] bg-amber-200/70 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">Live Sync</span>
                     </div>
 
-                    <!-- Toggle 1: Subject Answers -->
                     <div class="flex items-center justify-between gap-3 pt-1">
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 dark:text-white">📝 Student Answers (This Subject)</div>
@@ -4471,7 +4540,6 @@ if ('serviceWorker' in navigator) {
                         </label>
                     </div>
 
-                    <!-- Toggle 2: Neuro-Recall Flashcards -->
                     <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 dark:text-white">🧠 Neuro-Recall 3D Flashcards</div>
@@ -4483,7 +4551,6 @@ if ('serviceWorker' in navigator) {
                         </label>
                     </div>
 
-                    <!-- Toggle 3: Teen Patti & < 1/16 > Sub-Topic Deck -->
                     <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 dark:text-white">🃏 Teen Patti &amp; &lt; 1/16 &gt; Sub-Topic Pill</div>
@@ -4495,7 +4562,6 @@ if ('serviceWorker' in navigator) {
                         </label>
                     </div>
 
-                    <!-- Toggle 4: Cross-Exam PG Decks (NEET-PG / INI-CET / CMS / FMGE) -->
                     <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 dark:text-white">🔥 PG Cross-Exam Cards (NEET / INI / CMS / FMGE)</div>
@@ -4507,7 +4573,6 @@ if ('serviceWorker' in navigator) {
                         </label>
                     </div>
 
-                    <!-- Toggle 5: 3D Visual Answer Cards (ans_image) -->
                     <div class="flex items-center justify-between gap-3 pt-2 border-t border-amber-200/60 dark:border-slate-700">
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 dark:text-white">🖼️ 3D Visual Answer Cards (ans_image)</div>
@@ -4520,14 +4585,10 @@ if ('serviceWorker' in navigator) {
                     </div>
                 </div>
 
-                <!-- Option A: Bulk Multi-File JSON Uploader -->
                 <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-slate-800/70 border border-emerald-200 dark:border-slate-700">
                     <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
                         📦 1. Upload .JSON File(s) from Your Device to Firebase
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                        Select one or multiple <code class="px-1 bg-white dark:bg-slate-900 rounded">{subject}_aiims_{college}_data.json</code> files from your phone/PC. Automatically populates <code class="px-1 bg-white dark:bg-slate-900 rounded">question_banks</code>, <code class="px-1 bg-white dark:bg-slate-900 rounded">question_previews</code>, and <code class="px-1 bg-white dark:bg-slate-900 rounded">bank_meta</code>.
-                    </p>
                     <input type="file" id="mpp-bulk-json-input" multiple class="hidden" onchange="window.MPP_handleBulkJsonFiles(this.files)">
                     <button onclick="document.getElementById('mpp-bulk-json-input').click()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
                         📂 Select JSON File(s) to Upload...
@@ -4535,20 +4596,15 @@ if ('serviceWorker' in navigator) {
                     <div id="mpp-bulk-upload-log" class="hidden mt-3 p-3 rounded-lg bg-slate-900 text-emerald-400 font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
                 </div>
 
-                <!-- Option B: 1-Click Sync Currently Loaded Page -->
                 <div class="p-4 rounded-xl bg-sky-50/70 dark:bg-slate-800/70 border border-sky-200 dark:border-slate-700">
                     <div class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">
                         ⚡ 2. Sync Currently Loaded Page to Firebase
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                        If this page's JSON is currently loaded on screen (or still on GitHub), click below to copy it directly into Firebase Cloud.
-                    </p>
                     <button id="btn-vault-sync-current" onclick="window.MPP_syncCurrentPageToFirebase(this)" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-md transition-all">
                         ☁️ Sync This Subject to Firebase Now
                     </button>
                 </div>
 
-                <!-- Option C: Clear Local IndexedDB Cache -->
                 <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
                     <div>
                         <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Local IndexedDB Cache</div>
@@ -4563,20 +4619,15 @@ if ('serviceWorker' in navigator) {
     </div>`;
     document.body.insertAdjacentHTML('beforeend', vaultModalHTML);
 
-    // Sync Toggle Checkboxes UI in Modal & Sidebar
     window.MPP_syncFeatureTogglesUI = function() {
         const tAns = document.getElementById('vault-toggle-answers');
         if (tAns && window.globalPlatformSettings) tAns.checked = Boolean(window.globalPlatformSettings.showAnswers);
-
         const tNeuro = document.getElementById('vault-toggle-neuro');
         if (tNeuro) tNeuro.checked = Boolean(window.globalNeuroRecallEnabled);
-
         const tTP = document.getElementById('vault-toggle-teenpatti');
         if (tTP) tTP.checked = Boolean(window.globalFeatureFlags.showTeenPatti);
-
         const tPG = document.getElementById('vault-toggle-pgcross');
         if (tPG) tPG.checked = Boolean(window.globalFeatureFlags.showCrossExamPG);
-
         const tCards = document.getElementById('vault-toggle-anscards');
         if (tCards) tCards.checked = Boolean(window.globalFeatureFlags.showAnswerCards);
     };
@@ -4587,9 +4638,9 @@ if ('serviceWorker' in navigator) {
         document.getElementById('mpp-cloud-vault-modal').classList.remove('hidden');
     };
 
-    // Toggle Any Global Feature Flag & Sync Linked PG Cache if Unlocking PG Cross-Links for Students
     window.MPP_toggleFeatureFlag = async function(flagName) {
-        if (!window.isUserAdmin() || !window.db) return;
+        if (!window.isUserAdmin()) return;
+        await window.MPP_ensureProfsFirebase();
         const newState = !window.globalFeatureFlags[flagName];
         window.globalFeatureFlags[flagName] = newState;
         window.MPP_syncFeatureTogglesUI();
@@ -4597,20 +4648,17 @@ if ('serviceWorker' in navigator) {
         try {
             const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
             await set(ref(window.db, `settings/global/features/${flagName}`), newState);
-
-            // If Admin just unlocked PG Cross-Exam Cards for students, push cached PG question objects to profsDb so students can view them without a MedPYQ login!
             if (flagName === 'showCrossExamPG' && newState && typeof window.MPP_syncSharedPGCacheForStudents === 'function') {
                 await window.MPP_syncSharedPGCacheForStudents();
             }
         } catch (e) {
-            console.error("Failed to toggle feature flag:", e);
             alert("Failed to update setting: " + e.message);
         }
     };
 
-    // Copy Linked MedPYQ Questions into profsDb (cross_links/${subjectSlug}/shared_q_cache) so Normal Students Can View Them When Unlocked
     window.MPP_syncSharedPGCacheForStudents = async function() {
-        if (!window.isUserAdmin() || !window.db || !window.MPP_state) return;
+        if (!window.isUserAdmin() || !window.MPP_state) return;
+        await window.MPP_ensureProfsFirebase();
         const subjectSlug = window.MPP_state.subjectSlug;
         if (!subjectSlug) return;
 
@@ -4650,13 +4698,10 @@ if ('serviceWorker' in navigator) {
             try {
                 const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
                 await set(ref(window.db, `cross_links/${subjectSlug}/shared_q_cache`), JSON.parse(JSON.stringify(sharedCache)));
-            } catch (e) {
-                console.warn("Could not write shared_q_cache:", e.message);
-            }
+            } catch (e) {}
         }
     };
 
-    // 2. Lightweight IndexedDB Wrapper
     const IDB_NAME = 'MBBSProfsPrepVaultDB';
     const IDB_STORE = 'question_banks_cache';
 
@@ -4666,9 +4711,7 @@ if ('serviceWorker' in navigator) {
             const req = window.indexedDB.open(IDB_NAME, 1);
             req.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains(IDB_STORE)) {
-                    db.createObjectStore(IDB_STORE);
-                }
+                if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
             };
             req.onsuccess = (e) => resolve(e.target.result);
             req.onerror = () => resolve(null);
@@ -4685,9 +4728,7 @@ if ('serviceWorker' in navigator) {
                 req.onsuccess = () => resolve(req.result || null);
                 req.onerror = () => resolve(null);
             });
-        } catch (e) {
-            return null;
-        }
+        } catch (e) { return null; }
     };
 
     window.MPP_idbSet = async function(key, val) {
@@ -4718,7 +4759,6 @@ if ('serviceWorker' in navigator) {
         } catch (e) {}
     };
 
-    // 3. Resolve College Code & All Possible Subject Key Variations
     const SUBJECT_ALIASES = {
         'PHYSIOLOGY': ['PHYSIOLOGY', 'physiology', 'PHYSIO', 'physio'],
         'PHYSIO': ['PHYSIOLOGY', 'physiology', 'PHYSIO', 'physio'],
@@ -4770,27 +4810,16 @@ if ('serviceWorker' in navigator) {
         return { college, rawSub, ver, subjectKey, candidateKeys, fileName };
     };
 
-    // 4. Clean & Upload Subject Payload to Firebase
     window.MPP_uploadBankPayloadToFirebase = async function(college, subjectKey, jsonData) {
-        if (!window.db) {
-            const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
-            const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-            window.db = getDatabase(getApp());
-        }
+        await window.MPP_ensureProfsFirebase();
         const { ref, update } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
-        const cleanJson = JSON.parse(JSON.stringify(jsonData || {}));
-        const collegeName = cleanJson.collegeName || (`AIIMS ${college.toUpperCase()}`);
-        const curriculumData = cleanJson.curriculumData || [];
-        const rawQna = Array.isArray(cleanJson.qnaData)
-            ? cleanJson.qnaData
-            : (Array.isArray(cleanJson) ? cleanJson : Object.values(cleanJson.qnaData || {}));
-        const qnaData = rawQna.filter(Boolean);
-
-        if (qnaData.length === 0) {
+        const sanitized = window.MPP_sanitizeBankData(JSON.parse(JSON.stringify(jsonData || {})), college);
+        if (!sanitized || sanitized.qnaData.length === 0) {
             throw new Error("No questions found in the JSON payload to upload.");
         }
 
+        const { collegeName, curriculumData, qnaData } = sanitized;
         const previewTheory = qnaData.filter(q => q && q.type === 'Theory').slice(0, 10);
         const previewMcq = qnaData.filter(q => q && q.type === 'MCQ').slice(0, 10);
         const previewQna = [...previewTheory, ...previewMcq];
@@ -4831,7 +4860,6 @@ if ('serviceWorker' in navigator) {
         return { versionStamp, count: qnaData.length, normSubKey };
     };
 
-    // 5. 1-Click Sync Current Page
     window.MPP_syncCurrentPageToFirebase = async function(btn) {
         if (!window.isUserAdmin()) return alert("Admin access required.");
         const { college, subjectKey, fileName } = window.MPP_getVaultKeys();
@@ -4848,7 +4876,7 @@ if ('serviceWorker' in navigator) {
                 };
             } else {
                 const res = await fetch(fileName);
-                if (!res.ok) throw new Error(`File "${fileName}" was already removed from GitHub. Please use "📂 Select JSON File(s) to Upload..." above to select it from your device!`);
+                if (!res.ok) throw new Error(`File "${fileName}" not found on GitHub. Use "📂 Select JSON File(s) to Upload..." above!`);
                 payload = await res.json();
             }
 
@@ -4858,14 +4886,12 @@ if ('serviceWorker' in navigator) {
             alert(`✅ Synced ${resInfo.count} questions to Firebase at question_banks/${college}/${resInfo.normSubKey}!`);
             if (window.fetchQuestions) await window.fetchQuestions();
         } catch (err) {
-            console.error(err);
             alert(err.message);
         } finally {
             if (btn) { btn.innerText = origText; btn.disabled = false; }
         }
     };
 
-    // 6. Bulk Multi-File JSON Uploader
     window.MPP_handleBulkJsonFiles = async function(fileList) {
         if (!fileList || fileList.length === 0) return;
         const logEl = document.getElementById('mpp-bulk-upload-log');
@@ -4915,7 +4941,6 @@ if ('serviceWorker' in navigator) {
         }
     };
 
-    // 7. Inject "☁️ Vault" Button Into Navbar & #admin-controls
     window.MPP_updateVaultBadgeUI = function() {
         const subEl = document.getElementById('mpp-vault-status-sub');
         const btnEl = document.getElementById('admin-vault-trigger-btn');
@@ -4936,13 +4961,8 @@ if ('serviceWorker' in navigator) {
 
         if (subEl) subEl.innerText = statusText;
         if (btnEl) {
-            if (window.MPP_DataSourceTag === 'github-fallback') {
-                btnEl.className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none animate-pulse";
-                btnEl.innerHTML = "⚠️ Migrate JSON to Cloud";
-            } else {
-                btnEl.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
-                btnEl.innerHTML = "⚙️ Vault & Controls";
-            }
+            btnEl.className = "bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase shadow-sm transition-all cursor-pointer border-none";
+            btnEl.innerHTML = "⚙️ Vault & Controls";
         }
     };
 
@@ -4971,39 +4991,16 @@ if ('serviceWorker' in navigator) {
         }
     }
 
-    function normalizeCloudBankObject(rawVal, collegeFallback) {
-        if (!rawVal) return null;
-        if (Array.isArray(rawVal) && rawVal.length > 0 && rawVal[0] && rawVal[0].q) {
-            return {
-                collegeName: `AIIMS ${collegeFallback.toUpperCase()}`,
-                curriculumData: [],
-                qnaData: rawVal
-            };
-        }
-        if (rawVal.qnaData) {
-            const qArr = Array.isArray(rawVal.qnaData) ? rawVal.qnaData : Object.values(rawVal.qnaData);
-            if (qArr.length > 0) {
-                return {
-                    collegeName: rawVal.collegeName || `AIIMS ${collegeFallback.toUpperCase()}`,
-                    curriculumData: rawVal.curriculumData || [],
-                    qnaData: qArr
-                };
-            }
-        }
-        return null;
-    }
-
-    // 8. Hook Feature Toggles into Teen Patti, PG Cross-Links & 3D Visual Answer Cards
-    function hookFeatureFlagsAndDataLoader() {
+    // 8. Hook Feature Toggles & Central Data Loader
+    async function hookFeatureFlagsAndDataLoader() {
         injectAdminVaultButtons();
 
-        // Listen to settings/global/features & cross_links/${subject}/shared_q_cache
-        import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js").then(async ({ getApp }) => {
-            const { getDatabase, ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-            const db = getDatabase(getApp());
-            window.db = db;
+        try {
+            const { dbInstance, authInstance } = await window.MPP_ensureProfsFirebase();
+            const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
 
-            onValue(ref(db, 'settings/global/features'), (snap) => {
+            onValue(ref(dbInstance, 'settings/global/features'), (snap) => {
                 const val = snap.val() || {};
                 window.globalFeatureFlags = {
                     showTeenPatti: val.showTeenPatti !== undefined ? Boolean(val.showTeenPatti) : true,
@@ -5012,103 +5009,62 @@ if ('serviceWorker' in navigator) {
                 };
                 window.MPP_syncFeatureTogglesUI();
                 if (window.displayData && window.displayData.length > 0 && typeof window.populateTable === 'function') {
-                    window.populateTable();
+                    try { window.populateTable(); } catch (e) {}
                 }
                 if (window.isDeckMode && typeof window.renderDeckCard === 'function') {
-                    window.renderDeckCard();
+                    try { window.renderDeckCard(); } catch (e) {}
                 }
             });
 
-            // Load cached PG questions from profsDb so students can view them when showCrossExamPG is toggled ON
-            if (window.MPP_state && window.MPP_state.subjectSlug) {
-                onValue(ref(db, `cross_links/${window.MPP_state.subjectSlug}/shared_q_cache`), (snap) => {
-                    const cacheObj = snap.val() || {};
-                    Object.keys(cacheObj).forEach(upKey => {
-                        const rec = cacheObj[upKey];
-                        if (rec) {
-                            if (!window.MPP_allExamLookup) window.MPP_allExamLookup = {};
-                            if (!window.MPP_allExamLookup[upKey]) window.MPP_allExamLookup[upKey] = rec;
-                            if (rec.explanation) {
-                                if (!window.MPP_medpyqExplanations) window.MPP_medpyqExplanations = {};
-                                window.MPP_medpyqExplanations[upKey] = rec.explanation;
-                                if (!window.liveAnswers) window.liveAnswers = {};
-                                if (!window.liveAnswers[rec.q]) window.liveAnswers[rec.q] = { text: rec.explanation };
-                            }
-                        }
-                    });
-                });
-            }
-        }).catch(() => {});
-
-        // Override MPP_filterSequenceByRole so normal users also get PG Cross-Exam cards when showCrossExamPG is ON!
-        window.MPP_filterSequenceByRole = function(rawSeq, fallbackQid, examFilterOverride = null) {
-            const cleanFallback = String(fallbackQid || '').trim();
-            if (!Array.isArray(rawSeq) || rawSeq.length === 0) {
-                return cleanFallback ? [cleanFallback] : [];
-            }
-            const list = [...rawSeq];
-            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags.showCrossExamPG);
-
-            if (!canSeePG) {
-                const aiimsOnly = list.filter(qid => window.MPP_inferExamFromQid(qid) === 'aiims-profs');
-                return aiimsOnly.length > 0 ? aiimsOnly : (cleanFallback ? [cleanFallback] : []);
-            }
-
-            if (examFilterOverride && examFilterOverride !== 'all') {
-                return list.filter(qid => window.MPP_inferExamFromQid(qid) === examFilterOverride);
-            }
-
-            return list;
-        };
-
-        window.MPP_getAvailableTopicsForCard = function(anchorQid, displayedQid) {
-            const seenSlugs = new Set();
-            const topics = [];
-            const canSeePG = window.isUserAdmin() || Boolean(window.globalFeatureFlags.showCrossExamPG);
-
-            const collect = (qid) => {
-                if (!qid) return;
-                const up = String(qid).trim().toUpperCase();
-                const slugs = (window.MPP_nodeTopicsMap && window.MPP_nodeTopicsMap[up]) || [];
-                slugs.forEach(s => {
-                    if (!seenSlugs.has(s) && window.MPP_crossClustersMap && window.MPP_crossClustersMap[s]) {
-                        const c = window.MPP_crossClustersMap[s];
-                        if (!canSeePG) {
-                            const hasAiims = (c.qids || []).some(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
-                            if (!hasAiims) return;
-                        }
-                        seenSlugs.add(s);
-                        topics.push(c);
-                    }
-                });
-            };
-            collect(displayedQid);
-            collect(anchorQid);
-            return topics;
-        };
-
-        // Hook MPP_saveCrossLinks so saving links also caches PG question data for students
-        const origSaveLinks = window.MPP_saveCrossLinks;
-        if (typeof origSaveLinks === 'function' && !window.MPP_saveLinksHooked) {
-            window.MPP_saveLinksHooked = true;
-            window.MPP_saveCrossLinks = async function() {
-                await origSaveLinks.apply(this, arguments);
-                await window.MPP_syncSharedPGCacheForStudents();
-            };
-        }
+            onAuthStateChanged(authInstance, (u) => {
+                window.currentUserObj = u;
+                injectAdminVaultButtons();
+                window.MPP_updateVaultBadgeUI();
+                if (u && (!window.qnaData || window.qnaData.length === 0) && typeof window.fetchQuestions === 'function') {
+                    window.fetchQuestions();
+                }
+            });
+        } catch (e) {}
 
         const isClinicalPage = Boolean(document.getElementById('uploadClinicalModal')) || window.location.pathname.includes('-clinical');
         const isReviewPage = Boolean(document.getElementById('qnaTable')) && !isClinicalPage;
         if (!isReviewPage || window.MPP_fetchHooked) return;
         window.MPP_fetchHooked = true;
 
-        // Hook populateTable & renderDeckCard to respect showTeenPatti, showCrossExamPG, and showAnswerCards for Students!
+        // Sanitize window.qnaData inside processDataForAccess so even if the page's native fetchQuestions ran first, numeric options in Physiology never crash populateTable()!
+        const origProcessData = window.processDataForAccess;
+        if (typeof origProcessData === 'function') {
+            window.processDataForAccess = function() {
+                if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+                    const sanitized = window.MPP_sanitizeBankData({
+                        collegeName: window.COLLEGE_NAME,
+                        curriculumData: window.curriculumData,
+                        qnaData: window.qnaData
+                    }, window.COLLEGE_CODE);
+                    if (sanitized) {
+                        window.curriculumData = sanitized.curriculumData;
+                        window.qnaData = sanitized.qnaData;
+                    }
+                }
+                Object.keys(window.MPP_questionEditsMap || {}).forEach(upKey => {
+                    if (window.MPP_applyOverrideToMemory) {
+                        window.MPP_applyOverrideToMemory(upKey, window.MPP_questionEditsMap[upKey]);
+                    }
+                });
+                try {
+                    return origProcessData.apply(this, arguments);
+                } catch (renderErr) {
+                    console.error("Render error caught safely in processDataForAccess:", renderErr);
+                }
+            };
+        }
+
+        // Hook populateTable to also support 3D Visual Answer Cards (ans_image) for normal students when toggled ON
         const origPopTable = window.populateTable;
         if (typeof origPopTable === 'function') {
             window.populateTable = function() {
                 origPopTable.apply(this, arguments);
-                // If Admin unlocked 3D Visual Answer Cards (ans_image) for normal users, inject into Table View rows
-                if (!window.isUserAdmin() && window.globalFeatureFlags.showAnswerCards && window.displayData) {
+                if (!window.isUserAdmin() && window.globalFeatureFlags && window.globalFeatureFlags.showAnswerCards && window.displayData) {
                     const tbody = document.getElementById('tableBody');
                     if (!tbody) return;
                     Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
@@ -5139,163 +5095,17 @@ if ('serviceWorker' in navigator) {
             };
         }
 
-        // Enhance renderDeckCard to respect showTeenPatti, showCrossExamPG, and showAnswerCards for Students
-        const currentRenderDeck = window.renderDeckCard;
-        if (typeof currentRenderDeck === 'function') {
-            window.renderDeckCard = function() {
-                currentRenderDeck.apply(this, arguments);
+        const applyLoadedBank = (rawBankData, sourceTag, tier) => {
+            const { college } = window.MPP_getVaultKeys();
+            const sanitized = window.MPP_sanitizeBankData(rawBankData, college);
+            if (!sanitized) return false;
 
-                const isAdm = window.isUserAdmin();
-                const container = document.getElementById('deck-card-container');
-                if (!container) return;
-
-                // 1. If showTeenPatti is OFF for normal users, hide the < 1/16 > pill & topic bar
-                if (!isAdm && !window.globalFeatureFlags.showTeenPatti) {
-                    container.querySelectorAll('.mpp-cluster-pill, .mpp-topic-dims-bar, .tp-parent-overlay').forEach(el => el.remove());
-                }
-
-                // 2. If showCrossExamPG is ON for normal users and Teen Patti fan is open, also show the 5-Exam Switcher & Scroll-Down Decks!
-                if (!isAdm && window.globalFeatureFlags.showTeenPatti && window.globalFeatureFlags.showCrossExamPG && window.MPP_state && window.MPP_state.fanViewOpen) {
-                    const overlay = container.querySelector('.tp-parent-overlay');
-                    if (overlay && !overlay.querySelector('.tp-admin-extended-section')) {
-                        const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
-                        if (anchorQ && displayedQ) {
-                            const fullCrossInfo = window.MPP_getActiveClusterInfo(anchorQ.q, displayedQ.q, 'all');
-                            const fullSeq = fullCrossInfo.sequence;
-                            const activeTopicTitle = fullCrossInfo.activeTopic ? fullCrossInfo.activeTopic.title : '';
-                            const aiimsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'aiims-profs');
-                            const neetSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'neet-pg');
-                            const iniSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'inicet');
-                            const cmsSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'upsc-cms');
-                            const fmgeSeq = fullSeq.filter(id => window.MPP_inferExamFromQid(id) === 'fmge');
-                            const curFilter = window.MPP_state.adminTopFilter || 'all';
-
-                            overlay.insertAdjacentHTML('beforeend', `
-                                <div class="tp-admin-extended-section">
-                                    <div class="tp-admin-switcher">
-                                        <span style="font-size:11px; font-weight:900; color:#ea580c;">&larr;</span>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'all' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('all')">All Exam</button>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'aiims-profs' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('aiims-profs')">AIIMS PYQ</button>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'neet-pg' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('neet-pg')">NEET-PG</button>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'inicet' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('inicet')">INI</button>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'upsc-cms' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('upsc-cms')">CMS</button>
-                                        <button type="button" class="tp-switch-btn ${curFilter === 'fmge' ? 'active' : ''}" onclick="window.MPP_setAdminTopFilter('fmge')">FMGE</button>
-                                        <span style="font-size:11px; font-weight:900; color:#ea580c;">&rarr;</span>
-                                    </div>
-                                    ${window.MPP_buildFanDeckHTML('admin-aiims', aiimsSeq, '#0ea5e9', window.MPP_state.fanPosMap['admin-aiims'] ?? 0, activeTopicTitle)}
-                                    <div class="tp-exam-label-box">AIIMS PROFS PYQ</div>
-                                    ${window.MPP_buildFanDeckHTML('admin-neet-pg', neetSeq, '#2563eb', window.MPP_state.fanPosMap['admin-neet-pg'] ?? 0, activeTopicTitle)}
-                                    <div class="tp-exam-label-box">NEETPG</div>
-                                    ${window.MPP_buildFanDeckHTML('admin-inicet', iniSeq, '#9333ea', window.MPP_state.fanPosMap['admin-inicet'] ?? 0, activeTopicTitle)}
-                                    <div class="tp-exam-label-box">INICET</div>
-                                    ${window.MPP_buildFanDeckHTML('admin-upsc-cms', cmsSeq, '#eab308', window.MPP_state.fanPosMap['admin-upsc-cms'] ?? 0, activeTopicTitle)}
-                                    <div class="tp-exam-label-box">CMS</div>
-                                    ${window.MPP_buildFanDeckHTML('admin-fmge', fmgeSeq, '#22c55e', window.MPP_state.fanPosMap['admin-fmge'] ?? 0, activeTopicTitle)}
-                                    <div class="tp-exam-label-box">FMGE</div>
-                                </div>`);
-                            if (window.MPP_attachFanInteractions) window.MPP_attachFanInteractions();
-                        }
-                    }
-                }
-
-                // 3. If showAnswerCards is ON for normal users and current card has ans_image, inject "👁️ View Answer Card"
-                if (!isAdm && window.globalFeatureFlags.showAnswerCards && window.MPP_getAnchorAndDisplayedQ) {
-                    const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
-                    if (displayedQ && displayedQ.ans_image) {
-                        const deckCard = container.querySelector('.deck-card');
-                        const footerRow = deckCard ? deckCard.lastElementChild : null;
-                        if (footerRow && !footerRow.querySelector('[data-student-anscard]')) {
-                            footerRow.insertAdjacentHTML('beforeend', `
-                                <button data-student-anscard="1" onclick="window.openNrLightbox('${displayedQ.ans_image}')" class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-transform active:scale-95 text-xs font-bold shadow-md shadow-brand-500/30 border-none cursor-pointer">
-                                    <span>👁️ View Answer Card</span>
-                                </button>`);
-                        }
-                    }
-                }
-            };
-        }
-
-        // Fix Bookmarking for Teen Patti / < 1/16 > Linked Cards & Cross-Exam MedPYQ Cards
-        window.toggleBookmark = async function(btn, index) {
-            if (!window.currentUserObj) {
-                return window.showModal("Login Required", "<p class='text-sm text-slate-500 dark:text-slate-400'>Please sign in to save questions to your cloud profile.</p>", `<button onclick="window.closeModal(); window.userPanelApp.open(); window.toggleAuthMode('login')" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none">Sign In</button>`, "🔒");
-            }
-
-            let item = null;
-            if (typeof index === 'number' && index >= 0 && window.displayData && window.displayData[index]) {
-                item = window.displayData[index];
-            } else if (window.MPP_getAnchorAndDisplayedQ) {
-                const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
-                item = displayedQ;
-            }
-            if (!item && btn && btn.id && btn.id.startsWith('bmk-deck-')) {
-                const qidFromBtn = btn.id.replace('bmk-deck-', '');
-                if (window.MPP_resolveQuestionByQid) item = window.MPP_resolveQuestionByQid(qidFromBtn);
-            }
-            if (!item) return;
-
-            const uniqueId = window.getUniqueQuestionId(item.q);
-            const chArray = Array.isArray(item.chapter) ? item.chapter : [item.chapter || 'General'];
-            const chapterString = chArray[0] || 'General';
-            const upKey = String(item.q).trim().toUpperCase();
-            const liveExpl = (window.liveAnswers && window.liveAnswers[item.q] && window.liveAnswers[item.q].text)
-                || (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[upKey])
-                || item.explanation
-                || "";
-
-            const bookmarkData = {
-                q: item.q,
-                type: item.type || "General",
-                text: item.stem || "Saved Question",
-                stemHtml: item.stem || "Saved Question",
-                subject: window.COLLEGE_NAME + " - " + window.SUBJECT_CODE + " - " + chapterString,
-                collegeCode: window.COLLEGE_CODE || 'deoghar',
-                subjectCode: window.SUBJECT_CODE || '',
-                url: window.location.href,
-                timestamp: new Date().toISOString()
-            };
-
-            if (item.options) bookmarkData.options = item.options;
-            if (item.ans_key) bookmarkData.ans_key = item.ans_key;
-            if (item.ans_image) bookmarkData.ans_image = item.ans_image;
-            if (item.img) bookmarkData.img = item.img;
-            if (liveExpl) bookmarkData.explanation = liveExpl;
-
-            const isSaved = window.isBookmarked(item.q);
-            if (window.executeBookmarkToggle) {
-                await window.executeBookmarkToggle(uniqueId, bookmarkData, isSaved);
-                if (typeof window.updateBookmarkUI === 'function') window.updateBookmarkUI();
-            }
-        };
-
-        const origUpdateBmkUI = window.updateBookmarkUI;
-        if (typeof origUpdateBmkUI === 'function') {
-            window.updateBookmarkUI = function() {
-                origUpdateBmkUI.apply(this, arguments);
-                if (window.MPP_getAnchorAndDisplayedQ) {
-                    const { displayedQ } = window.MPP_getAnchorAndDisplayedQ();
-                    if (displayedQ) {
-                        const dBtn = document.getElementById(`bmk-deck-${displayedQ.q}`);
-                        if (dBtn) {
-                            const isSaved = window.isBookmarked(displayedQ.q);
-                            const savedClass = 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
-                            const unsavedClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-                            dBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm transition-colors ${isSaved ? savedClass : unsavedClass}`;
-                            dBtn.innerHTML = isSaved ? '⭐ Saved' : '🔖 Save';
-                        }
-                    }
-                }
-            };
-        }
-
-        window.MPP_loadedTier = null;
-
-        const applyLoadedBank = (data, sourceTag, tier) => {
             window.MPP_DataSourceTag = sourceTag;
             window.MPP_loadedTier = tier;
-            window.COLLEGE_NAME = data.collegeName || window.COLLEGE_NAME;
-            window.curriculumData = data.curriculumData || [];
-            window.qnaData = Array.isArray(data.qnaData) ? data.qnaData : Object.values(data.qnaData || {});
+            window.accessLevel = tier;
+            window.COLLEGE_NAME = sanitized.collegeName || window.COLLEGE_NAME;
+            window.curriculumData = sanitized.curriculumData || [];
+            window.qnaData = sanitized.qnaData || [];
             window.isDataLoaded = true;
 
             const titleEl = document.getElementById('dynamic-page-title');
@@ -5307,28 +5117,28 @@ if ('serviceWorker' in navigator) {
             if (typeof window.processDataForAccess === 'function') {
                 window.processDataForAccess();
             }
+            return true;
         };
 
         window.fetchQuestions = async function() {
             const tableBody = document.getElementById('tableBody');
             if (tableBody && (!window.qnaData || window.qnaData.length === 0)) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Syncing ${window.COLLEGE_NAME || 'AIIMS'} Cloud Vault...</p></td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Loading ${window.COLLEGE_NAME || 'AIIMS'} Question Bank...</p></td></tr>`;
             }
 
-            let authInstance = null;
+            let dbInstance = window.db;
+            let authInstance = window.profsAuth;
             try {
-                const { getApp } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
-                const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
-                const fbApp = getApp();
-                if (!window.db) window.db = getDatabase(fbApp);
-                authInstance = getAuth(fbApp);
+                const ens = await window.MPP_ensureProfsFirebase();
+                dbInstance = ens.dbInstance;
+                authInstance = ens.authInstance;
+                const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
 
                 if (typeof authInstance.authStateReady === 'function') {
                     await authInstance.authStateReady();
                 } else if (!authInstance.currentUser) {
                     await new Promise((resolve) => {
-                        const timer = setTimeout(resolve, 1200);
+                        const timer = setTimeout(resolve, 1500);
                         const unsub = onAuthStateChanged(authInstance, () => {
                             clearTimeout(timer);
                             unsub();
@@ -5342,10 +5152,6 @@ if ('serviceWorker' in navigator) {
             if (activeUser) window.currentUserObj = activeUser;
 
             const isAdm = window.isUserAdmin(activeUser);
-            if (isAdm) {
-                window.accessLevel = 'premium';
-            }
-
             const { college, subjectKey, candidateKeys, fileName } = window.MPP_getVaultKeys();
             window.MPP_updateVaultBadgeUI();
 
@@ -5358,38 +5164,32 @@ if ('serviceWorker' in navigator) {
                 return;
             }
 
-            let tier = window.accessLevel;
-            if (!isAdm && (!tier || tier === 'guest')) {
+            let tier = isAdm ? 'premium' : (window.accessLevel && window.accessLevel !== 'guest' ? window.accessLevel : 'free');
+            if (!isAdm) {
                 try {
                     const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                    const subSnap = await get(ref(window.db, `users/${activeUser.uid}/subscription`));
+                    const subSnap = await get(ref(dbInstance, `users/${activeUser.uid}/subscription`));
                     if (subSnap.exists()) {
                         const d = subSnap.val();
                         const today = new Date(); today.setHours(0, 0, 0, 0);
                         const exp = new Date(d.validUntil); exp.setHours(0, 0, 0, 0);
-                        if (Math.ceil((exp - today) / 86400000) >= 0 && d.status === 'active') {
-                            tier = 'premium';
-                            window.accessLevel = 'premium';
-                        } else {
-                            tier = 'free';
-                            window.accessLevel = 'free';
-                        }
-                    } else {
-                        tier = 'free';
-                        window.accessLevel = 'free';
+                        tier = (Math.ceil((exp - today) / 86400000) >= 0 && d.status === 'active') ? 'premium' : 'free';
                     }
-                } catch (e) {
-                    tier = 'free';
-                }
+                } catch (e) {}
             }
+            window.accessLevel = tier;
 
+            let loadedPayload = null;
+            let loadedSource = '';
+
+            // 1. Try Firebase Cloud Vault (IndexedDB Cache -> question_banks / question_previews)
             try {
                 const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
 
                 if (tier === 'premium' || isAdm) {
                     let remoteVersion = null;
                     for (const k of candidateKeys) {
-                        const metaSnap = await get(ref(window.db, `bank_meta/${college}/${k}/version`)).catch(() => null);
+                        const metaSnap = await get(ref(dbInstance, `bank_meta/${college}/${k}/version`)).catch(() => null);
                         if (metaSnap && metaSnap.exists()) {
                             remoteVersion = metaSnap.val();
                             break;
@@ -5400,205 +5200,87 @@ if ('serviceWorker' in navigator) {
                     if (remoteVersion) {
                         const cached = await window.MPP_idbGet(idbKey);
                         if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
-                            applyLoadedBank(cached, 'firebase-cache', 'premium');
-                            return;
+                            loadedPayload = cached;
+                            loadedSource = 'firebase-cache';
                         }
                     }
 
-                    const pathsToCheck = [];
-                    candidateKeys.forEach(k => {
-                        pathsToCheck.push(`question_banks/${college}/${k}`);
-                        pathsToCheck.push(`question_banks/${k}`);
-                        pathsToCheck.push(`${college}/${k}`);
-                    });
-                    pathsToCheck.push(fileName.replace(/\.json$/i, ''));
-
-                    for (const path of pathsToCheck) {
-                        const snap = await get(ref(window.db, path)).catch(() => null);
-                        if (snap && snap.exists()) {
-                            const normalized = normalizeCloudBankObject(snap.val(), college);
-                            if (normalized && normalized.qnaData.length > 0) {
-                                await window.MPP_idbSet(idbKey, {
-                                    version: remoteVersion || Date.now(),
-                                    ...normalized
-                                });
-                                applyLoadedBank(normalized, 'firebase-pro', 'premium');
-                                return;
+                    if (!loadedPayload) {
+                        for (const k of candidateKeys) {
+                            const snap = await get(ref(dbInstance, `question_banks/${college}/${k}`)).catch(() => null);
+                            if (snap && snap.exists()) {
+                                const sanitized = window.MPP_sanitizeBankData(snap.val(), college);
+                                if (sanitized && sanitized.qnaData.length > 0) {
+                                    await window.MPP_idbSet(idbKey, {
+                                        version: remoteVersion || Date.now(),
+                                        ...sanitized
+                                    });
+                                    loadedPayload = sanitized;
+                                    loadedSource = 'firebase-pro';
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-
-                if (tier === 'free') {
+                } else if (tier === 'free') {
                     for (const k of candidateKeys) {
-                        const prevSnap = await get(ref(window.db, `question_previews/${college}/${k}`)).catch(() => null);
+                        const prevSnap = await get(ref(dbInstance, `question_previews/${college}/${k}`)).catch(() => null);
                         if (prevSnap && prevSnap.exists()) {
-                            const normalized = normalizeCloudBankObject(prevSnap.val(), college);
-                            if (normalized) {
-                                applyLoadedBank(normalized, 'firebase-preview', 'free');
-                                return;
+                            const sanitized = window.MPP_sanitizeBankData(prevSnap.val(), college);
+                            if (sanitized && sanitized.qnaData.length > 0) {
+                                loadedPayload = sanitized;
+                                loadedSource = 'firebase-preview';
+                                break;
                             }
                         }
                     }
                 }
             } catch (cloudErr) {
-                console.warn("Firebase Vault read warning:", cloudErr.message);
+                console.warn("Firebase read warning:", cloudErr);
             }
 
-            try {
-                const response = await fetch(fileName);
-                if (!response.ok) throw new Error("Not on GitHub");
-                const jsonData = await response.json();
-                applyLoadedBank(jsonData, 'github-fallback', tier);
-            } catch (fallbackErr) {
-                window.isDataLoaded = true;
-                if (tableBody) {
-                    const adminActionBtn = isAdm
-                        ? `<button type="button" onclick="window.MPP_openCloudVaultModal()" class="mt-4 px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg border-none cursor-pointer">⚙️ Open Cloud Vault to Upload ${fileName}</button>`
-                        : `<p class="text-xs text-slate-400 mt-2">This subject bank is being updated. Please check back shortly.</p>`;
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="p-12 text-center">
-                                <p class="font-extrabold text-lg text-red-500 mb-1">⚠️ Question Bank Not in Firebase Yet (${college}/${subjectKey})</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Neither <code>question_banks/${college}/${subjectKey}</code> in Firebase nor <code>${fileName}</code> on GitHub was found.</p>
-                                ${adminActionBtn}
-                            </td>
-                        </tr>`;
-                }
-            }
-        };
-
-        import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js").then(async ({ getApp }) => {
-            const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");
-            onAuthStateChanged(getAuth(getApp()), (u) => {
-                window.currentUserObj = u;
-                injectAdminVaultButtons();
-                window.MPP_updateVaultBadgeUI();
-                if (u && (!window.qnaData || window.qnaData.length === 0)) {
-                    window.fetchQuestions();
-                }
-            });
-        }).catch(() => {});
-    }
-
-    // 9. Upgrade Neuro-Recall Image & Live Edit Recovery
-    window.recoverRichQuestionData = async function(bm) {
-        if (!bm) return { stemHtml: "Saved Question", ansImage: null, img: null };
-        let stemHtml = bm.stemHtml || bm.text || "Saved Question";
-        let ansImage = bm.ans_image || null;
-        let img = bm.img || null;
-        const upQ = String(bm.q || '').trim().toUpperCase();
-
-        if (Array.isArray(window.qnaData) && bm.q) {
-            const localMatch = window.qnaData.find(x => x && String(x.q).trim().toUpperCase() === upQ);
-            if (localMatch) {
-                if (localMatch.stem) stemHtml = localMatch.stem;
-                if (localMatch.ans_image) ansImage = localMatch.ans_image;
-                if (localMatch.img) img = localMatch.img;
-                if (localMatch.options) bm.options = localMatch.options;
-                if (localMatch.ans_key) bm.ans_key = localMatch.ans_key;
-                return { stemHtml, ansImage, img };
-            }
-        }
-        if (window.MPP_allExamLookup && window.MPP_allExamLookup[upQ]) {
-            const medMatch = window.MPP_allExamLookup[upQ];
-            if (medMatch.stem) stemHtml = medMatch.stem;
-            if (medMatch.img) img = medMatch.img;
-            if (medMatch.options) bm.options = medMatch.options;
-            if (medMatch.ans_key) bm.ans_key = medMatch.ans_key;
-            return { stemHtml, ansImage, img };
-        }
-
-        let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
-        let subCode = (bm.subjectCode || '').toUpperCase().trim();
-        if (!subCode && bm.subject) {
-            const parts = bm.subject.split(' - ');
-            if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
-            if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
-        }
-
-        if (window.db && colCode && subCode && upQ) {
-            try {
-                const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                const ovSnap = await get(ref(window.db, `question_edits/${colCode}/${subCode}/overrides/${upQ}`)).catch(() => null);
-                if (ovSnap && ovSnap.exists()) {
-                    const ov = ovSnap.val();
-                    if (ov.ans_key) bm.ans_key = ov.ans_key;
-                    if (Array.isArray(ov.options) && ov.options.length > 0) bm.options = ov.options;
-                    if (ov.stem) stemHtml = ov.stem;
-                }
-            } catch (e) {}
-        }
-
-        if (!stemHtml.includes('<img') && colCode && subCode && bm.q) {
-            try {
-                let cached = await window.MPP_idbGet(`pro_${colCode}_${subCode}`);
-                if (!cached && window.db) {
-                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                    const bankSnap = await get(ref(window.db, `question_banks/${colCode}/${subCode}`)).catch(() => null);
-                    if (bankSnap && bankSnap.exists()) {
-                        const normalized = normalizeCloudBankObject(bankSnap.val(), colCode);
-                        if (normalized) {
-                            cached = normalized;
-                            await window.MPP_idbSet(`pro_${colCode}_${subCode}`, { version: Date.now(), ...normalized });
-                        }
-                    }
-                }
-                if (cached && Array.isArray(cached.qnaData)) {
-                    const found = cached.qnaData.find(x => x && String(x.q).trim().toUpperCase() === upQ);
-                    if (found) {
-                        if (found.stem) stemHtml = found.stem;
-                        if (found.ans_image) ansImage = found.ans_image;
-                        if (found.img) img = found.img;
-                        if (found.options && !bm.options) bm.options = found.options;
-                        if (found.ans_key && !bm.ans_key) bm.ans_key = found.ans_key;
-                    }
-                }
-            } catch (e) {}
-        }
-
-        return { stemHtml, ansImage, img };
-    };
-
-    // 10. Upgrade Neuro-Recall "Neuro-Link" Explanation Resolver
-    if (window.neuroRecallApp) {
-        window.neuroRecallApp.getExplanationForBookmark = async function(bm) {
-            if (!bm) return "";
-            const upQ = String(bm.q || '').trim().toUpperCase();
-
-            if (window.liveAnswers && bm.q && window.liveAnswers[bm.q] && window.liveAnswers[bm.q].text) {
-                return window.liveAnswers[bm.q].text;
-            }
-            if (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[upQ]) {
-                return window.MPP_medpyqExplanations[upQ];
-            }
-
-            if (window.db && bm.q) {
+            // 2. If Not Found in Firebase Yet -> Fetch GitHub JSON Fallback
+            if (!loadedPayload) {
                 try {
-                    const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                    let colCode = (bm.collegeCode || 'deoghar').toLowerCase().trim();
-                    let subCode = (bm.subjectCode || '').toUpperCase().trim();
-                    if (!subCode && bm.subject) {
-                        const parts = bm.subject.split(' - ');
-                        if (parts[0]) colCode = parts[0].replace(/^AIIMS\s+/i, '').trim().toLowerCase().replace(/\s+/g, '-');
-                        if (parts[1]) subCode = parts[1].replace(/\s+Clinical$/i, '').trim().toUpperCase();
+                    const response = await fetch(fileName);
+                    if (response.ok) {
+                        const jsonData = await response.json();
+                        loadedPayload = jsonData;
+                        loadedSource = 'github-fallback';
                     }
-                    if (colCode && subCode) {
-                        const ovSnap = await get(ref(window.db, `question_edits/${colCode}/${subCode}/overrides/${upQ}/explanation`)).catch(() => null);
-                        if (ovSnap && ovSnap.exists() && ovSnap.val()) return ovSnap.val();
-
-                        const isClin = (bm.subject && bm.subject.includes('Clinical')) || String(bm.q).startsWith('CLIN-');
-                        const path = isClin
-                            ? `clinical_data/${colCode}/${subCode}/${bm.q}/answer`
-                            : `answers/${colCode}/${subCode}/${bm.q}/text`;
-                        const snap = await get(ref(window.db, path)).catch(() => null);
-                        if (snap && snap.exists() && snap.val()) return snap.val();
-                    }
-                } catch (e) {}
+                } catch (ghErr) {
+                    console.warn("GitHub JSON fallback warning:", ghErr);
+                }
             }
 
-            return bm.explanation || "";
+            // 3. Apply Loaded Bank OUTSIDE the network try/catch so a UI error never shows "Not Uploaded Yet"
+            if (loadedPayload) {
+                applyLoadedBank(loadedPayload, loadedSource, tier);
+                return;
+            }
+
+            // 4. Only if BOTH Firebase and GitHub failed to return data
+            window.isDataLoaded = true;
+            if (tableBody) {
+                const adminActionBtn = isAdm
+                    ? `<button type="button" onclick="window.MPP_openCloudVaultModal()" class="mt-4 px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg border-none cursor-pointer">⚙️ Open Cloud Vault &amp; Controls</button>`
+                    : '';
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-12 text-center">
+                            <p class="font-extrabold text-lg text-red-500 mb-1">⚠️ Question Bank Not Found (${college}/${subjectKey})</p>
+                            ${adminActionBtn}
+                        </td>
+                    </tr>`;
+            }
         };
+
+        // Re-run immediately if window.qnaData already loaded with unsanitized items or if table is waiting
+        if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+            window.processDataForAccess();
+        } else {
+            window.fetchQuestions();
+        }
     }
 
     if (document.readyState === 'loading') {
@@ -5607,5 +5289,5 @@ if ('serviceWorker' in navigator) {
         hookFeatureFlagsAndDataLoader();
     }
     window.addEventListener('load', hookFeatureFlagsAndDataLoader);
-    setTimeout(hookFeatureFlagsAndDataLoader, 400);
+    setTimeout(hookFeatureFlagsAndDataLoader, 300);
 })();

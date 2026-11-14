@@ -6052,22 +6052,40 @@ STRICT OUTPUT FORMAT RULES:
         throw lastError || new Error('All configured Gemini API keys failed.');
     };
 
-    // 7. Clean Tags ([LAQ]/[SAQ]/[VSAQ]), Force Batch Sync & Check Duplicates
+        // 7. Auto-Sanitize Mobile Paste, Clean [LAQ]/[SAQ] Tags & Sync Batch
     window.MPP_cleanAndSyncSnippetText = function (rawText, forcedBatch) {
         if (!rawText) return '';
-        return rawText
+
+        // Step A: Strip invisible Unicode tokens & normalize smart quotes from mobile clipboard
+        let sanitized = String(rawText)
+            .replace(/[\u200B-\u200D\uFEFF]/g, '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/[“”]/g, '"')
+            .replace(/[‘’]/g, "'");
+
+        // Step B: Force line breaks if comments and { q: ... } objects got glued onto one line
+        sanitized = sanitized
+            .replace(/(\/\/[^\n]*?---)\s*(\{)/g, '$1\n$2')
+            .replace(/\},\s*(\/\/)/g, '},\n\n$1')
+            .replace(/\},\s*(\{\s*q\s*:)/g, '},\n$1');
+
+        return sanitized
             .split('\n')
             .map(line => {
                 const trimmed = line.trim();
-                if (!trimmed.startsWith('{')) return line;
+                if (!trimmed.startsWith('{')) return trimmed;
 
-                let updated = line;
-                // Strip verbose "Short Essay Question:" / "Long Answer Question:" and convert to clean [SAQ]/[LAQ]
+                let updated = trimmed;
+
+                // Strip verbose "Short Essay Question:" / "Long Answer Question:"
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Short\s+Essay\s+Question\s*[:\-]?\s*)/i, '$1<b>[SAQ]</b> ');
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Long\s+(?:Answer|Essay)\s+Question\s*[:\-]?\s*)/i, '$1<b>[LAQ]</b> ');
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Very\s+Short\s+Answer\s+Question\s*[:\-]?\s*)/i, '$1<b>[VSAQ]</b> ');
 
-                // Ensure Theory items without a tag get [LAQ] (>=6 marks or sub-parts) or [SAQ]
+                // Auto-insert <br> before inline Roman numeral sub-questions (i., ii., iii., iv.)
+                updated = updated.replace(/\s+(?=(?:i|ii|iii|iv|v)\.\s+[A-Z])/g, '<br>');
+
+                // Ensure Theory items without a tag get [LAQ] or [SAQ]
                 if (/type\s*:\s*"Theory"/i.test(updated) && !/<b>\[(LAQ|SAQ|VSAQ)\]<\/b>/i.test(updated)) {
                     const isLong = /<br>\s*(?:i\.|a\.|1\.)/i.test(updated) || /=\s*(?:[6-9]|1\d|2\d)\s*Marks?/i.test(updated);
                     updated = updated.replace(/(stem\s*:\s*")/i, `$1<b>[${isLong ? 'LAQ' : 'SAQ'}]</b> `);
@@ -6082,12 +6100,15 @@ STRICT OUTPUT FORMAT RULES:
                         updated = updated.replace(/\}\s*,?\s*$/, `, examBatch: "${safeBatch}" },`);
                     }
                 }
+
+                // Ensure trailing comma at end of object line
+                if (!updated.endsWith(',')) updated += ',';
                 return updated;
             })
             .join('\n');
     };
 
-    // Normalize stem words for duplicate detection across delayed uploads
+    // Normalize stem words for duplicate detection
     function normalizeStemForDupCheck(str) {
         return String(str || '')
             .replace(/<[^>]+>/g, ' ')
@@ -6104,20 +6125,26 @@ STRICT OUTPUT FORMAT RULES:
         const uncertainMatches = String(rawText || '').match(/⚠️\[[^\]]+\]/g) || [];
         const existingNorms = (Array.isArray(window.qnaData) ? window.qnaData : []).map(q => ({
             id: q.q,
-            batch: q.examBatch || '',
+            batch: String(q.examBatch || '').trim(),
             norm: normalizeStemForDupCheck(q.stem)
         })).filter(x => x.norm.length > 8);
 
         const duplicates = [];
         lines.forEach((line, idx) => {
             const stemMatch = line.match(/stem\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+            const batchMatch = line.match(/examBatch\s*:\s*"([^"]*)"/i);
             if (!stemMatch) return;
             const norm = normalizeStemForDupCheck(stemMatch[1]);
+            const incomingBatch = batchMatch ? batchMatch[1].trim() : '';
             if (norm.length < 8) return;
 
             for (const ex of existingNorms) {
                 if (ex.norm === norm || (norm.length > 25 && (ex.norm.includes(norm) || norm.includes(ex.norm)))) {
-                    duplicates.push(`Line ${idx + 1} matches existing ${ex.id} (${ex.batch || 'No Batch'})`);
+                    if (incomingBatch && ex.batch && incomingBatch.toLowerCase() === ex.batch.toLowerCase()) {
+                        duplicates.push(`🚨 SAME-BATCH DUPLICATE: Line ${idx + 1} already exists in ${ex.batch} (${ex.id})`);
+                    } else {
+                        duplicates.push(`🔁 Repeat PYQ from ${ex.batch || 'Earlier Batch'} (${ex.id}) on Line ${idx + 1} (Safe to add)`);
+                    }
                     break;
                 }
             }
@@ -6125,6 +6152,7 @@ STRICT OUTPUT FORMAT RULES:
 
         return { uncertainMatches, duplicates };
     };
+
 
     // 8. Wrap window.MPP_previewSnippetCount to Display Duplicate & Uncertain OCR Alerts
     const originalPreviewFn = window.MPP_previewSnippetCount;

@@ -6058,7 +6058,7 @@ STRICT OUTPUT FORMAT RULES:
                         contents: [{ role: 'user', parts: parts }],
                         generationConfig: {
                             temperature: 0.15,
-                            maxOutputTokens: 8192
+                            maxOutputTokens: 65536
                         }
                     })
                 });
@@ -6093,45 +6093,98 @@ STRICT OUTPUT FORMAT RULES:
     };
 
         // 7. Auto-Sanitize Mobile Paste, Clean [LAQ]/[SAQ] Tags & Sync Batch
+        // 7. Bulletproof Auto-Healer: Fixes Truncated Lines, Multiline Stems, Tags & Batch Sync
     window.MPP_cleanAndSyncSnippetText = function (rawText, forcedBatch) {
         if (!rawText) return '';
 
-        // Step A: Strip invisible Unicode tokens & normalize smart quotes from mobile clipboard
+        // Step A: Strip markdown fences, zero-width tokens & normalize smart quotes
         let sanitized = String(rawText)
+            .replace(/^```(?:javascript|js|json)?\s*/gim, '')
+            .replace(/```$/gim, '')
             .replace(/[\u200B-\u200D\uFEFF]/g, '')
             .replace(/\u00A0/g, ' ')
             .replace(/[“”]/g, '"')
             .replace(/[‘’]/g, "'");
 
-        // Step B: Force line breaks if comments and { q: ... } objects got glued onto one line
+        // Step B: Separate comments and objects that got glued onto the same line
         sanitized = sanitized
             .replace(/(\/\/[^\n]*?---)\s*(\{)/g, '$1\n$2')
             .replace(/\},\s*(\/\/)/g, '},\n\n$1')
             .replace(/\},\s*(\{\s*q\s*:)/g, '},\n$1');
-        // Step C: Auto-align question IDs (T/M, DGT/DGM, KLT/KLM, DT/DM, PT/PM) to active bank's prefix & next number
+
+        // Step C: Collapse accidental multiline breaks inside { q: ... } objects into <br>
+        const rawLines = sanitized.split('\n');
+        const mergedLines = [];
+        let buffer = '';
+
+        for (let i = 0; i < rawLines.length; i++) {
+            const l = rawLines[i].trim();
+            if (!l) {
+                if (!buffer) mergedLines.push('');
+                continue;
+            }
+            if (l.startsWith('//')) {
+                if (buffer) {
+                    mergedLines.push(buffer);
+                    buffer = '';
+                }
+                mergedLines.push(l);
+                continue;
+            }
+            if (l.startsWith('{') && buffer) {
+                // Previous object line was never closed before a new { started
+                mergedLines.push(buffer);
+                buffer = l;
+            } else if (l.startsWith('{')) {
+                buffer = l;
+            } else if (buffer) {
+                buffer += '<br>' + l;
+            } else {
+                mergedLines.push(l);
+            }
+
+            if (buffer && /\}\s*,?\s*$/.test(buffer)) {
+                mergedLines.push(buffer);
+                buffer = '';
+            }
+        }
+        if (buffer) mergedLines.push(buffer);
+
         const idInfo = window.MPP_getNextQuestionIds();
         let tCounter = idInfo.nextTheoryNum;
         let mCounter = idInfo.nextMcqNum;
 
-        return sanitized
-            .split('\n')
+        return mergedLines
             .map(line => {
                 const trimmed = line.trim();
-                if (!trimmed.startsWith('{')) return trimmed;
+                if (!trimmed || !trimmed.startsWith('{')) return trimmed;
 
                 let updated = trimmed;
+
+                // Auto-heal truncated last line if AI cut off before closing },
+                if (!/\}\s*,?\s*$/.test(updated)) {
+                    const quoteCount = (updated.match(/(?<!\\)"/g) || []).length;
+                    if (quoteCount % 2 !== 0) updated += '"';
+                    if (!/ans_key\s*:/i.test(updated)) updated += ', ans_key: ""';
+                    if (!/chapter\s*:/i.test(updated)) updated += ', chapter: "General"';
+                    if (!/examBatch\s*:/i.test(updated)) {
+                        updated += `, examBatch: "${(forcedBatch || '2024 Batch Pre-Prof').replace(/"/g, '\\"')}"`;
+                    }
+                    updated += ' },';
+                }
 
                 // Strip verbose "Short Essay Question:" / "Long Answer Question:"
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Short\s+Essay\s+Question\s*[:\-]?\s*)/i, '$1<b>[SAQ]</b> ');
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Long\s+(?:Answer|Essay)\s+Question\s*[:\-]?\s*)/i, '$1<b>[LAQ]</b> ');
                 updated = updated.replace(/(stem\s*:\s*")(?:\s*<b>\[(LAQ|SAQ|VSAQ)\]<\/b>\s*)?(?:Very\s+Short\s+Answer\s+Question\s*[:\-]?\s*)/i, '$1<b>[VSAQ]</b> ');
 
-                // Auto-insert <br> before inline Roman numeral sub-questions (i., ii., iii., iv.)
+                // Auto-insert <br> before inline sub-questions (i., ii., iii., iv., a), b), c))
                 updated = updated.replace(/\s+(?=(?:i|ii|iii|iv|v)\.\s+[A-Z])/g, '<br>');
+                updated = updated.replace(/\s+(?=[a-f][\.\)]\s+[A-Z])/g, '<br>');
 
                 // Ensure Theory items without a tag get [LAQ] or [SAQ]
                 if (/type\s*:\s*"Theory"/i.test(updated) && !/<b>\[(LAQ|SAQ|VSAQ)\]<\/b>/i.test(updated)) {
-                    const isLong = /<br>\s*(?:i\.|a\.|1\.)/i.test(updated) || /=\s*(?:[6-9]|1\d|2\d)\s*Marks?/i.test(updated);
+                    const isLong = /<br>\s*(?:i\.|a[\.\)]|1\.)/i.test(updated) || /=\s*(?:[6-9]|1\d|2\d)\s*Marks?/i.test(updated);
                     updated = updated.replace(/(stem\s*:\s*")/i, `$1<b>[${isLong ? 'LAQ' : 'SAQ'}]</b> `);
                 }
 
@@ -6144,6 +6197,7 @@ STRICT OUTPUT FORMAT RULES:
                         updated = updated.replace(/\}\s*,?\s*$/, `, examBatch: "${safeBatch}" },`);
                     }
                 }
+
                 // Rewrite q: "..." to match active bank's exact Theory/MCQ prefix and continue numbering
                 if (/type\s*:\s*"MCQ"/i.test(updated)) {
                     updated = updated.replace(/(\{\s*q\s*:\s*")[^"]*(")/i, `$1${idInfo.mcqPrefix}${mCounter++}$2`);
@@ -6151,7 +6205,6 @@ STRICT OUTPUT FORMAT RULES:
                     updated = updated.replace(/(\{\s*q\s*:\s*")[^"]*(")/i, `$1${idInfo.theoryPrefix}${tCounter++}$2`);
                 }
 
-                // Ensure trailing comma at end of object line
                 if (!updated.endsWith(',')) updated += ',';
                 return updated;
             })

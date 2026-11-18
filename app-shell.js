@@ -7401,10 +7401,9 @@ STRICT OUTPUT FORMAT RULES:
     }
     window.addEventListener('load', () => setTimeout(installMedPYQDeckHooks, 400));
 })();
-
 /* ============================================================================
-   SECTION 20: TEEN PATTI LINKER EXPORT — COPY ALL LINKED Qs WITH OPTIONS
-   (777PANKAJ) & DOWNLOAD LINKED Qs AS JSON (777CALM) (FIREBASE-FIRST)
+   SECTION 20: TEEN PATTI LINKER EXPORT — COPY ONLY Qs & OPTIONS (777PANKAJ)
+   & DOWNLOAD LINKED Qs AS JSON (777CALM) (NO EXPLANATIONS • FIREBASE-FIRST)
    ============================================================================ */
 (function initTeenPattiAdminExport() {
 
@@ -7461,7 +7460,7 @@ STRICT OUTPUT FORMAT RULES:
         return { topicGroups, allOrderedQids };
     };
 
-    // 2. Resolve All Teen Patti QIDs (Firebase First -> MedPYQ Bridge -> GitHub Fallback)
+    // 2. Resolve All Teen Patti QIDs (Strictly Questions & Options — NO Explanations)
     window.MPP_resolveTeenPattiQuestionsFirebaseFirst = async function() {
         const { topicGroups, allOrderedQids } = window.MPP_parseTeenPattiModalInput();
         if (allOrderedQids.length === 0) {
@@ -7514,11 +7513,6 @@ STRICT OUTPUT FORMAT RULES:
                 ? qObj.options.map(o => String(o ?? ''))
                 : undefined;
 
-            const expl = (window.liveAnswers && qObj && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
-                || (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[up])
-                || (qObj && qObj.explanation)
-                || '';
-
             const itemRecord = {
                 q: qObj && qObj.q ? String(qObj.q) : rawId,
                 type: isMcq ? 'MCQ' : (qObj && qObj.type ? qObj.type : 'Theory'),
@@ -7526,15 +7520,11 @@ STRICT OUTPUT FORMAT RULES:
                 stemText: cleanStemText,
                 ans_key: qObj && qObj.ans_key ? String(qObj.ans_key).trim() : '',
                 chapter: qObj && qObj.chapter ? qObj.chapter : 'General',
-                examBatch: qObj && qObj.examBatch ? qObj.examBatch : 'Prof Exam',
-                examKey: typeof window.MPP_inferExamFromQid === 'function' ? window.MPP_inferExamFromQid(rawId) : 'aiims-profs',
-                linkedTopics: qidToTopics[up] || ['Linked Concept']
+                examBatch: qObj && qObj.examBatch ? qObj.examBatch : 'Prof Exam'
             };
 
             if (options) itemRecord.options = options;
-            if (expl) itemRecord.explanation = expl;
             if (qObj && qObj.img) itemRecord.img = qObj.img;
-            if (qObj && qObj.ans_image) itemRecord.ans_image = qObj.ans_image;
 
             return itemRecord;
         });
@@ -7542,48 +7532,37 @@ STRICT OUTPUT FORMAT RULES:
         return { topicGroups, resolvedList, sourceSummary };
     };
 
-    // 3. 777pankaj for Teen Patti: Copy All Linked Questions + Options + Keys to Clipboard
+    // 3. 777pankaj for Teen Patti: Copy ONLY Questions + Options (Zero Explanations)
     window.MPP_copyTeenPattiForChatGPT = async function(btn) {
         if (!window.isUserAdmin()) return;
         const origHtml = btn ? btn.innerHTML : '';
         if (btn) {
-            btn.innerHTML = `⏳ Loading from Firebase...`;
+            btn.innerHTML = `⏳ Loading...`;
             btn.disabled = true;
         }
 
         try {
-            const { topicGroups, resolvedList, sourceSummary } = await window.MPP_resolveTeenPattiQuestionsFirebaseFirst();
+            const { topicGroups, resolvedList } = await window.MPP_resolveTeenPattiQuestionsFirebaseFirst();
             if (resolvedList.length === 0) {
                 alert("No Question IDs found in the Teen Patti linker box.");
                 return;
             }
 
-            const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
-                ? window.MPP_getVaultKeys()
-                : { college: 'deoghar', subjectKey: window.SUBJECT_CODE || 'SUBJECT' };
-
             const byUpper = {};
             resolvedList.forEach(item => { byUpper[String(item.q).trim().toUpperCase()] = item; });
 
-            let promptLines = [
-                `Act as an expert Medical Professor. Below is a linked Teen Patti Sub-Topic Cluster from ${college.toUpperCase()} - ${subjectKey} (${resolvedList.length} Questions, synced from ${sourceSummary}).`,
-                `Analyze these linked questions, provide high-yield comparative explanations for each question and its options, and highlight the core repeating concepts across exams:\n`
-            ];
+            const promptLines = [];
 
             topicGroups.forEach(group => {
-                promptLines.push(`==================================================`);
-                promptLines.push(`🏷️ SUB-TOPIC: ${group.topicTitle.toUpperCase()} (${group.qids.length} Qs)`);
-                promptLines.push(`==================================================\n`);
+                if (group.topicTitle && group.topicTitle !== 'Linked Concept') {
+                    promptLines.push(`=== ${group.topicTitle.toUpperCase()} ===`);
+                }
 
                 group.qids.forEach((qid, idx) => {
                     const item = byUpper[qid.toUpperCase()];
                     if (!item) return;
 
-                    const batchStr = Array.isArray(item.examBatch) ? item.examBatch.join(', ') : item.examBatch;
-                    const chapStr = Array.isArray(item.chapter) ? item.chapter.join(' / ') : item.chapter;
-
-                    promptLines.push(`${idx + 1}. [${item.q}] (${item.type} | ${batchStr} | Chapter: ${chapStr})`);
-                    promptLines.push(`Question: ${item.stemText || item.stem}`);
+                    promptLines.push(`${idx + 1}. [${item.q}] ${item.stemText || item.stem}`);
 
                     if (item.type === 'MCQ' && Array.isArray(item.options) && item.options.length > 0) {
                         item.options.forEach((opt, oIdx) => {
@@ -7591,40 +7570,14 @@ STRICT OUTPUT FORMAT RULES:
                             const cleanOpt = typeof window.MPP_stripHtml === 'function'
                                 ? window.MPP_stripHtml(opt)
                                 : String(opt).replace(/<[^>]+>/g, '').trim();
-                            promptLines.push(`   ${letter}) ${cleanOpt}`);
+                            promptLines.push(`${letter}) ${cleanOpt}`);
                         });
-                        if (item.ans_key) {
-                            promptLines.push(`   ✅ Correct Answer Key: Option ${item.ans_key}`);
-                        }
-                    }
-
-                    if (item.explanation) {
-                        const cleanExpl = typeof window.MPP_stripHtml === 'function'
-                            ? window.MPP_stripHtml(item.explanation)
-                            : String(item.explanation).replace(/<[^>]+>/g, '').trim();
-                        promptLines.push(`   💡 Saved Note/Explanation: ${cleanExpl}`);
                     }
                     promptLines.push(``);
                 });
             });
 
-            const jsLines = resolvedList.map(item => {
-                const cleanObj = {
-                    q: item.q,
-                    type: item.type,
-                    stem: item.stem,
-                    ...(item.options ? { options: item.options } : {}),
-                    ans_key: item.ans_key || "",
-                    chapter: item.chapter,
-                    examBatch: item.examBatch
-                };
-                return JSON.stringify(cleanObj) + ',';
-            }).join('\n');
-
-            promptLines.push(`// --- RAW QUESTION OBJECTS (WITH OPTIONS & KEYS) ---`);
-            promptLines.push(jsLines);
-
-            const finalPrompt = promptLines.join('\n');
+            const finalPrompt = promptLines.join('\n').trim();
 
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(finalPrompt);
@@ -7652,7 +7605,7 @@ STRICT OUTPUT FORMAT RULES:
         }
     };
 
-    // 4. 777calm for Teen Patti: Download All Linked Questions + Options as a .JSON File
+    // 4. 777calm for Teen Patti: Download ONLY Linked Questions + Options as .JSON (No Explanations)
     window.MPP_downloadTeenPattiJSON = async function(btn) {
         if (!window.isUserAdmin()) return;
         const origHtml = btn ? btn.innerHTML : '';
@@ -7673,8 +7626,16 @@ STRICT OUTPUT FORMAT RULES:
                 : { college: 'deoghar', subjectKey: window.SUBJECT_CODE || 'SUBJECT' };
 
             const cleanQna = resolvedList.map(item => {
-                const copy = { ...item };
-                delete copy.stemText;
+                const copy = {
+                    q: item.q,
+                    type: item.type,
+                    stem: item.stem,
+                    ...(item.options ? { options: item.options } : {}),
+                    ans_key: item.ans_key || "",
+                    chapter: item.chapter,
+                    examBatch: item.examBatch
+                };
+                if (item.img) copy.img = item.img;
                 return copy;
             });
 
@@ -7688,8 +7649,6 @@ STRICT OUTPUT FORMAT RULES:
                 collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
                 subject: subjectKey,
                 source: sourceSummary,
-                exportedAt: new Date().toISOString(),
-                topics: topicGroups,
                 totalQuestions: cleanQna.length,
                 qnaData: cleanQna
             };
@@ -7727,10 +7686,10 @@ STRICT OUTPUT FORMAT RULES:
         exportBar.id = 'mpp-tp-export-bar';
         exportBar.className = 'flex gap-2 mb-2.5';
         exportBar.innerHTML = `
-            <button type="button" onclick="window.MPP_copyTeenPattiForChatGPT(this)" class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Copy all linked questions with options & answer keys (777pankaj style)">
-                <span>🤖</span> <span>Copy Qs + Options (777pankaj)</span>
+            <button type="button" onclick="window.MPP_copyTeenPattiForChatGPT(this)" class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Copy only linked questions and options (no explanations)">
+                <span>📋</span> <span>Copy Qs + Options Only</span>
             </button>
-            <button type="button" onclick="window.MPP_downloadTeenPattiJSON(this)" class="flex-1 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Download all linked questions + options as JSON (777calm style)">
+            <button type="button" onclick="window.MPP_downloadTeenPattiJSON(this)" class="flex-1 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Download linked questions + options as JSON (no explanations)">
                 <span>📥</span> <span>Download JSON (777calm)</span>
             </button>
         `;

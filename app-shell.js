@@ -6730,21 +6730,21 @@ STRICT OUTPUT FORMAT RULES:
     }
 })();
 /* ============================================================================
-   SECTION 18C: LONG-TAP SELECT & DELETE FROM DECK
+   SECTION 18C: LONG-TAP SELECT & DELETE FROM DECK (IGNORES TEEN PATTI CARDS)
    ============================================================================ */
-
 (function () {
     let isSelectMode = false;
     let selectedQuestionIds = new Set();
 
-    // 1. Toggle Selection Mode on Long Tap (Hold card for 500ms)
     window.MPP_initCardLongPress = function () {
         document.addEventListener('touchstart', handleTouchStart, { passive: true });
         document.addEventListener('touchend', handleTouchEnd, { passive: true });
-        // Also support right-click / context menu on desktop
+        document.addEventListener('touchmove', handleTouchEnd, { passive: true });
         document.addEventListener('contextmenu', (e) => {
-            const card = e.target.closest('.question-card, [data-qid]');
-            if (card) {
+            // Do NOT trigger bulk delete on Teen Patti cards or the < 1/16 > pill
+            if (e.target.closest('.tp-patti, .mpp-cluster-pill, #mpp-admin-link-modal')) return;
+            const card = e.target.closest('.question-card');
+            if (card && window.isUserAdmin && window.isUserAdmin()) {
                 e.preventDefault();
                 const qId = card.getAttribute('data-qid') || card.dataset.qId;
                 if (qId) window.MPP_toggleCardSelection(qId, card);
@@ -6753,19 +6753,18 @@ STRICT OUTPUT FORMAT RULES:
     };
 
     let touchTimer = null;
-    let touchedCard = null;
 
     function handleTouchStart(e) {
-        const card = e.target.closest('.question-card, [data-qid]');
-        if (!card) return;
-        touchedCard = card;
+        if (e.target.closest('.tp-patti, .mpp-cluster-pill, #mpp-admin-link-modal')) return;
+        const card = e.target.closest('.question-card');
+        if (!card || !(window.isUserAdmin && window.isUserAdmin())) return;
         touchTimer = setTimeout(() => {
             const qId = card.getAttribute('data-qid') || card.dataset.qId;
             if (qId) {
                 window.MPP_toggleCardSelection(qId, card);
-                if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(50);
             }
-        }, 500); // 500ms long hold
+        }, 500);
     }
 
     function handleTouchEnd() {
@@ -6773,7 +6772,6 @@ STRICT OUTPUT FORMAT RULES:
         touchTimer = null;
     }
 
-    // 2. Select / Deselect a Card
     window.MPP_toggleCardSelection = function (qId, cardElement) {
         isSelectMode = true;
         if (selectedQuestionIds.has(qId)) {
@@ -6781,12 +6779,11 @@ STRICT OUTPUT FORMAT RULES:
             if (cardElement) cardElement.style.border = '';
         } else {
             selectedQuestionIds.add(qId);
-            if (cardElement) cardElement.style.border = '3px solid #ef4444'; // Red border for selected
+            if (cardElement) cardElement.style.border = '3px solid #ef4444';
         }
         window.MPP_renderBulkDeleteBar();
     };
 
-    // 3. Floating Action Bar for Deleting Selected Questions
     window.MPP_renderBulkDeleteBar = function () {
         let bar = document.getElementById('mpp-bulk-delete-bar');
         if (!bar) {
@@ -6813,97 +6810,161 @@ STRICT OUTPUT FORMAT RULES:
     window.MPP_cancelBulkDelete = function () {
         selectedQuestionIds.clear();
         isSelectMode = false;
-        document.querySelectorAll('.question-card, [data-qid]').forEach(c => c.style.border = '');
+        document.querySelectorAll('.question-card').forEach(c => c.style.border = '');
         window.MPP_renderBulkDeleteBar();
     };
 
-    // 4. Delete from Array & Firebase
     window.MPP_confirmBulkDelete = async function () {
         if (!confirm(`Are you sure you want to delete ${selectedQuestionIds.size} selected question(s)?`)) return;
+        const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
+            ? window.MPP_getVaultKeys()
+            : { college: 'deoghar', subjectKey: window.SUBJECT_CODE || 'CFM' };
 
         window.qnaData = (Array.isArray(window.qnaData) ? window.qnaData : []).filter(q => !selectedQuestionIds.has(String(q.q)));
-
-        if (window.firebase && window.firebase.database) {
-            try {
-                const path = `question_banks/${window.currentCollege || 'deoghar'}/${window.currentSubjectKey || 'FMT'}`;
-                // Convert array back to object/array map for Firebase
-                await firebase.database().ref(path).set(window.qnaData);
-                alert('✅ Successfully deleted from Firebase!');
-            } catch (err) {
-                alert('❌ Firebase delete error: ' + err.message);
-            }
+        try {
+            await window.MPP_uploadBankPayloadToFirebase(college, subjectKey, {
+                collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
+                curriculumData: window.curriculumData || [],
+                qnaData: window.qnaData
+            });
+            alert('✅ Successfully deleted from Firebase!');
+        } catch (err) {
+            alert('❌ Firebase delete error: ' + err.message);
         }
 
         selectedQuestionIds.clear();
         isSelectMode = false;
         window.MPP_renderBulkDeleteBar();
-        if (typeof window.renderQuestions === 'function') window.renderQuestions();
+        if (typeof window.fetchQuestions === 'function') window.fetchQuestions();
         else location.reload();
     };
 
-    // Initialize long-tap listener on load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', window.MPP_initCardLongPress);
     } else {
         window.MPP_initCardLongPress();
     }
 })();
+
 /* ============================================================================
    SECTION 19: MEDPYQ-STYLE RESUME PRACTICE MODAL, SAVED RESPONSES (SOLVED DB),
-   RESET QUESTION & ATTEMPT STATUS FILTER
+   RESET QUESTION & ATTEMPT STATUS FILTER (FIXED LAYOUT & LEXICAL SYNC)
    ============================================================================ */
 (function initMedPYQResumeAndSolvedEngine() {
-    // 1. Inject the Exact MedPYQ "Resume Practice?" Modal Overlay into DOM
-    const resumeModalHTML = `
-    <div id="resume-prompt-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); font-family: 'Plus Jakarta Sans', 'Roboto', sans-serif;">
-        <div style="background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
-            <div style="color:#0f2b52; background:#e0f2fe; border-radius: 50%; width: 60px; height: 60px; margin: 0 auto 15px; display:flex; align-items:center; justify-content:center; font-size: 24px;">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l4 2"/></svg>
+    // 1. Inject the MedPYQ "Resume Practice?" Modal Overlay into DOM
+    if (!document.getElementById('resume-prompt-overlay')) {
+        const resumeModalHTML = `
+        <div id="resume-prompt-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); font-family: 'Plus Jakarta Sans', 'Roboto', sans-serif;">
+            <div style="background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+                <div style="color:#0f2b52; background:#e0f2fe; border-radius: 50%; width: 60px; height: 60px; margin: 0 auto 15px; display:flex; align-items:center; justify-content:center; font-size: 24px;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l4 2"/></svg>
+                </div>
+                <h3 style="color:#0f172a; font-size:1.4rem; margin:0 0 8px 0; font-weight:800;">Resume Practice?</h3>
+                <p style="color:#64748b; font-size:0.9rem; margin:0 0 25px 0; line-height:1.5;">You left off at Question <span id="resume-q-num" style="font-weight:800; color:#0f2b52;"></span> in your last session. Would you like to resume or start fresh?</p>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" style="background:#f1f5f9; color:#64748b; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.startFresh()">Start Fresh</button>
+                    <button type="button" style="background:#0f2b52; color:white; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.resumeSession()">Continue</button>
+                </div>
             </div>
-            <h3 style="color:#0f172a; font-size:1.4rem; margin:0 0 8px 0; font-weight:800;">Resume Practice?</h3>
-            <p style="color:#64748b; font-size:0.9rem; margin:0 0 25px 0; line-height:1.5;">You left off at Question <span id="resume-q-num" style="font-weight:800; color:#0f2b52;"></span> in your last session. Would you like to resume or start fresh?</p>
-            <div style="display:flex; gap:10px;">
-                <button type="button" style="background:#f1f5f9; color:#64748b; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.startFresh()">Start Fresh</button>
-                <button type="button" style="background:#0f2b52; color:white; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.resumeSession()">Continue</button>
-            </div>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', resumeModalHTML);
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', resumeModalHTML);
+    }
 
-    // Global state matching MedPYQ's deckState.userStatus (stores { [qid]: 'A' | 'B' | 'C' | 'D' })
     window.MPP_userSolved = {};
     window.MPP_attemptFilter = 'all';
     window.tempSavedIndex = 0;
     window.MPP_resumeCheckedForSubject = false;
 
-    // Helper to sync lexical variables (`deckIndex`, `deckStatus`, `isDeckMode`, `activeDeckQuestions`) in Review HTML pages
-    function getPageDeckState() {
-        try {
-            return (new Function(`
+    // Bridge top-level `let` variables in HTML inline scripts by injecting a <script> tag into document.body
+    function installLexicalBridgeScript() {
+        if (document.getElementById('mpp-lexical-bridge-script')) return;
+        const s = document.createElement('script');
+        s.id = 'mpp-lexical-bridge-script';
+        s.textContent = `
+            window.MPP_readLexicalState = function() {
                 return {
                     deckIndex: typeof deckIndex !== 'undefined' ? deckIndex : (window.deckIndex || 0),
                     isDeckMode: typeof isDeckMode !== 'undefined' ? isDeckMode : Boolean(window.isDeckMode),
                     deckStatus: typeof deckStatus !== 'undefined' ? deckStatus : (window.deckStatus || {}),
                     activeDeckQuestions: typeof activeDeckQuestions !== 'undefined' ? activeDeckQuestions : (window.activeDeckQuestions || []),
+                    displayData: typeof displayData !== 'undefined' ? displayData : (window.displayData || []),
                     qnaData: typeof qnaData !== 'undefined' ? qnaData : (window.qnaData || [])
                 };
-            `))();
-        } catch (e) {
-            return {
-                deckIndex: window.deckIndex || 0,
-                isDeckMode: Boolean(window.isDeckMode),
-                deckStatus: window.deckStatus || {},
-                activeDeckQuestions: window.activeDeckQuestions || [],
-                qnaData: window.qnaData || []
             };
+            window.MPP_writeLexicalState = function(p) {
+                if (!p) return;
+                if (p.deckIndex !== undefined) {
+                    window.deckIndex = p.deckIndex;
+                    try { if (typeof deckIndex !== 'undefined') deckIndex = p.deckIndex; } catch(e){}
+                }
+                if (p.isDeckMode !== undefined) {
+                    window.isDeckMode = p.isDeckMode;
+                    try { if (typeof isDeckMode !== 'undefined') isDeckMode = p.isDeckMode; } catch(e){}
+                }
+                if (p.deckStatus !== undefined) {
+                    window.deckStatus = p.deckStatus;
+                    try { if (typeof deckStatus !== 'undefined') deckStatus = p.deckStatus; } catch(e){}
+                }
+                if (p.activeDeckQuestions !== undefined) {
+                    window.activeDeckQuestions = p.activeDeckQuestions;
+                    try { if (typeof activeDeckQuestions !== 'undefined') activeDeckQuestions = p.activeDeckQuestions; } catch(e){}
+                }
+                if (p.displayData !== undefined) {
+                    window.displayData = p.displayData;
+                    try { if (typeof displayData !== 'undefined') displayData = p.displayData; } catch(e){}
+                }
+                if (p.qnaData !== undefined) {
+                    window.qnaData = p.qnaData;
+                    try { if (typeof qnaData !== 'undefined') qnaData = p.qnaData; } catch(e){}
+                }
+                if (p.curriculumData !== undefined) {
+                    window.curriculumData = p.curriculumData;
+                    try { if (typeof curriculumData !== 'undefined') curriculumData = p.curriculumData; } catch(e){}
+                }
+                if (p.collegeName !== undefined) {
+                    window.COLLEGE_NAME = p.collegeName;
+                    try { if (typeof COLLEGE_NAME !== 'undefined') COLLEGE_NAME = p.collegeName; } catch(e){}
+                }
+            };
+        `;
+        document.body.appendChild(s);
+    }
+
+    // Upgrade MPP_syncLexicalGlobals so 777pankaj and 777calm also use the real <script> bridge
+    window.MPP_syncLexicalGlobals = function(bank) {
+        if (!bank) return;
+        installLexicalBridgeScript();
+        if (typeof window.MPP_writeLexicalState === 'function') {
+            window.MPP_writeLexicalState({
+                collegeName: bank.collegeName || window.COLLEGE_NAME,
+                curriculumData: bank.curriculumData || [],
+                qnaData: bank.qnaData || []
+            });
         }
+    };
+
+    function getPageDeckState() {
+        installLexicalBridgeScript();
+        if (typeof window.MPP_readLexicalState === 'function') {
+            return window.MPP_readLexicalState();
+        }
+        return {
+            deckIndex: window.deckIndex || 0,
+            isDeckMode: Boolean(window.isDeckMode),
+            deckStatus: window.deckStatus || {},
+            activeDeckQuestions: window.activeDeckQuestions || [],
+            displayData: window.displayData || [],
+            qnaData: window.qnaData || []
+        };
     }
 
     function setPageDeckIndex(newIdx) {
-        window.deckIndex = newIdx;
-        try {
-            (new Function('idx', `try { if (typeof deckIndex !== 'undefined') deckIndex = idx; } catch(e) {}`))(newIdx);
-        } catch (e) {}
+        installLexicalBridgeScript();
+        if (typeof window.MPP_writeLexicalState === 'function') {
+            window.MPP_writeLexicalState({ deckIndex: newIdx });
+        } else {
+            window.deckIndex = newIdx;
+        }
     }
 
     function ensureDeckModeOpen() {
@@ -6920,7 +6981,7 @@ STRICT OUTPUT FORMAT RULES:
         }
     }
 
-    // 2. Compute MedPYQ-style Storage Keys for Current User + College + Subject
+    // 2. Compute Storage Keys for Current User + College + Subject
     window.MPP_getSolvedKeys = function() {
         const uid = (window.currentUserObj && window.currentUserObj.uid) ? window.currentUserObj.uid : 'guest';
         const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
@@ -6940,12 +7001,15 @@ STRICT OUTPUT FORMAT RULES:
         };
     };
 
-    // 3. Save Current Deck Question Index (Exact MedPYQ `saveCurrentIndex` Logic)
+    // 3. Save Current Deck Question Index
     window.saveCurrentIndex = function() {
         const st = getPageDeckState();
         const { uid, indexKey, fbIndexPath } = window.MPP_getSolvedKeys();
-        if (st.activeDeckQuestions.length > 0 && st.activeDeckQuestions.length === st.qnaData.length) {
-            localStorage.setItem(indexKey, st.deckIndex);
+        const deckLen = (st.activeDeckQuestions && st.activeDeckQuestions.length) || 0;
+        const totalLen = (st.qnaData && st.qnaData.length) || 0;
+
+        if (deckLen > 0 && (totalLen === 0 || deckLen === totalLen)) {
+            localStorage.setItem(indexKey, String(st.deckIndex));
             if (uid !== 'guest' && window.db) {
                 import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js").then(({ ref, set }) => {
                     set(ref(window.db, fbIndexPath), st.deckIndex).catch(() => {});
@@ -6970,13 +7034,13 @@ STRICT OUTPUT FORMAT RULES:
 
     window.resumeSession = function() {
         document.getElementById('resume-prompt-overlay').style.display = 'none';
+        ensureDeckModeOpen();
         setPageDeckIndex(window.tempSavedIndex || 0);
         if (window.MPP_state) {
             window.MPP_state.overrideQid = null;
             window.MPP_state.fanViewOpen = false;
             window.MPP_state.activeTopicSlug = null;
         }
-        ensureDeckModeOpen();
         if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
@@ -6985,7 +7049,6 @@ STRICT OUTPUT FORMAT RULES:
         if (!document.getElementById('qnaTable')) return;
         const { uid, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
 
-        // Load local cache first for instant UI
         const localCache = localStorage.getItem(cacheKey);
         if (localCache) {
             try { window.MPP_userSolved = JSON.parse(localCache) || {}; } catch (e) {}
@@ -6993,7 +7056,6 @@ STRICT OUTPUT FORMAT RULES:
 
         let savedIndex = parseInt(localStorage.getItem(indexKey), 10);
 
-        // Sync from Firebase if logged in
         if (uid !== 'guest') {
             try {
                 const { dbInstance } = await window.MPP_ensureProfsFirebase();
@@ -7021,34 +7083,33 @@ STRICT OUTPUT FORMAT RULES:
                         localStorage.setItem(indexKey, String(cloudIdx));
                     }
                 }
-            } catch (e) {
-                console.warn("Solved cloud sync warning:", e);
-            }
+            } catch (e) {}
         }
 
-        // Sync into page's `deckStatus` map
         const st = getPageDeckState();
         const qMap = new Map();
         (st.qnaData || []).forEach(q => { if (q && q.q) qMap.set(String(q.q).trim(), q); });
 
+        const nextStatus = { ...(st.deckStatus || {}) };
         Object.keys(window.MPP_userSolved).forEach(qid => {
             const picked = window.MPP_userSolved[qid];
             const qObj = qMap.get(qid) || (window.MPP_resolveQuestionByQid ? window.MPP_resolveQuestionByQid(qid) : null);
             if (qObj && picked) {
                 const isCorr = String(picked).toUpperCase() === String(qObj.ans_key || 'A').trim().toUpperCase();
-                if (!window.deckStatus) window.deckStatus = {};
-                window.deckStatus[qid] = isCorr ? 'correct' : 'wrong';
+                nextStatus[qid] = isCorr ? 'correct' : 'wrong';
             }
         });
+        if (typeof window.MPP_writeLexicalState === 'function') {
+            window.MPP_writeLexicalState({ deckStatus: nextStatus });
+        }
 
-        // Re-render current view with restored responses
         if (st.isDeckMode && typeof window.renderDeckCard === 'function') {
             window.renderDeckCard();
         }
 
-        // Trigger MedPYQ's "#resume-prompt-overlay" if savedIndex > 0
+        // Show MedPYQ's "#resume-prompt-overlay" if savedIndex > 0
         const deckLen = (st.activeDeckQuestions && st.activeDeckQuestions.length) || (st.qnaData && st.qnaData.length) || 0;
-        if (!window.MPP_resumeCheckedForSubject && deckLen > 0) {
+        if (!window.MPP_resumeCheckedForSubject && deckLen > 0 && window.accessLevel !== 'guest') {
             window.MPP_resumeCheckedForSubject = true;
             if (!isNaN(savedIndex) && savedIndex > 0 && savedIndex < deckLen) {
                 window.tempSavedIndex = savedIndex;
@@ -7059,12 +7120,19 @@ STRICT OUTPUT FORMAT RULES:
         }
     };
 
-    // 6. Reset Single Question (`window.UD_resetAnswer` equivalent)
+    // 6. Reset Single Question
     window.MPP_resetAnswer = function(qid) {
         if (!qid) return;
         const cleanQid = String(qid).trim();
         delete window.MPP_userSolved[cleanQid];
-        if (window.deckStatus) delete window.deckStatus[cleanQid];
+
+        const st = getPageDeckState();
+        if (st.deckStatus && st.deckStatus[cleanQid]) {
+            delete st.deckStatus[cleanQid];
+            if (typeof window.MPP_writeLexicalState === 'function') {
+                window.MPP_writeLexicalState({ deckStatus: st.deckStatus });
+            }
+        }
 
         const { uid, cacheKey, fbSolvedPath } = window.MPP_getSolvedKeys();
         localStorage.setItem(cacheKey, JSON.stringify(window.MPP_userSolved));
@@ -7078,7 +7146,7 @@ STRICT OUTPUT FORMAT RULES:
         if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
-    // 7. Reset All Progress (`window.resetAllProgress` from MedPYQ)
+    // 7. Reset All Progress
     window.resetAllProgress = async function() {
         const { uid, subjectKey, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
         if (uid === 'guest') {
@@ -7086,17 +7154,15 @@ STRICT OUTPUT FORMAT RULES:
             return;
         }
 
-        const confirmReset = confirm(`Are you sure you want to delete all your answers for ${subjectKey}? This cannot be undone.`);
-        if (!confirmReset) return;
+        if (!confirm(`Are you sure you want to delete all your answers for ${subjectKey}? This cannot be undone.`)) return;
 
         window.MPP_userSolved = {};
-        if (window.deckStatus) {
-            Object.keys(window.deckStatus).forEach(k => delete window.deckStatus[k]);
+        if (typeof window.MPP_writeLexicalState === 'function') {
+            window.MPP_writeLexicalState({ deckIndex: 0, deckStatus: {} });
         }
 
         localStorage.removeItem(cacheKey);
         localStorage.removeItem(indexKey);
-        setPageDeckIndex(0);
 
         if (window.MPP_state) {
             window.MPP_state.overrideQid = null;
@@ -7113,7 +7179,6 @@ STRICT OUTPUT FORMAT RULES:
             ]);
             alert("Progress successfully reset!");
         } catch (err) {
-            console.error("Error resetting progress:", err);
             alert("Failed to reset progress in the database. Please try again.");
         }
 
@@ -7126,16 +7191,19 @@ STRICT OUTPUT FORMAT RULES:
         if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
-    // 8. Inject MedPYQ's Attempt Status Dropdown & "Reset Progress" Button into Controls Bar
+    // 8. Inject Attempt Status Dropdown & Reset Progress into the Outer Filter Row (NOT inside the Search Input wrapper!)
     function injectMedPYQControls() {
-        const searchInput = document.getElementById('searchInput');
-        if (!searchInput || !searchInput.parentElement || document.getElementById('filter-attempt-status')) return;
+        if (document.getElementById('filter-attempt-status')) return;
+        const typeFilter = document.getElementById('typeFilter');
+        const chapterFilter = document.getElementById('chapterFilter');
+        const anchorEl = typeFilter || chapterFilter;
+        if (!anchorEl || !anchorEl.parentElement) return;
 
-        const bar = searchInput.parentElement;
+        const bar = anchorEl.parentElement;
 
         const statusSelect = document.createElement('select');
         statusSelect.id = 'filter-attempt-status';
-        statusSelect.className = 'px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold outline-none cursor-pointer';
+        statusSelect.className = anchorEl.className || 'px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold outline-none cursor-pointer';
         statusSelect.innerHTML = `
             <option value="all">All Questions</option>
             <option value="unattempted">Unattempted Only</option>
@@ -7152,47 +7220,38 @@ STRICT OUTPUT FORMAT RULES:
         resetBtn.type = 'button';
         resetBtn.id = 'btn-medpyq-reset-progress';
         resetBtn.onclick = window.resetAllProgress;
-        resetBtn.className = 'px-3 py-2 rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer flex items-center gap-1.5 hover:bg-red-100 transition-colors shrink-0';
+        resetBtn.className = 'px-3 py-2.5 rounded-xl border border-red-200 dark:border-red-800/80 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors shrink-0';
         resetBtn.innerHTML = `<span>🗑️</span> <span>Reset Progress</span>`;
 
-        bar.appendChild(statusSelect);
+        bar.insertBefore(statusSelect, anchorEl);
         bar.appendChild(resetBtn);
     }
 
-    // 9. Hook Deck Navigation, Answer Checking, Card Rendering & Filtering
+    // 9. Install Hooks AFTER Section 15 (`MPP_deckHooked`) so Section 15 never overwrites them
     function installMedPYQDeckHooks() {
-        if (!document.getElementById('qnaTable') || window.MPP_medpyqHooksInstalled) return;
-        window.MPP_medpyqHooksInstalled = true;
-
+        if (!document.getElementById('qnaTable')) return;
+        installLexicalBridgeScript();
         injectMedPYQControls();
 
+        // Wait until Section 15 has finished hooking renderDeckCard/checkDeckAnswer
+        if (!window.MPP_deckHooked && typeof window.renderDeckCard === 'function') {
+            setTimeout(installMedPYQDeckHooks, 250);
+            return;
+        }
+        if (window.MPP_medpyqHooksInstalled) return;
+        window.MPP_medpyqHooksInstalled = true;
+
         // A. Hook deckNext, deckPrev & jumpToDeckQuestion to call saveCurrentIndex()
-        const prevNext = window.deckNext;
-        if (typeof prevNext === 'function') {
-            window.deckNext = function() {
-                const res = prevNext.apply(this, arguments);
-                window.saveCurrentIndex();
-                return res;
-            };
-        }
-
-        const prevPrev = window.deckPrev;
-        if (typeof prevPrev === 'function') {
-            window.deckPrev = function() {
-                const res = prevPrev.apply(this, arguments);
-                window.saveCurrentIndex();
-                return res;
-            };
-        }
-
-        const prevJump = window.jumpToDeckQuestion;
-        if (typeof prevJump === 'function') {
-            window.jumpToDeckQuestion = function() {
-                const res = prevJump.apply(this, arguments);
-                window.saveCurrentIndex();
-                return res;
-            };
-        }
+        ['deckNext', 'deckPrev', 'jumpToDeckQuestion'].forEach(fnName => {
+            const origFn = window[fnName];
+            if (typeof origFn === 'function') {
+                window[fnName] = function() {
+                    const res = origFn.apply(this, arguments);
+                    window.saveCurrentIndex();
+                    return res;
+                };
+            }
+        });
 
         // B. Hook checkDeckAnswer to Save Selected Option Letter to localStorage & Firebase
         const prevCheckAns = window.checkDeckAnswer;
@@ -7201,10 +7260,11 @@ STRICT OUTPUT FORMAT RULES:
                 const { displayedQ, anchorQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
                     ? window.MPP_getAnchorAndDisplayedQ()
                     : { displayedQ: null, anchorQ: null };
-                const targetQ = displayedQ || anchorQ;
+                const st = getPageDeckState();
+                const fallbackQ = (st.activeDeckQuestions && st.activeDeckQuestions[st.deckIndex]) || null;
+                const targetQ = displayedQ || anchorQ || fallbackQ;
                 const qid = targetQ ? String(targetQ.q).trim() : null;
 
-                // Prevent re-answering unless Reset Question is clicked (matches MedPYQ UD_checkAns)
                 if (qid && window.MPP_userSolved[qid]) return;
 
                 const p = String(picked).trim().toUpperCase();
@@ -7222,12 +7282,13 @@ STRICT OUTPUT FORMAT RULES:
                                 ans: p,
                                 correct: isCorrect,
                                 timestamp: Date.now()
-                            }).catch(err => console.error("Error recording attempt:", err));
+                            }).catch(() => {});
                         });
                     }
                 }
 
                 const res = prevCheckAns.apply(this, arguments);
+                window.saveCurrentIndex();
                 if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
                 return res;
             };
@@ -7242,7 +7303,9 @@ STRICT OUTPUT FORMAT RULES:
                 const { anchorQ, displayedQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
                     ? window.MPP_getAnchorAndDisplayedQ()
                     : { anchorQ: null, displayedQ: null };
-                const q = displayedQ || anchorQ;
+                const st = getPageDeckState();
+                const fallbackQ = (st.activeDeckQuestions && st.activeDeckQuestions[st.deckIndex]) || null;
+                const q = displayedQ || anchorQ || fallbackQ;
                 if (!q || !q.q) return res;
 
                 const qid = String(q.q).trim();
@@ -7267,13 +7330,11 @@ STRICT OUTPUT FORMAT RULES:
                     }
                 });
 
-                // Auto-open the explanation panel if answered
                 const ansPanel = document.getElementById(`deck-ans-panel-${qid}`);
                 if (ansPanel && ansPanel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
                     window.toggleDeckAnswerPanel(qid);
                 }
 
-                // Inject MedPYQ's "↻ Reset Question" button if not already present
                 if (!container.querySelector('#btn-mpp-reset-single-q')) {
                     const resetWrap = document.createElement('div');
                     resetWrap.className = 'flex justify-end mt-3';
@@ -7295,8 +7356,10 @@ STRICT OUTPUT FORMAT RULES:
         if (typeof prevFilterTable === 'function') {
             window.filterTable = function() {
                 const res = prevFilterTable.apply(this, arguments);
-                if (window.MPP_attemptFilter && window.MPP_attemptFilter !== 'all' && Array.isArray(window.displayData)) {
-                    window.displayData = window.displayData.filter(item => {
+                if (window.MPP_attemptFilter && window.MPP_attemptFilter !== 'all') {
+                    const st = getPageDeckState();
+                    const rawDisp = st.displayData || [];
+                    const filteredDisp = rawDisp.filter(item => {
                         if (!item || !item.q) return false;
                         const userAns = window.MPP_userSolved[String(item.q).trim()];
                         const corrAns = String(item.ans_key || 'A').trim().toUpperCase();
@@ -7305,9 +7368,9 @@ STRICT OUTPUT FORMAT RULES:
                         if (window.MPP_attemptFilter === 'correct') return Boolean(userAns && userAns === corrAns);
                         return true;
                     });
-                    try {
-                        (new Function('d', `try { if (typeof displayData !== 'undefined') displayData = d; } catch(e) {}`))(window.displayData);
-                    } catch (e) {}
+                    if (typeof window.MPP_writeLexicalState === 'function') {
+                        window.MPP_writeLexicalState({ displayData: filteredDisp });
+                    }
                     if (typeof window.populateTable === 'function') window.populateTable();
                 }
                 return res;
@@ -7320,24 +7383,25 @@ STRICT OUTPUT FORMAT RULES:
             window.processDataForAccess = function() {
                 const res = prevProcess.apply(this, arguments);
                 injectMedPYQControls();
-                window.MPP_loadSolvedAndResumeState();
+                setTimeout(() => window.MPP_loadSolvedAndResumeState(), 150);
                 return res;
             };
         }
 
-        if (window.isDataLoaded && Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+        const stNow = getPageDeckState();
+        if (window.isDataLoaded && Array.isArray(stNow.qnaData) && stNow.qnaData.length > 0) {
             window.MPP_loadSolvedAndResumeState();
         }
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', installMedPYQDeckHooks);
+        document.addEventListener('DOMContentLoaded', () => setTimeout(installMedPYQDeckHooks, 400));
     } else {
-        installMedPYQDeckHooks();
+        setTimeout(installMedPYQDeckHooks, 400);
     }
-    window.addEventListener('load', installMedPYQDeckHooks);
-    setTimeout(installMedPYQDeckHooks, 600);
+    window.addEventListener('load', () => setTimeout(installMedPYQDeckHooks, 400));
 })();
+
 /* ============================================================================
    SECTION 20: TEEN PATTI LINKER EXPORT — COPY ALL LINKED Qs WITH OPTIONS
    (777PANKAJ) & DOWNLOAD LINKED Qs AS JSON (777CALM) (FIREBASE-FIRST)
@@ -7349,7 +7413,6 @@ STRICT OUTPUT FORMAT RULES:
         const inputEl = document.getElementById('mpp-admin-link-input');
         let rawText = inputEl ? inputEl.value.trim() : '';
 
-        // Fallback to active cluster sequence if textarea is empty
         if (!rawText && typeof window.MPP_getAnchorAndDisplayedQ === 'function') {
             const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
             if (anchorQ || displayedQ) {
@@ -7407,7 +7470,6 @@ STRICT OUTPUT FORMAT RULES:
 
         let sourceSummary = 'Firebase Cloud';
 
-        // Step A: Ensure current subject's AIIMS Profs bank is loaded from Firebase first (fallback: GitHub)
         if (typeof window.MPP_getFirebaseFirstBankData === 'function') {
             try {
                 const fbRes = await window.MPP_getFirebaseFirstBankData();
@@ -7415,7 +7477,6 @@ STRICT OUTPUT FORMAT RULES:
             } catch (e) {}
         }
 
-        // Step B: If any QID belongs to MedPYQ (N, IN, CMS, F) and banks aren't preloaded yet, preload from MedPYQ Firebase
         const hasPGQids = allOrderedQids.some(id => {
             const ex = typeof window.MPP_inferExamFromQid === 'function' ? window.MPP_inferExamFromQid(id) : 'aiims-profs';
             return ex !== 'aiims-profs';
@@ -7426,7 +7487,6 @@ STRICT OUTPUT FORMAT RULES:
             } catch (e) {}
         }
 
-        // Map each QID to its sub-topic names
         const qidToTopics = {};
         topicGroups.forEach(group => {
             group.qids.forEach(id => {
@@ -7438,7 +7498,6 @@ STRICT OUTPUT FORMAT RULES:
             });
         });
 
-        // Step C: Resolve every QID into a clean, complete question object with options & answer key
         const resolvedList = allOrderedQids.map(rawId => {
             const up = rawId.toUpperCase();
             const qObj = typeof window.MPP_resolveQuestionByQid === 'function'
@@ -7549,7 +7608,6 @@ STRICT OUTPUT FORMAT RULES:
                 });
             });
 
-            // Also append the ready-to-use JS/JSON array at the bottom of the copied text
             const jsLines = resolvedList.map(item => {
                 const cleanObj = {
                     q: item.q,
@@ -7587,7 +7645,6 @@ STRICT OUTPUT FORMAT RULES:
                 setTimeout(() => { btn.innerHTML = origHtml; }, 2200);
             }
         } catch (err) {
-            console.error("Error copying Teen Patti Qs:", err);
             alert("Failed to copy questions: " + err.message);
             if (btn) btn.innerHTML = origHtml;
         } finally {
@@ -7652,7 +7709,6 @@ STRICT OUTPUT FORMAT RULES:
                 setTimeout(() => { btn.innerHTML = origHtml; }, 2200);
             }
         } catch (err) {
-            console.error("Error downloading Teen Patti JSON:", err);
             alert("Failed to download JSON: " + err.message);
             if (btn) btn.innerHTML = origHtml;
         } finally {

@@ -2274,16 +2274,252 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+     // =========================================================================
+    // FIREBASE-FIRST (FALLBACK TO GITHUB) EXPORT & CHATGPT HELPER FOR 777 CODES
+    // =========================================================================
+    window.MPP_syncLexicalGlobals = function(bank) {
+        if (!bank) return;
+        window.COLLEGE_NAME = bank.collegeName || window.COLLEGE_NAME;
+        window.curriculumData = bank.curriculumData || [];
+        window.qnaData = bank.qnaData || [];
+        try {
+            // Sync top-level `let` variables declared inside the HTML page's inline <script>
+            const syncFn = new Function('b', `
+                try { if (typeof COLLEGE_NAME !== 'undefined') COLLEGE_NAME = b.collegeName; } catch(e) {}
+                try { if (typeof curriculumData !== 'undefined') curriculumData = b.curriculumData; } catch(e) {}
+                try { if (typeof qnaData !== 'undefined') qnaData = b.qnaData; } catch(e) {}
+            `);
+            syncFn(bank);
+        } catch (e) {}
+    };
+
+    window.MPP_getFirebaseFirstBankData = async function() {
+        const { college, rawSub, subjectKey, candidateKeys, fileName, candidateFileNames } =
+            typeof window.MPP_getVaultKeys === 'function'
+                ? window.MPP_getVaultKeys()
+                : {
+                    college: String(window.COLLEGE_CODE || 'deoghar').toLowerCase(),
+                    rawSub: String(window.SUBJECT_CODE || 'CFM').toUpperCase(),
+                    subjectKey: String(window.SUBJECT_CODE || 'CFM').toUpperCase(),
+                    candidateKeys: [String(window.SUBJECT_CODE || 'CFM').toUpperCase(), String(window.SUBJECT_CODE || 'cfm').toLowerCase()],
+                    fileName: `${String(window.SUBJECT_CODE || 'cfm').toLowerCase()}_aiims_${String(window.COLLEGE_CODE || 'deoghar').toLowerCase()}_data.json`,
+                    candidateFileNames: [`${String(window.SUBJECT_CODE || 'cfm').toLowerCase()}_aiims_${String(window.COLLEGE_CODE || 'deoghar').toLowerCase()}_data.json`]
+                };
+
+        let loadedBank = null;
+        let sourceType = '';
+        let sourceDetail = '';
+
+        // 1. TRY FIREBASE CLOUD FIRST
+        try {
+            const { dbInstance } = await window.MPP_ensureProfsFirebase();
+            const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+
+            for (const k of candidateKeys) {
+                const snap = await get(ref(dbInstance, `question_banks/${college}/${k}`)).catch(() => null);
+                if (snap && snap.exists()) {
+                    const sanitized = window.MPP_sanitizeBankData(snap.val(), college);
+                    if (sanitized && Array.isArray(sanitized.qnaData) && sanitized.qnaData.length > 0) {
+                        loadedBank = sanitized;
+                        sourceType = 'firebase';
+                        sourceDetail = `Firebase Cloud (question_banks/${college}/${k})`;
+                        break;
+                    }
+                }
+            }
+
+            // Merge any live admin edits from question_edits so the downloaded file has the latest changes
+            if (loadedBank) {
+                const subUpper = String(window.SUBJECT_CODE || rawSub || 'CFM').toUpperCase().trim();
+                const editsSnap = await get(ref(dbInstance, `question_edits/${college}/${subUpper}/overrides`)).catch(() => null);
+                const overrides = (editsSnap && editsSnap.exists()) ? editsSnap.val() : (window.MPP_questionEditsMap || {});
+                if (overrides && typeof overrides === 'object') {
+                    loadedBank.qnaData = loadedBank.qnaData.map(item => {
+                        if (!item || !item.q) return item;
+                        const up = String(item.q).trim().toUpperCase();
+                        const ov = overrides[up];
+                        if (!ov) return item;
+                        const updated = { ...item };
+                        if (ov.ans_key) updated.ans_key = ov.ans_key;
+                        if (Array.isArray(ov.options) && ov.options.length > 0) {
+                            updated.options = ov.options.map(o => String(o ?? ""));
+                        }
+                        if (ov.stem) updated.stem = ov.stem;
+                        return updated;
+                    });
+                }
+            }
+        } catch (fbErr) {
+            console.warn("Firebase fetch unavailable, falling back to GitHub:", fbErr);
+        }
+
+        // 2. FALLBACK TO GITHUB JSON FILE IF FIREBASE IS NOT AVAILABLE
+        if (!loadedBank) {
+            for (const fname of candidateFileNames) {
+                try {
+                    const response = await fetch(fname, { cache: 'no-store' });
+                    if (response.ok) {
+                        const jsonData = await response.json();
+                        const sanitized = window.MPP_sanitizeBankData(jsonData, college);
+                        if (sanitized && Array.isArray(sanitized.qnaData) && sanitized.qnaData.length > 0) {
+                            loadedBank = sanitized;
+                            sourceType = 'github';
+                            sourceDetail = `GitHub Fallback (${fname})`;
+                            break;
+                        }
+                    }
+                } catch (ghErr) {}
+            }
+        }
+
+        // 3. LAST RESORT FALLBACK TO INDEXEDDB CACHE OR IN-MEMORY DATA
+        if (!loadedBank) {
+            const idbKey = `pro_${college}_${subjectKey}`;
+            const cached = typeof window.MPP_idbGet === 'function' ? await window.MPP_idbGet(idbKey) : null;
+            if (cached && Array.isArray(cached.qnaData) && cached.qnaData.length > 0) {
+                loadedBank = window.MPP_sanitizeBankData(cached, college);
+                sourceType = 'cache';
+                sourceDetail = `IndexedDB Cache (${idbKey})`;
+            } else if (Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+                loadedBank = {
+                    collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
+                    curriculumData: window.curriculumData || [],
+                    qnaData: window.qnaData
+                };
+                sourceType = 'memory';
+                sourceDetail = 'In-Memory Page Data';
+            }
+        }
+
+        if (loadedBank) {
+            window.MPP_syncLexicalGlobals(loadedBank);
+        }
+
+        return { loadedBank, sourceType, sourceDetail, fileName };
+    };
+
+    // Keep reference to the page's original copyForChatGPT if defined
+    const origPageCopyForChatGPT = typeof window.copyForChatGPT === 'function' ? window.copyForChatGPT : null;
+
+    // Override downloadDataAsJSON (777calm / 777call) -> Firebase First, then GitHub
+    window.downloadDataAsJSON = async function() {
+        if (window.showModal) {
+            window.showModal(
+                "Preparing Download...",
+                `<div class="flex items-center gap-3 py-2"><div class="w-6 h-6 border-3 border-sky-500 border-t-transparent rounded-full animate-spin shrink-0"></div><p class="text-xs font-bold text-slate-600 dark:text-slate-300">Checking Firebase Cloud first (fallback: GitHub)...</p></div>`,
+                ``,
+                `☁️`
+            );
+        }
+
+        const { loadedBank, sourceType, sourceDetail, fileName } = await window.MPP_getFirebaseFirstBankData();
+        if (!loadedBank || !Array.isArray(loadedBank.qnaData) || loadedBank.qnaData.length === 0) {
+            if (window.showModal) {
+                window.showModal(
+                    "Download Failed",
+                    `<p class="text-xs text-red-500 font-bold">Could not load question bank from Firebase or GitHub.</p>`,
+                    `<button onclick="window.closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-xs border-none">Close</button>`,
+                    `❌`
+                );
+            } else {
+                alert("Could not load question bank from Firebase or GitHub.");
+            }
+            return;
+        }
+
+        // Strip internal runtime properties before exporting JSON
+        const cleanQna = loadedBank.qnaData.map(item => {
+            const copy = { ...item };
+            delete copy._imgMerged;
+            delete copy._origAnsKey;
+            delete copy._origOptions;
+            delete copy._origStem;
+            return copy;
+        });
+
+        const exportPayload = {
+            collegeName: loadedBank.collegeName,
+            curriculumData: loadedBank.curriculumData,
+            qnaData: cleanQna
+        };
+
+        const dataStr = JSON.stringify(exportPayload, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+        if (window.showModal) {
+            const badgeColor = sourceType === 'firebase'
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                : 'bg-amber-100 text-amber-700 border-amber-300';
+            const badgeIcon = sourceType === 'firebase' ? '🟢 Firebase Cloud' : '⚠️ GitHub Fallback';
+            window.showModal(
+                "JSON File Downloaded!",
+                `<div class="space-y-2 text-left">
+                    <div class="inline-block text-[11px] font-extrabold px-2.5 py-1 rounded-full border ${badgeColor}">${badgeIcon}</div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 font-semibold">File: <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">${fileName}</code></p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Source: <b>${sourceDetail}</b><br>Total Questions: <b>${cleanQna.length}</b></p>
+                </div>`,
+                `<button onclick="window.closeModal()" class="w-full py-2.5 bg-brand-500 text-white rounded-xl font-bold text-xs border-none">Done</button>`,
+                `📥`
+            );
+        }
+    };
+
+    // Override copyForChatGPT (777pankaj) -> Syncs Firebase First (fallback: GitHub) before running
+    window.copyForChatGPT = async function() {
+        const { loadedBank, sourceType, sourceDetail } = await window.MPP_getFirebaseFirstBankData();
+        if (origPageCopyForChatGPT) {
+            origPageCopyForChatGPT();
+        } else if (loadedBank && typeof window.MPP_buildExamTranscriberPrompt === 'function') {
+            const promptText = window.MPP_buildExamTranscriberPrompt({ autoSolveMcq: true });
+            if (navigator.clipboard) await navigator.clipboard.writeText(promptText);
+            if (window.showModal) {
+                window.showModal(
+                    "Copied for ChatGPT!",
+                    `<p class="text-xs text-slate-600 dark:text-slate-300">Prompt synced from <b>${sourceDetail}</b> (${loadedBank.qnaData.length} questions).</p>`,
+                    `<div class="flex gap-2 w-full">
+                        <button onclick="window.downloadDataAsJSON()" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs border-none">⬇️ Download JSON</button>
+                        <button onclick="window.closeModal()" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-bold text-xs border-none">Done</button>
+                    </div>`,
+                    `🤖`
+                );
+            }
+            return;
+        }
+
+        // Append a 1-click Download JSON button + source badge into the modal opened by origPageCopyForChatGPT
+        setTimeout(() => {
+            const footerEl = document.getElementById('modal-footer-buttons');
+            const bodyEl = document.getElementById('modal-body-content');
+            if (bodyEl && sourceDetail) {
+                const badge = sourceType === 'firebase' ? '🟢 Synced from Firebase Cloud' : '⚠️ Synced from GitHub Fallback';
+                bodyEl.insertAdjacentHTML('afterbegin', `<div class="mb-2 text-[11px] font-extrabold text-sky-600 dark:text-sky-400">${badge} (${loadedBank ? loadedBank.qnaData.length : 0} Qs)</div>`);
+            }
+            if (footerEl && !footerEl.querySelector('#btn-777-dl-json')) {
+                footerEl.insertAdjacentHTML('afterbegin', `<button id="btn-777-dl-json" onclick="window.downloadDataAsJSON()" class="w-full mb-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs border-none cursor-pointer shadow-sm">⬇️ Download JSON File (Firebase First)</button>`);
+            }
+        }, 50);
+    };
+
     if (typeof window.handleNameSubmission === 'function') {
         window.handleNameSubmission = function() {
             const name = document.getElementById('nameInput') ? document.getElementById('nameInput').value.trim() : "";
-            const lowerName = name.toLowerCase();
-            if (lowerName === (window.SECRET_CODE || "777pankaj").toLowerCase() || lowerName === "777pankaj") {
+            const normalized = name.toLowerCase().replace(/\s+/g, '');
+            const secretNorm = String(window.SECRET_CODE || "777pankaj").toLowerCase().replace(/\s+/g, '');
+
+            if (normalized === secretNorm || normalized === "777pankaj") {
                 window.closeModal();
-                if (typeof window.copyForChatGPT === 'function') window.copyForChatGPT();
-            } else if (lowerName === "777calm") {
+                window.copyForChatGPT();
+            } else if (normalized === "777calm" || normalized === "777call") {
                 window.closeModal();
-                if (typeof window.downloadDataAsJSON === 'function') window.downloadDataAsJSON();
+                window.downloadDataAsJSON();
             } else if (name && Array.isArray(window.motivationalMessages)) {
                 const randomIndex = Math.floor(Math.random() * window.motivationalMessages.length);
                 const message = window.motivationalMessages[randomIndex].replace(/\[Name\]/g, name);
@@ -2291,6 +2527,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+
 
     const clinIdInput = document.getElementById('clin-q-id');
     if (clinIdInput && window.SUBJECT_CODE) {
@@ -5170,8 +5407,12 @@ if ('serviceWorker' in navigator) {
                 window.MPP_loadedTier = tier;
                 window.accessLevel = tier;
                 window.COLLEGE_NAME = sanitized.collegeName || window.COLLEGE_NAME;
-                window.curriculumData = sanitized.curriculumData || [];
-                window.qnaData = sanitized.qnaData || [];
+window.curriculumData = sanitized.curriculumData || [];
+window.qnaData = sanitized.qnaData || [];
+if (typeof window.MPP_syncLexicalGlobals === 'function') {
+    window.MPP_syncLexicalGlobals(sanitized);
+}
+
                 window.isDataLoaded = true;
 
                 const verLabel = ver ? ` (${ver.toUpperCase()})` : '';

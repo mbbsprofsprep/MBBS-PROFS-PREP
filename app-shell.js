@@ -6848,3 +6848,653 @@ STRICT OUTPUT FORMAT RULES:
         window.MPP_initCardLongPress();
     }
 })();
+/* ============================================================================
+   SECTION 19: STUDY SESSION RESUME ("CONTINUE WHERE YOU LEFT" / "START FRESH")
+   & PERSISTENT ATTEMPTED RESPONSES ENGINE (LOCALSTORAGE + FIREBASE SYNC)
+   ============================================================================ */
+(function initStudySessionResumeEngine() {
+    window.MPP_sessionData = {
+        lastQid: null,
+        overrideQid: null,
+        isDeckMode: false,
+        filters: {},
+        attempts: {}, // { [qId]: { picked: 'B', correct: 'A', status: 'wrong', ts: 123456789 } }
+        updatedAt: 0
+    };
+    window.MPP_resumeBannerShown = false;
+    let saveDebounceTimer = null;
+
+    // 1. Read & Write Lexical Scope Variables (Handles `let deckIndex`, `let deckStatus`, `let isDeckMode` in HTML pages)
+    window.MPP_getDeckRuntime = function() {
+        try {
+            return (new Function(`
+                return {
+                    deckIndex: typeof deckIndex !== 'undefined' ? deckIndex : (window.deckIndex || 0),
+                    isDeckMode: typeof isDeckMode !== 'undefined' ? isDeckMode : Boolean(window.isDeckMode),
+                    deckStatus: typeof deckStatus !== 'undefined' ? deckStatus : (window.deckStatus || {}),
+                    activeDeckQuestions: typeof activeDeckQuestions !== 'undefined' ? activeDeckQuestions : (window.activeDeckQuestions || []),
+                    displayData: typeof displayData !== 'undefined' ? displayData : (window.displayData || [])
+                };
+            `))();
+        } catch (e) {
+            return {
+                deckIndex: window.deckIndex || 0,
+                isDeckMode: Boolean(window.isDeckMode),
+                deckStatus: window.deckStatus || {},
+                activeDeckQuestions: window.activeDeckQuestions || [],
+                displayData: window.displayData || []
+            };
+        }
+    };
+
+    window.MPP_setDeckRuntime = function(patch) {
+        if (!patch) return;
+        if (patch.deckIndex !== undefined) window.deckIndex = patch.deckIndex;
+        if (patch.isDeckMode !== undefined) window.isDeckMode = patch.isDeckMode;
+        if (patch.deckStatus !== undefined) window.deckStatus = patch.deckStatus;
+        if (patch.activeDeckQuestions !== undefined) window.activeDeckQuestions = patch.activeDeckQuestions;
+        try {
+            (new Function('p', `
+                try { if (p.deckIndex !== undefined && typeof deckIndex !== 'undefined') deckIndex = p.deckIndex; } catch(e) {}
+                try { if (p.isDeckMode !== undefined && typeof isDeckMode !== 'undefined') isDeckMode = p.isDeckMode; } catch(e) {}
+                try { if (p.deckStatus !== undefined && typeof deckStatus !== 'undefined') deckStatus = p.deckStatus; } catch(e) {}
+                try { if (p.activeDeckQuestions !== undefined && typeof activeDeckQuestions !== 'undefined') activeDeckQuestions = p.activeDeckQuestions; } catch(e) {}
+            `))(patch);
+        } catch (e) {}
+    };
+
+    // 2. Compute Unique Storage Keys per College + Subject + Version
+    window.MPP_getSessionStorageKey = function() {
+        const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
+            ? window.MPP_getVaultKeys()
+            : {
+                college: String(window.COLLEGE_CODE || 'deoghar').toLowerCase(),
+                subjectKey: String(window.SUBJECT_CODE || 'CFM').toUpperCase()
+            };
+        const cleanKey = `${college}_${subjectKey}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+        return {
+            localKey: `mpp_study_session_${cleanKey}`,
+            firebaseKey: cleanKey
+        };
+    };
+
+    // 3. Save Session State (Instant localStorage + Debounced Firebase Cloud Sync)
+    window.MPP_saveStudySession = function(immediateCloud = false) {
+        if (!document.getElementById('qnaTable')) return;
+        const { localKey, firebaseKey } = window.MPP_getSessionStorageKey();
+
+        window.MPP_sessionData.updatedAt = Date.now();
+        try {
+            localStorage.setItem(localKey, JSON.stringify(window.MPP_sessionData));
+        } catch (e) {}
+
+        window.MPP_updateHeaderResumePill();
+
+        const syncToCloud = async () => {
+            if (!window.currentUserObj || !window.db) return;
+            try {
+                const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                await set(
+                    ref(window.db, `users/${window.currentUserObj.uid}/study_sessions/${firebaseKey}`),
+                    JSON.parse(JSON.stringify(window.MPP_sessionData))
+                );
+            } catch (e) {}
+        };
+
+        clearTimeout(saveDebounceTimer);
+        if (immediateCloud) {
+            syncToCloud();
+        } else {
+            saveDebounceTimer = setTimeout(syncToCloud, 1200);
+        }
+    };
+
+    // 4. Load Saved Session (Merges localStorage & Firebase Cloud)
+    window.MPP_loadStudySession = async function() {
+        if (!document.getElementById('qnaTable')) return null;
+        const { localKey, firebaseKey } = window.MPP_getSessionStorageKey();
+
+        let localData = null;
+        try {
+            localData = JSON.parse(localStorage.getItem(localKey) || 'null');
+        } catch (e) {}
+
+        let cloudData = null;
+        if (window.currentUserObj && window.db) {
+            try {
+                const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+                const snap = await get(ref(window.db, `users/${window.currentUserObj.uid}/study_sessions/${firebaseKey}`));
+                if (snap.exists()) cloudData = snap.val();
+            } catch (e) {}
+        }
+
+        // Merge attempts from both sources and pick the most recent position
+        const mergedAttempts = {
+            ...((cloudData && cloudData.attempts) || {}),
+            ...((localData && localData.attempts) || {})
+        };
+        if (cloudData && localData && cloudData.attempts && localData.attempts) {
+            Object.keys(cloudData.attempts).forEach(qId => {
+                const cAtt = cloudData.attempts[qId];
+                const lAtt = localData.attempts[qId];
+                if (!lAtt || (cAtt.ts || 0) > (lAtt.ts || 0)) {
+                    mergedAttempts[qId] = cAtt;
+                }
+            });
+        }
+
+        const newerSource = ((cloudData?.updatedAt || 0) > (localData?.updatedAt || 0)) ? cloudData : (localData || cloudData);
+        if (!newerSource && Object.keys(mergedAttempts).length === 0) return null;
+
+        window.MPP_sessionData = {
+            lastQid: newerSource?.lastQid || null,
+            overrideQid: newerSource?.overrideQid || null,
+            isDeckMode: Boolean(newerSource?.isDeckMode),
+            filters: newerSource?.filters || {},
+            attempts: mergedAttempts,
+            updatedAt: newerSource?.updatedAt || Date.now()
+        };
+
+        // Sync attempts into page's deckStatus object
+        const rt = window.MPP_getDeckRuntime();
+        const nextDeckStatus = { ...(rt.deckStatus || {}) };
+        Object.keys(mergedAttempts).forEach(qId => {
+            if (mergedAttempts[qId] && mergedAttempts[qId].status) {
+                nextDeckStatus[qId] = mergedAttempts[qId].status;
+            }
+        });
+        window.MPP_setDeckRuntime({ deckStatus: nextDeckStatus });
+
+        try {
+            localStorage.setItem(localKey, JSON.stringify(window.MPP_sessionData));
+        } catch (e) {}
+
+        return window.MPP_sessionData;
+    };
+
+    // 5. Record Current Position & Active Filters
+    window.MPP_recordCurrentPosition = function(explicitQid, explicitIsDeck) {
+        const rt = window.MPP_getDeckRuntime();
+        const isDeck = explicitIsDeck !== undefined ? explicitIsDeck : rt.isDeckMode;
+
+        let currentQid = explicitQid;
+        if (!currentQid && isDeck && Array.isArray(rt.activeDeckQuestions) && rt.activeDeckQuestions[rt.deckIndex]) {
+            currentQid = rt.activeDeckQuestions[rt.deckIndex].q;
+        }
+        if (!currentQid) return;
+
+        window.MPP_sessionData.lastQid = String(currentQid).trim();
+        window.MPP_sessionData.overrideQid = (isDeck && window.MPP_state && window.MPP_state.overrideQid) ? window.MPP_state.overrideQid : null;
+        window.MPP_sessionData.isDeckMode = Boolean(isDeck);
+        window.MPP_sessionData.filters = {
+            chapter: document.getElementById('chapterFilter')?.value || '',
+            type: document.getElementById('typeFilter')?.value || '',
+            batch: document.getElementById('batchFilter')?.value || ''
+        };
+
+        window.MPP_saveStudySession(false);
+    };
+
+    // 6. Record an Attempted MCQ Answer
+    window.MPP_recordAttempt = function(qId, picked, correct) {
+        if (!qId || !picked) return;
+        const cleanQid = String(qId).trim();
+        const p = String(picked).trim().toUpperCase();
+        const c = String(correct || 'A').trim().toUpperCase();
+        const status = (p === c) ? 'correct' : 'wrong';
+
+        if (!window.MPP_sessionData.attempts) window.MPP_sessionData.attempts = {};
+        window.MPP_sessionData.attempts[cleanQid] = {
+            picked: p,
+            correct: c,
+            status: status,
+            ts: Date.now()
+        };
+
+        const rt = window.MPP_getDeckRuntime();
+        const nextStatus = { ...(rt.deckStatus || {}), [cleanQid]: status };
+        window.MPP_setDeckRuntime({ deckStatus: nextStatus });
+
+        window.MPP_sessionData.lastQid = cleanQid;
+        window.MPP_saveStudySession(true);
+    };
+
+    // 7. Clear a Single Question's Saved Attempt ("Retry Question")
+    window.MPP_retrySingleQuestion = function(qId) {
+        if (!qId) return;
+        const cleanQid = String(qId).trim();
+        if (window.MPP_sessionData.attempts) {
+            delete window.MPP_sessionData.attempts[cleanQid];
+        }
+        const rt = window.MPP_getDeckRuntime();
+        if (rt.deckStatus && rt.deckStatus[cleanQid]) {
+            delete rt.deckStatus[cleanQid];
+            window.MPP_setDeckRuntime({ deckStatus: rt.deckStatus });
+        }
+        window.MPP_saveStudySession(true);
+
+        if (rt.isDeckMode && typeof window.renderDeckCard === 'function') {
+            window.renderDeckCard();
+        } else if (typeof window.populateTable === 'function') {
+            window.populateTable();
+        }
+    };
+
+    // 8. Re-Apply Saved Attempt Styling to Deck Card & Table Rows
+    window.MPP_applySavedAttemptToDeckDOM = function(displayedQ) {
+        if (!displayedQ || !displayedQ.q) return;
+        const attempt = window.MPP_sessionData.attempts ? window.MPP_sessionData.attempts[displayedQ.q] : null;
+        if (!attempt) return;
+
+        const container = document.getElementById('deck-card-container');
+        if (!container) return;
+
+        const optBtns = Array.from(container.querySelectorAll('button[onclick*="checkDeckAnswer"]'));
+        if (optBtns.length === 0) return;
+
+        const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
+        optBtns.forEach((btn, idx) => {
+            const letter = letters[idx] || String.fromCharCode(65 + idx);
+            btn.disabled = true;
+            btn.classList.remove('deck-opt-correct', 'deck-opt-wrong');
+            if (letter === attempt.correct) {
+                btn.classList.add('deck-opt-correct');
+            } else if (letter === attempt.picked && attempt.status === 'wrong') {
+                btn.classList.add('deck-opt-wrong');
+            }
+        });
+
+        // Add "Previously Attempted" badge + Retry button above options
+        const optionsParent = optBtns[0].parentElement;
+        if (optionsParent && !optionsParent.querySelector('.mpp-saved-attempt-bar')) {
+            const isRight = attempt.status === 'correct';
+            const badgeHtml = `
+                <div class="mpp-saved-attempt-bar flex items-center justify-between gap-2 px-3 py-2 mb-2 rounded-xl border text-xs font-extrabold ${isRight ? 'bg-emerald-50 dark:bg-emerald-900/25 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-900/25 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'}">
+                    <span>${isRight ? `✅ Saved Response: You picked ${attempt.picked} (Correct)` : `❌ Saved Response: You picked ${attempt.picked} (Correct: ${attempt.correct})`}</span>
+                    <button type="button" onclick="window.MPP_retrySingleQuestion('${displayedQ.q}')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 text-[10px] font-black cursor-pointer hover:opacity-80">🔄 Retry</button>
+                </div>`;
+            optionsParent.insertAdjacentHTML('afterbegin', badgeHtml);
+        }
+
+        // Auto-open the explanation panel if available
+        const panel = document.getElementById(`deck-ans-panel-${displayedQ.q}`);
+        if (panel && panel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
+            window.toggleDeckAnswerPanel(displayedQ.q);
+        }
+    };
+
+    window.MPP_applySavedAttemptsToTableDOM = function() {
+        const tbody = document.getElementById('tableBody');
+        const attempts = window.MPP_sessionData.attempts || {};
+        if (!tbody || Object.keys(attempts).length === 0) return;
+
+        const rt = window.MPP_getDeckRuntime();
+        const disp = rt.displayData || window.displayData || [];
+
+        Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
+            const idx = Number(row.getAttribute('data-index'));
+            const item = disp[idx];
+            if (!item || !attempts[item.q]) return;
+
+            const att = attempts[item.q];
+            const optBtns = Array.from(row.querySelectorAll('button[onclick*="check"]'));
+            const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
+
+            optBtns.forEach((btn, bIdx) => {
+                const letter = letters[bIdx] || String.fromCharCode(65 + bIdx);
+                btn.disabled = true;
+                if (letter === att.correct) {
+                    btn.classList.add('deck-opt-correct', 'bg-green-100', 'dark:bg-green-900/30', 'border-green-500');
+                } else if (letter === att.picked && att.status === 'wrong') {
+                    btn.classList.add('deck-opt-wrong', 'bg-red-100', 'dark:bg-red-900/30', 'border-red-500');
+                }
+            });
+
+            if (row.cells[1] && !row.cells[1].querySelector('.mpp-table-attempt-tag')) {
+                const isRight = att.status === 'correct';
+                row.cells[1].insertAdjacentHTML('beforeend', `
+                    <div class="mpp-table-attempt-tag mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-extrabold border ${isRight ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'}">
+                        <span>${isRight ? `✅ Attempted (${att.picked})` : `❌ Attempted (Picked ${att.picked} • Ans: ${att.correct})`}</span>
+                        <button type="button" onclick="event.stopPropagation(); window.MPP_retrySingleQuestion('${item.q}')" class="underline ml-1 cursor-pointer bg-transparent border-none text-inherit font-black">Retry</button>
+                    </div>`);
+            }
+        });
+    };
+
+    // 9. Actions: "Continue Where You Left" vs. "Start Fresh"
+    window.MPP_continueWhereLeft = function() {
+        const banner = document.getElementById('mpp-resume-session-banner');
+        if (banner) banner.remove();
+
+        const targetQid = window.MPP_sessionData.lastQid;
+        const targetOverride = window.MPP_sessionData.overrideQid;
+        const preferDeck = window.MPP_sessionData.isDeckMode;
+
+        if (!targetQid) return;
+
+        // Restore filters if they were saved and contain the question
+        const savedFilters = window.MPP_sessionData.filters || {};
+        const chapEl = document.getElementById('chapterFilter');
+        const typeEl = document.getElementById('typeFilter');
+        const batchEl = document.getElementById('batchFilter');
+
+        if (chapEl && savedFilters.chapter && Array.from(chapEl.options).some(o => o.value === savedFilters.chapter)) {
+            chapEl.value = savedFilters.chapter;
+        }
+        if (typeEl && savedFilters.type) typeEl.value = savedFilters.type;
+        if (batchEl && savedFilters.batch && Array.from(batchEl.options).some(o => o.value === savedFilters.batch)) {
+            batchEl.value = savedFilters.batch;
+        }
+        if (typeof window.filterTable === 'function') window.filterTable();
+
+        let rt = window.MPP_getDeckRuntime();
+        const upTarget = String(targetQid).trim().toUpperCase();
+
+        // If active filters hid the target question, reset filters so it is guaranteed to open
+        const existsInFiltered = (rt.displayData || []).some(q => q && String(q.q).trim().toUpperCase() === upTarget);
+        if (!existsInFiltered) {
+            if (chapEl) chapEl.value = 'all';
+            if (typeEl) typeEl.value = 'all';
+            if (batchEl) batchEl.value = 'all';
+            if (typeof window.filterTable === 'function') window.filterTable();
+            rt = window.MPP_getDeckRuntime();
+        }
+
+        if (preferDeck) {
+            if (!rt.isDeckMode) {
+                if (typeof window.toggleViewMode === 'function') window.toggleViewMode('deck');
+                else if (typeof window.toggleDeckMode === 'function') window.toggleDeckMode();
+                else document.getElementById('btn-view-deck')?.click();
+            }
+            if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+            rt = window.MPP_getDeckRuntime();
+
+            const deckList = rt.activeDeckQuestions || [];
+            const foundIdx = deckList.findIndex(q => q && String(q.q).trim().toUpperCase() === upTarget);
+            if (foundIdx !== -1) {
+                window.MPP_setDeckRuntime({ deckIndex: foundIdx });
+            }
+            if (window.MPP_state) {
+                window.MPP_state.overrideQid = targetOverride || null;
+                window.MPP_state.fanViewOpen = false;
+            }
+            if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+        } else {
+            if (rt.isDeckMode && typeof window.toggleViewMode === 'function') {
+                window.toggleViewMode('table');
+            }
+            const disp = rt.displayData || [];
+            const rowIdx = disp.findIndex(q => q && String(q.q).trim().toUpperCase() === upTarget);
+            if (rowIdx !== -1) {
+                const rowEl = document.querySelector(`#tableBody tr[data-index="${rowIdx}"]`);
+                if (rowEl) {
+                    rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    rowEl.style.transition = 'box-shadow 0.4s ease, outline 0.4s ease';
+                    rowEl.style.outline = '3px solid #0ea5e9';
+                    rowEl.style.boxShadow = '0 0 25px rgba(14, 165, 233, 0.35)';
+                    setTimeout(() => {
+                        rowEl.style.outline = '';
+                        rowEl.style.boxShadow = '';
+                    }, 3500);
+                }
+            }
+        }
+    };
+
+    window.MPP_startFreshSession = async function(clearAttempts = true) {
+        if (clearAttempts) {
+            const count = Object.keys(window.MPP_sessionData.attempts || {}).length;
+            if (count > 0 && !confirm(`Clear all ${count} saved MCQ response(s) and start fresh from Question 1?`)) {
+                return;
+            }
+            window.MPP_sessionData = {
+                lastQid: null,
+                overrideQid: null,
+                isDeckMode: false,
+                filters: {},
+                attempts: {},
+                updatedAt: Date.now()
+            };
+            window.MPP_setDeckRuntime({ deckIndex: 0, deckStatus: {} });
+        } else {
+            window.MPP_sessionData.lastQid = null;
+            window.MPP_sessionData.overrideQid = null;
+            window.MPP_setDeckRuntime({ deckIndex: 0 });
+        }
+
+        if (window.MPP_state) {
+            window.MPP_state.overrideQid = null;
+            window.MPP_state.fanViewOpen = false;
+        }
+
+        const banner = document.getElementById('mpp-resume-session-banner');
+        if (banner) banner.remove();
+
+        window.MPP_saveStudySession(true);
+
+        const rt = window.MPP_getDeckRuntime();
+        if (rt.isDeckMode && typeof window.renderDeckCard === 'function') {
+            window.renderDeckCard();
+        }
+        if (typeof window.populateTable === 'function') {
+            window.populateTable();
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // 10. Render the "Continue From Where You Left / Start Fresh" Banner & Header Pill
+    window.MPP_updateHeaderResumePill = function() {
+        const attempts = window.MPP_sessionData.attempts || {};
+        const totalAttempted = Object.keys(attempts).length;
+        const correctCount = Object.values(attempts).filter(a => a && a.status === 'correct').length;
+        const lastQid = window.MPP_sessionData.lastQid;
+
+        let pill = document.getElementById('mpp-session-status-pill');
+        const tableEl = document.getElementById('qnaTable');
+        if (!tableEl) return;
+
+        if (!pill) {
+            pill = document.createElement('div');
+            pill.id = 'mpp-session-status-pill';
+            pill.className = 'max-w-7xl mx-auto mb-3 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-brand-200 dark:border-slate-800 shadow-sm flex items-center justify-between flex-wrap gap-2 text-xs';
+            tableEl.parentElement.insertBefore(pill, tableEl);
+        }
+
+        if (totalAttempted === 0 && !lastQid) {
+            pill.classList.add('hidden');
+            return;
+        }
+
+        pill.classList.remove('hidden');
+        pill.innerHTML = `
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <span class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 font-extrabold border border-sky-200 dark:border-sky-800">
+                    📊 Saved Progress: ${totalAttempted} Attempted ${totalAttempted > 0 ? `(${correctCount} ✅ • ${totalAttempted - correctCount} ❌)` : ''}
+                </span>
+                ${lastQid ? `<span class="text-slate-500 dark:text-slate-400 font-bold">📍 Last Question: <b class="text-slate-800 dark:text-white">${lastQid}</b></span>` : ''}
+            </div>
+            <div class="flex items-center gap-2">
+                ${lastQid ? `<button type="button" onclick="window.MPP_continueWhereLeft()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-[11px] border-none cursor-pointer shadow-sm transition-all">▶️ Jump to ${lastQid}</button>` : ''}
+                <button type="button" onclick="window.MPP_startFreshSession(true)" class="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/25 hover:bg-red-100 text-red-600 dark:text-red-400 font-extrabold text-[11px] border border-red-200 dark:border-red-800 cursor-pointer transition-all">🔄 Start Fresh</button>
+            </div>
+        `;
+    };
+
+    window.MPP_showResumePromptIfNeeded = function() {
+        if (window.MPP_resumeBannerShown || window.accessLevel === 'guest') return;
+        const lastQid = window.MPP_sessionData.lastQid;
+        const attempts = window.MPP_sessionData.attempts || {};
+        const attemptCount = Object.keys(attempts).length;
+        const correctCount = Object.values(attempts).filter(a => a && a.status === 'correct').length;
+
+        const firstQid = (Array.isArray(window.qnaData) && window.qnaData[0]) ? window.qnaData[0].q : null;
+        const hasMeaningfulPosition = Boolean(lastQid && lastQid !== firstQid);
+
+        if (!hasMeaningfulPosition && attemptCount === 0) return;
+        window.MPP_resumeBannerShown = true;
+
+        let stemPreview = '';
+        if (lastQid && typeof window.MPP_resolveQuestionByQid === 'function') {
+            const qObj = window.MPP_resolveQuestionByQid(window.MPP_sessionData.overrideQid || lastQid);
+            if (qObj && qObj.stem) {
+                const rawTxt = window.MPP_stripHtml ? window.MPP_stripHtml(qObj.stem) : String(qObj.stem).replace(/<[^>]+>/g, '');
+                stemPreview = rawTxt.length > 110 ? rawTxt.slice(0, 110) + '...' : rawTxt;
+            }
+        }
+
+        const existing = document.getElementById('mpp-resume-session-banner');
+        if (existing) existing.remove();
+
+        const modeLabel = window.MPP_sessionData.isDeckMode ? '🃏 Deck Mode' : '📋 Table View';
+        const displayQid = window.MPP_sessionData.overrideQid
+            ? `${lastQid} → ${window.MPP_sessionData.overrideQid}`
+            : (lastQid || firstQid || 'Q1');
+
+        const banner = document.createElement('div');
+        banner.id = 'mpp-resume-session-banner';
+        banner.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-[28000] w-[94vw] max-w-lg bg-slate-900/95 dark:bg-slate-900 text-white border-2 border-sky-500 rounded-2xl p-4 shadow-2xl backdrop-blur-md';
+        banner.innerHTML = `
+            <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📍</span>
+                    <div>
+                        <div class="text-xs font-black uppercase tracking-wider text-sky-400">Welcome Back • Saved Session Found</div>
+                        <div class="text-sm font-extrabold text-white mt-0.5">
+                            Last Left At: <span class="text-amber-300">${displayQid}</span> <span class="text-[11px] font-bold text-slate-400">(${modeLabel})</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="this.closest('#mpp-resume-session-banner').remove()" class="text-slate-400 hover:text-white text-lg font-bold leading-none bg-transparent border-none cursor-pointer">&times;</button>
+            </div>
+            ${stemPreview ? `<p class="text-xs text-slate-300 line-clamp-2 mb-2.5 bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700">${stemPreview}</p>` : ''}
+            <div class="text-[11px] font-bold text-emerald-400 mb-3">
+                ✅ ${attemptCount} Attempted Response(s) Restored ${attemptCount > 0 ? `(${correctCount} Correct • ${attemptCount - correctCount} Wrong)` : ''}
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" onclick="window.MPP_continueWhereLeft()" class="flex-1 py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-lg shadow-sky-500/25 transition-all">
+                    ▶️ Continue from ${displayQid}
+                </button>
+                <button type="button" onclick="window.MPP_startFreshSession(false)" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition-all">
+                    📖 Start at Q1 (Keep Answers)
+                </button>
+                <button type="button" onclick="window.MPP_startFreshSession(true)" class="py-2.5 px-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-extrabold text-xs border border-red-500/40 cursor-pointer transition-all">
+                    🔄 Start Fresh
+                </button>
+            </div>
+        `;
+        document.body.appendChild(banner);
+    };
+
+    // 11. Hook Deck & Table Functions to Track Position & Save Responses Automatically
+    function hookSessionTracking() {
+        if (!document.getElementById('qnaTable') || window.MPP_sessionHooksInstalled) return;
+        window.MPP_sessionHooksInstalled = true;
+
+        // Hook renderDeckCard to record position & restore attempted option highlights
+        const prevRenderDeck = window.renderDeckCard;
+        if (typeof prevRenderDeck === 'function') {
+            window.renderDeckCard = function() {
+                const res = prevRenderDeck.apply(this, arguments);
+                const { anchorQ, displayedQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
+                    ? window.MPP_getAnchorAndDisplayedQ()
+                    : { anchorQ: null, displayedQ: null };
+                const activeQ = displayedQ || anchorQ;
+                if (activeQ) {
+                    window.MPP_applySavedAttemptToDeckDOM(activeQ);
+                    window.MPP_recordCurrentPosition(anchorQ ? anchorQ.q : activeQ.q, true);
+                }
+                return res;
+            };
+        }
+
+        // Hook checkDeckAnswer to persist picked letter & status
+        const prevCheckDeck = window.checkDeckAnswer;
+        if (typeof prevCheckDeck === 'function') {
+            window.checkDeckAnswer = function(btn, picked, correct) {
+                const { displayedQ, anchorQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
+                    ? window.MPP_getAnchorAndDisplayedQ()
+                    : { displayedQ: null, anchorQ: null };
+                const targetQ = displayedQ || anchorQ;
+                const res = prevCheckDeck.apply(this, arguments);
+                if (targetQ && targetQ.q) {
+                    window.MPP_recordAttempt(targetQ.q, picked, correct);
+                    window.MPP_applySavedAttemptToDeckDOM(targetQ);
+                }
+                return res;
+            };
+        }
+
+        // Hook populateTable to re-apply saved MCQ attempts in Table View
+        const prevPopTable = window.populateTable;
+        if (typeof prevPopTable === 'function') {
+            window.populateTable = function() {
+                const res = prevPopTable.apply(this, arguments);
+                window.MPP_applySavedAttemptsToTableDOM();
+                window.MPP_updateHeaderResumePill();
+                return res;
+            };
+        }
+
+        // Track Table Mode interactions (clicking any row, answer button, or MCQ option in the table)
+        const tbody = document.getElementById('tableBody');
+        if (tbody) {
+            tbody.addEventListener('click', (e) => {
+                const row = e.target.closest('tr[data-index]');
+                if (!row) return;
+                const idx = Number(row.getAttribute('data-index'));
+                const rt = window.MPP_getDeckRuntime();
+                const item = (rt.displayData || [])[idx];
+                if (!item || !item.q) return;
+
+                window.MPP_recordCurrentPosition(item.q, false);
+
+                // If user clicked a Table MCQ option button
+                const optBtn = e.target.closest('button[onclick*="check"]');
+                if (optBtn && item.type === 'MCQ') {
+                    const allBtns = Array.from(row.querySelectorAll('button[onclick*="check"]'));
+                    const bIdx = allBtns.indexOf(optBtn);
+                    if (bIdx !== -1) {
+                        const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
+                        const pickedLetter = letters[bIdx] || String.fromCharCode(65 + bIdx);
+                        window.MPP_recordAttempt(item.q, pickedLetter, item.ans_key || 'A');
+                    }
+                }
+            });
+        }
+
+        // Hook processDataForAccess so session loads right after question bank loads
+        const prevProcessData = window.processDataForAccess;
+        if (typeof prevProcessData === 'function') {
+            window.processDataForAccess = function() {
+                const res = prevProcessData.apply(this, arguments);
+                window.MPP_loadStudySession().then((sess) => {
+                    if (sess) {
+                        window.MPP_applySavedAttemptsToTableDOM();
+                        window.MPP_updateHeaderResumePill();
+                        window.MPP_showResumePromptIfNeeded();
+                    }
+                });
+                return res;
+            };
+        }
+
+        // Also trigger load if data was already loaded
+        if (window.isDataLoaded && Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+            window.MPP_loadStudySession().then((sess) => {
+                if (sess) {
+                    window.MPP_applySavedAttemptsToTableDOM();
+                    window.MPP_updateHeaderResumePill();
+                    window.MPP_showResumePromptIfNeeded();
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hookSessionTracking);
+    } else {
+        hookSessionTracking();
+    }
+    window.addEventListener('load', hookSessionTracking);
+    setTimeout(hookSessionTracking, 700);
+})();

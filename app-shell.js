@@ -7338,3 +7338,401 @@ STRICT OUTPUT FORMAT RULES:
     window.addEventListener('load', installMedPYQDeckHooks);
     setTimeout(installMedPYQDeckHooks, 600);
 })();
+/* ============================================================================
+   SECTION 20: TEEN PATTI LINKER EXPORT — COPY ALL LINKED Qs WITH OPTIONS
+   (777PANKAJ) & DOWNLOAD LINKED Qs AS JSON (777CALM) (FIREBASE-FIRST)
+   ============================================================================ */
+(function initTeenPattiAdminExport() {
+
+    // 1. Parse All Topics & QIDs Currently Listed in #mpp-admin-link-input
+    window.MPP_parseTeenPattiModalInput = function() {
+        const inputEl = document.getElementById('mpp-admin-link-input');
+        let rawText = inputEl ? inputEl.value.trim() : '';
+
+        // Fallback to active cluster sequence if textarea is empty
+        if (!rawText && typeof window.MPP_getAnchorAndDisplayedQ === 'function') {
+            const { anchorQ, displayedQ } = window.MPP_getAnchorAndDisplayedQ();
+            if (anchorQ || displayedQ) {
+                const info = window.MPP_getActiveClusterInfo(
+                    anchorQ ? anchorQ.q : null,
+                    displayedQ ? displayedQ.q : null,
+                    'all'
+                );
+                if (info && Array.isArray(info.sequence) && info.sequence.length > 0) {
+                    const title = (info.activeTopic && info.activeTopic.title) ? info.activeTopic.title : 'Linked Concept';
+                    rawText = `${title}: ${info.sequence.join(', ')}`;
+                }
+            }
+        }
+
+        const topicGroups = [];
+        const allOrderedQids = [];
+        const seenGlobalUpper = new Set();
+
+        rawText.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+            let topicTitle = 'Linked Concept';
+            let qidsPart = line;
+            const colonIdx = line.indexOf(':');
+            if (colonIdx !== -1) {
+                topicTitle = line.slice(0, colonIdx).trim() || 'Linked Concept';
+                qidsPart = line.slice(colonIdx + 1).trim();
+            }
+
+            const lineQids = [];
+            qidsPart.split(',').forEach(token => {
+                const cleanId = token.trim();
+                if (!cleanId) return;
+                lineQids.push(cleanId);
+                const up = cleanId.toUpperCase();
+                if (!seenGlobalUpper.has(up)) {
+                    seenGlobalUpper.add(up);
+                    allOrderedQids.push(cleanId);
+                }
+            });
+
+            if (lineQids.length > 0) {
+                topicGroups.push({ topicTitle, qids: lineQids });
+            }
+        });
+
+        return { topicGroups, allOrderedQids };
+    };
+
+    // 2. Resolve All Teen Patti QIDs (Firebase First -> MedPYQ Bridge -> GitHub Fallback)
+    window.MPP_resolveTeenPattiQuestionsFirebaseFirst = async function() {
+        const { topicGroups, allOrderedQids } = window.MPP_parseTeenPattiModalInput();
+        if (allOrderedQids.length === 0) {
+            return { topicGroups: [], resolvedList: [], sourceSummary: 'None' };
+        }
+
+        let sourceSummary = 'Firebase Cloud';
+
+        // Step A: Ensure current subject's AIIMS Profs bank is loaded from Firebase first (fallback: GitHub)
+        if (typeof window.MPP_getFirebaseFirstBankData === 'function') {
+            try {
+                const fbRes = await window.MPP_getFirebaseFirstBankData();
+                if (fbRes && fbRes.sourceDetail) sourceSummary = fbRes.sourceDetail;
+            } catch (e) {}
+        }
+
+        // Step B: If any QID belongs to MedPYQ (N, IN, CMS, F) and banks aren't preloaded yet, preload from MedPYQ Firebase
+        const hasPGQids = allOrderedQids.some(id => {
+            const ex = typeof window.MPP_inferExamFromQid === 'function' ? window.MPP_inferExamFromQid(id) : 'aiims-profs';
+            return ex !== 'aiims-profs';
+        });
+        if (hasPGQids && window.MPP_state && !window.MPP_state.banksPreloaded && typeof window.MPP_preloadMedPYQBanks === 'function') {
+            try {
+                await window.MPP_preloadMedPYQBanks();
+            } catch (e) {}
+        }
+
+        // Map each QID to its sub-topic names
+        const qidToTopics = {};
+        topicGroups.forEach(group => {
+            group.qids.forEach(id => {
+                const up = id.toUpperCase();
+                if (!qidToTopics[up]) qidToTopics[up] = [];
+                if (!qidToTopics[up].includes(group.topicTitle)) {
+                    qidToTopics[up].push(group.topicTitle);
+                }
+            });
+        });
+
+        // Step C: Resolve every QID into a clean, complete question object with options & answer key
+        const resolvedList = allOrderedQids.map(rawId => {
+            const up = rawId.toUpperCase();
+            const qObj = typeof window.MPP_resolveQuestionByQid === 'function'
+                ? window.MPP_resolveQuestionByQid(rawId)
+                : ((window.qnaData || []).find(x => x && String(x.q).trim().toUpperCase() === up) || null);
+
+            const cleanStemHtml = qObj ? (qObj.rawStem || qObj.stem || '') : `Question ${rawId}`;
+            const cleanStemText = typeof window.MPP_stripHtml === 'function'
+                ? window.MPP_stripHtml(cleanStemHtml)
+                : String(cleanStemHtml).replace(/<[^>]+>/g, ' ').trim();
+
+            const isMcq = qObj && (qObj.type === 'MCQ' || (Array.isArray(qObj.options) && qObj.options.length > 0));
+            const options = (isMcq && Array.isArray(qObj.options))
+                ? qObj.options.map(o => String(o ?? ''))
+                : undefined;
+
+            const expl = (window.liveAnswers && qObj && window.liveAnswers[qObj.q] && window.liveAnswers[qObj.q].text)
+                || (window.MPP_medpyqExplanations && window.MPP_medpyqExplanations[up])
+                || (qObj && qObj.explanation)
+                || '';
+
+            const itemRecord = {
+                q: qObj && qObj.q ? String(qObj.q) : rawId,
+                type: isMcq ? 'MCQ' : (qObj && qObj.type ? qObj.type : 'Theory'),
+                stem: qObj && qObj.stem ? String(qObj.stem) : cleanStemText,
+                stemText: cleanStemText,
+                ans_key: qObj && qObj.ans_key ? String(qObj.ans_key).trim() : '',
+                chapter: qObj && qObj.chapter ? qObj.chapter : 'General',
+                examBatch: qObj && qObj.examBatch ? qObj.examBatch : 'Prof Exam',
+                examKey: typeof window.MPP_inferExamFromQid === 'function' ? window.MPP_inferExamFromQid(rawId) : 'aiims-profs',
+                linkedTopics: qidToTopics[up] || ['Linked Concept']
+            };
+
+            if (options) itemRecord.options = options;
+            if (expl) itemRecord.explanation = expl;
+            if (qObj && qObj.img) itemRecord.img = qObj.img;
+            if (qObj && qObj.ans_image) itemRecord.ans_image = qObj.ans_image;
+
+            return itemRecord;
+        });
+
+        return { topicGroups, resolvedList, sourceSummary };
+    };
+
+    // 3. 777pankaj for Teen Patti: Copy All Linked Questions + Options + Keys to Clipboard
+    window.MPP_copyTeenPattiForChatGPT = async function(btn) {
+        if (!window.isUserAdmin()) return;
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = `⏳ Loading from Firebase...`;
+            btn.disabled = true;
+        }
+
+        try {
+            const { topicGroups, resolvedList, sourceSummary } = await window.MPP_resolveTeenPattiQuestionsFirebaseFirst();
+            if (resolvedList.length === 0) {
+                alert("No Question IDs found in the Teen Patti linker box.");
+                return;
+            }
+
+            const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
+                ? window.MPP_getVaultKeys()
+                : { college: 'deoghar', subjectKey: window.SUBJECT_CODE || 'SUBJECT' };
+
+            const byUpper = {};
+            resolvedList.forEach(item => { byUpper[String(item.q).trim().toUpperCase()] = item; });
+
+            let promptLines = [
+                `Act as an expert Medical Professor. Below is a linked Teen Patti Sub-Topic Cluster from ${college.toUpperCase()} - ${subjectKey} (${resolvedList.length} Questions, synced from ${sourceSummary}).`,
+                `Analyze these linked questions, provide high-yield comparative explanations for each question and its options, and highlight the core repeating concepts across exams:\n`
+            ];
+
+            topicGroups.forEach(group => {
+                promptLines.push(`==================================================`);
+                promptLines.push(`🏷️ SUB-TOPIC: ${group.topicTitle.toUpperCase()} (${group.qids.length} Qs)`);
+                promptLines.push(`==================================================\n`);
+
+                group.qids.forEach((qid, idx) => {
+                    const item = byUpper[qid.toUpperCase()];
+                    if (!item) return;
+
+                    const batchStr = Array.isArray(item.examBatch) ? item.examBatch.join(', ') : item.examBatch;
+                    const chapStr = Array.isArray(item.chapter) ? item.chapter.join(' / ') : item.chapter;
+
+                    promptLines.push(`${idx + 1}. [${item.q}] (${item.type} | ${batchStr} | Chapter: ${chapStr})`);
+                    promptLines.push(`Question: ${item.stemText || item.stem}`);
+
+                    if (item.type === 'MCQ' && Array.isArray(item.options) && item.options.length > 0) {
+                        item.options.forEach((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const cleanOpt = typeof window.MPP_stripHtml === 'function'
+                                ? window.MPP_stripHtml(opt)
+                                : String(opt).replace(/<[^>]+>/g, '').trim();
+                            promptLines.push(`   ${letter}) ${cleanOpt}`);
+                        });
+                        if (item.ans_key) {
+                            promptLines.push(`   ✅ Correct Answer Key: Option ${item.ans_key}`);
+                        }
+                    }
+
+                    if (item.explanation) {
+                        const cleanExpl = typeof window.MPP_stripHtml === 'function'
+                            ? window.MPP_stripHtml(item.explanation)
+                            : String(item.explanation).replace(/<[^>]+>/g, '').trim();
+                        promptLines.push(`   💡 Saved Note/Explanation: ${cleanExpl}`);
+                    }
+                    promptLines.push(``);
+                });
+            });
+
+            // Also append the ready-to-use JS/JSON array at the bottom of the copied text
+            const jsLines = resolvedList.map(item => {
+                const cleanObj = {
+                    q: item.q,
+                    type: item.type,
+                    stem: item.stem,
+                    ...(item.options ? { options: item.options } : {}),
+                    ans_key: item.ans_key || "",
+                    chapter: item.chapter,
+                    examBatch: item.examBatch
+                };
+                return JSON.stringify(cleanObj) + ',';
+            }).join('\n');
+
+            promptLines.push(`// --- RAW QUESTION OBJECTS (WITH OPTIONS & KEYS) ---`);
+            promptLines.push(jsLines);
+
+            const finalPrompt = promptLines.join('\n');
+
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(finalPrompt);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = finalPrompt;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            if (btn) {
+                btn.innerHTML = `✅ Copied ${resolvedList.length} Qs + Options!`;
+                setTimeout(() => { btn.innerHTML = origHtml; }, 2200);
+            }
+        } catch (err) {
+            console.error("Error copying Teen Patti Qs:", err);
+            alert("Failed to copy questions: " + err.message);
+            if (btn) btn.innerHTML = origHtml;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    };
+
+    // 4. 777calm for Teen Patti: Download All Linked Questions + Options as a .JSON File
+    window.MPP_downloadTeenPattiJSON = async function(btn) {
+        if (!window.isUserAdmin()) return;
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = `⏳ Preparing JSON...`;
+            btn.disabled = true;
+        }
+
+        try {
+            const { topicGroups, resolvedList, sourceSummary } = await window.MPP_resolveTeenPattiQuestionsFirebaseFirst();
+            if (resolvedList.length === 0) {
+                alert("No Question IDs found in the Teen Patti linker box.");
+                return;
+            }
+
+            const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
+                ? window.MPP_getVaultKeys()
+                : { college: 'deoghar', subjectKey: window.SUBJECT_CODE || 'SUBJECT' };
+
+            const cleanQna = resolvedList.map(item => {
+                const copy = { ...item };
+                delete copy.stemText;
+                return copy;
+            });
+
+            const firstTopicSlug = (topicGroups[0] && topicGroups[0].topicTitle)
+                ? topicGroups[0].topicTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+                : (window.MPP_editingAnchorQid || 'cluster').toLowerCase();
+
+            const downloadFileName = `${subjectKey.toLowerCase()}_aiims_${college}_teenpatti_${firstTopicSlug}.json`;
+
+            const exportPayload = {
+                collegeName: window.COLLEGE_NAME || `AIIMS ${college.toUpperCase()}`,
+                subject: subjectKey,
+                source: sourceSummary,
+                exportedAt: new Date().toISOString(),
+                topics: topicGroups,
+                totalQuestions: cleanQna.length,
+                qnaData: cleanQna
+            };
+
+            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = downloadFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+            if (btn) {
+                btn.innerHTML = `✅ Downloaded (${cleanQna.length} Qs)!`;
+                setTimeout(() => { btn.innerHTML = origHtml; }, 2200);
+            }
+        } catch (err) {
+            console.error("Error downloading Teen Patti JSON:", err);
+            alert("Failed to download JSON: " + err.message);
+            if (btn) btn.innerHTML = origHtml;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    };
+
+    // 5. Inject the 777pankaj Copy & 777calm JSON Download Bar into #mpp-admin-link-modal
+    function injectTeenPattiExportButtons() {
+        const modal = document.getElementById('mpp-admin-link-modal');
+        const saveBtn = document.getElementById('btn-mpp-save-links');
+        if (!modal || !saveBtn || document.getElementById('mpp-tp-export-bar')) return;
+
+        const actionRow = saveBtn.parentElement;
+        const exportBar = document.createElement('div');
+        exportBar.id = 'mpp-tp-export-bar';
+        exportBar.className = 'flex gap-2 mb-2.5';
+        exportBar.innerHTML = `
+            <button type="button" onclick="window.MPP_copyTeenPattiForChatGPT(this)" class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Copy all linked questions with options & answer keys (777pankaj style)">
+                <span>🤖</span> <span>Copy Qs + Options (777pankaj)</span>
+            </button>
+            <button type="button" onclick="window.MPP_downloadTeenPattiJSON(this)" class="flex-1 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-extrabold text-[11px] cursor-pointer flex items-center justify-center gap-1.5 transition-all" title="Download all linked questions + options as JSON (777calm style)">
+                <span>📥</span> <span>Download JSON (777calm)</span>
+            </button>
+        `;
+        actionRow.parentNode.insertBefore(exportBar, actionRow);
+    }
+
+    // 6. Allow Long-Press (500ms) or Right-Click on Any Teen Patti Fanned Card (.tp-patti) to Open the Linker Modal
+    function enableLongPressOnTeenPattiCards() {
+        if (window.MPP_tpCardLongPressBound) return;
+        window.MPP_tpCardLongPressBound = true;
+
+        let tpPressTimer = null;
+
+        document.addEventListener('touchstart', (e) => {
+            if (!window.isUserAdmin()) return;
+            const patti = e.target.closest('.tp-patti');
+            if (!patti) return;
+            const qid = patti.getAttribute('data-qid');
+            if (!qid) return;
+
+            clearTimeout(tpPressTimer);
+            tpPressTimer = setTimeout(() => {
+                window.MPP_longPressTriggered = true;
+                if (navigator.vibrate) navigator.vibrate(40);
+                if (typeof window.MPP_openAdminLinkModal === 'function') {
+                    window.MPP_openAdminLinkModal(qid);
+                }
+            }, 500);
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => clearTimeout(tpPressTimer), { passive: true });
+        document.addEventListener('touchmove', () => clearTimeout(tpPressTimer), { passive: true });
+
+        document.addEventListener('contextmenu', (e) => {
+            if (!window.isUserAdmin()) return;
+            const patti = e.target.closest('.tp-patti');
+            if (!patti) return;
+            const qid = patti.getAttribute('data-qid');
+            if (qid && typeof window.MPP_openAdminLinkModal === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                clearTimeout(tpPressTimer);
+                window.MPP_openAdminLinkModal(qid);
+            }
+        }, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            injectTeenPattiExportButtons();
+            enableLongPressOnTeenPattiCards();
+        });
+    } else {
+        injectTeenPattiExportButtons();
+        enableLongPressOnTeenPattiCards();
+    }
+    setTimeout(() => {
+        injectTeenPattiExportButtons();
+        enableLongPressOnTeenPattiCards();
+    }, 500);
+})();

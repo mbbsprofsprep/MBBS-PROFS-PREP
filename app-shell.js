@@ -6849,23 +6849,35 @@ STRICT OUTPUT FORMAT RULES:
     }
 })();
 /* ============================================================================
-   SECTION 19: STUDY SESSION RESUME ("CONTINUE WHERE YOU LEFT" / "START FRESH")
-   & PERSISTENT ATTEMPTED RESPONSES ENGINE (LOCALSTORAGE + FIREBASE SYNC)
+   SECTION 19: MEDPYQ-STYLE RESUME PRACTICE MODAL, SAVED RESPONSES (SOLVED DB),
+   RESET QUESTION & ATTEMPT STATUS FILTER
    ============================================================================ */
-(function initStudySessionResumeEngine() {
-    window.MPP_sessionData = {
-        lastQid: null,
-        overrideQid: null,
-        isDeckMode: false,
-        filters: {},
-        attempts: {}, // { [qId]: { picked: 'B', correct: 'A', status: 'wrong', ts: 123456789 } }
-        updatedAt: 0
-    };
-    window.MPP_resumeBannerShown = false;
-    let saveDebounceTimer = null;
+(function initMedPYQResumeAndSolvedEngine() {
+    // 1. Inject the Exact MedPYQ "Resume Practice?" Modal Overlay into DOM
+    const resumeModalHTML = `
+    <div id="resume-prompt-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); font-family: 'Plus Jakarta Sans', 'Roboto', sans-serif;">
+        <div style="background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+            <div style="color:#0f2b52; background:#e0f2fe; border-radius: 50%; width: 60px; height: 60px; margin: 0 auto 15px; display:flex; align-items:center; justify-content:center; font-size: 24px;">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l4 2"/></svg>
+            </div>
+            <h3 style="color:#0f172a; font-size:1.4rem; margin:0 0 8px 0; font-weight:800;">Resume Practice?</h3>
+            <p style="color:#64748b; font-size:0.9rem; margin:0 0 25px 0; line-height:1.5;">You left off at Question <span id="resume-q-num" style="font-weight:800; color:#0f2b52;"></span> in your last session. Would you like to resume or start fresh?</p>
+            <div style="display:flex; gap:10px;">
+                <button type="button" style="background:#f1f5f9; color:#64748b; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.startFresh()">Start Fresh</button>
+                <button type="button" style="background:#0f2b52; color:white; flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:15px; cursor:pointer;" onclick="window.resumeSession()">Continue</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', resumeModalHTML);
 
-    // 1. Read & Write Lexical Scope Variables (Handles `let deckIndex`, `let deckStatus`, `let isDeckMode` in HTML pages)
-    window.MPP_getDeckRuntime = function() {
+    // Global state matching MedPYQ's deckState.userStatus (stores { [qid]: 'A' | 'B' | 'C' | 'D' })
+    window.MPP_userSolved = {};
+    window.MPP_attemptFilter = 'all';
+    window.tempSavedIndex = 0;
+    window.MPP_resumeCheckedForSubject = false;
+
+    // Helper to sync lexical variables (`deckIndex`, `deckStatus`, `isDeckMode`, `activeDeckQuestions`) in Review HTML pages
+    function getPageDeckState() {
         try {
             return (new Function(`
                 return {
@@ -6873,7 +6885,7 @@ STRICT OUTPUT FORMAT RULES:
                     isDeckMode: typeof isDeckMode !== 'undefined' ? isDeckMode : Boolean(window.isDeckMode),
                     deckStatus: typeof deckStatus !== 'undefined' ? deckStatus : (window.deckStatus || {}),
                     activeDeckQuestions: typeof activeDeckQuestions !== 'undefined' ? activeDeckQuestions : (window.activeDeckQuestions || []),
-                    displayData: typeof displayData !== 'undefined' ? displayData : (window.displayData || [])
+                    qnaData: typeof qnaData !== 'undefined' ? qnaData : (window.qnaData || [])
                 };
             `))();
         } catch (e) {
@@ -6882,619 +6894,447 @@ STRICT OUTPUT FORMAT RULES:
                 isDeckMode: Boolean(window.isDeckMode),
                 deckStatus: window.deckStatus || {},
                 activeDeckQuestions: window.activeDeckQuestions || [],
-                displayData: window.displayData || []
+                qnaData: window.qnaData || []
             };
         }
-    };
+    }
 
-    window.MPP_setDeckRuntime = function(patch) {
-        if (!patch) return;
-        if (patch.deckIndex !== undefined) window.deckIndex = patch.deckIndex;
-        if (patch.isDeckMode !== undefined) window.isDeckMode = patch.isDeckMode;
-        if (patch.deckStatus !== undefined) window.deckStatus = patch.deckStatus;
-        if (patch.activeDeckQuestions !== undefined) window.activeDeckQuestions = patch.activeDeckQuestions;
+    function setPageDeckIndex(newIdx) {
+        window.deckIndex = newIdx;
         try {
-            (new Function('p', `
-                try { if (p.deckIndex !== undefined && typeof deckIndex !== 'undefined') deckIndex = p.deckIndex; } catch(e) {}
-                try { if (p.isDeckMode !== undefined && typeof isDeckMode !== 'undefined') isDeckMode = p.isDeckMode; } catch(e) {}
-                try { if (p.deckStatus !== undefined && typeof deckStatus !== 'undefined') deckStatus = p.deckStatus; } catch(e) {}
-                try { if (p.activeDeckQuestions !== undefined && typeof activeDeckQuestions !== 'undefined') activeDeckQuestions = p.activeDeckQuestions; } catch(e) {}
-            `))(patch);
+            (new Function('idx', `try { if (typeof deckIndex !== 'undefined') deckIndex = idx; } catch(e) {}`))(newIdx);
         } catch (e) {}
-    };
+    }
 
-    // 2. Compute Unique Storage Keys per College + Subject + Version
-    window.MPP_getSessionStorageKey = function() {
+    function ensureDeckModeOpen() {
+        const st = getPageDeckState();
+        if (!st.isDeckMode) {
+            if (typeof window.toggleDeckMode === 'function') {
+                window.toggleDeckMode();
+            } else if (typeof window.toggleViewMode === 'function') {
+                window.toggleViewMode('deck');
+            } else {
+                const deckBtn = document.querySelector('[onclick*="toggleDeckMode"], #deckModeBtn, #btn-deck-mode');
+                if (deckBtn) deckBtn.click();
+            }
+        }
+    }
+
+    // 2. Compute MedPYQ-style Storage Keys for Current User + College + Subject
+    window.MPP_getSolvedKeys = function() {
+        const uid = (window.currentUserObj && window.currentUserObj.uid) ? window.currentUserObj.uid : 'guest';
         const { college, subjectKey } = typeof window.MPP_getVaultKeys === 'function'
             ? window.MPP_getVaultKeys()
             : {
                 college: String(window.COLLEGE_CODE || 'deoghar').toLowerCase(),
                 subjectKey: String(window.SUBJECT_CODE || 'CFM').toUpperCase()
             };
-        const cleanKey = `${college}_${subjectKey}`.replace(/[^a-zA-Z0-9_-]/g, '_');
         return {
-            localKey: `mpp_study_session_${cleanKey}`,
-            firebaseKey: cleanKey
+            uid,
+            college,
+            subjectKey,
+            cacheKey: `mpp_solved_${uid}_${college}_${subjectKey}`,
+            indexKey: `mpp_index_${uid}_${college}_${subjectKey}`,
+            fbSolvedPath: `users/${uid}/solved/${college}/${subjectKey}`,
+            fbIndexPath: `users/${uid}/last_index/${college}/${subjectKey}`
         };
     };
 
-    // 3. Save Session State (Instant localStorage + Debounced Firebase Cloud Sync)
-    window.MPP_saveStudySession = function(immediateCloud = false) {
+    // 3. Save Current Deck Question Index (Exact MedPYQ `saveCurrentIndex` Logic)
+    window.saveCurrentIndex = function() {
+        const st = getPageDeckState();
+        const { uid, indexKey, fbIndexPath } = window.MPP_getSolvedKeys();
+        if (st.activeDeckQuestions.length > 0 && st.activeDeckQuestions.length === st.qnaData.length) {
+            localStorage.setItem(indexKey, st.deckIndex);
+            if (uid !== 'guest' && window.db) {
+                import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js").then(({ ref, set }) => {
+                    set(ref(window.db, fbIndexPath), st.deckIndex).catch(() => {});
+                });
+            }
+        }
+    };
+
+    // 4. MedPYQ `startFresh()` and `resumeSession()` Handlers
+    window.startFresh = function() {
+        document.getElementById('resume-prompt-overlay').style.display = 'none';
+        setPageDeckIndex(0);
+        if (window.MPP_state) {
+            window.MPP_state.overrideQid = null;
+            window.MPP_state.fanViewOpen = false;
+            window.MPP_state.activeTopicSlug = null;
+        }
+        window.saveCurrentIndex();
+        ensureDeckModeOpen();
+        if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+    };
+
+    window.resumeSession = function() {
+        document.getElementById('resume-prompt-overlay').style.display = 'none';
+        setPageDeckIndex(window.tempSavedIndex || 0);
+        if (window.MPP_state) {
+            window.MPP_state.overrideQid = null;
+            window.MPP_state.fanViewOpen = false;
+            window.MPP_state.activeTopicSlug = null;
+        }
+        ensureDeckModeOpen();
+        if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+    };
+
+    // 5. Load Solved Responses & Last Question Index from localStorage + Firebase
+    window.MPP_loadSolvedAndResumeState = async function() {
         if (!document.getElementById('qnaTable')) return;
-        const { localKey, firebaseKey } = window.MPP_getSessionStorageKey();
+        const { uid, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
 
-        window.MPP_sessionData.updatedAt = Date.now();
-        try {
-            localStorage.setItem(localKey, JSON.stringify(window.MPP_sessionData));
-        } catch (e) {}
-
-        window.MPP_updateHeaderResumePill();
-
-        const syncToCloud = async () => {
-            if (!window.currentUserObj || !window.db) return;
-            try {
-                const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                await set(
-                    ref(window.db, `users/${window.currentUserObj.uid}/study_sessions/${firebaseKey}`),
-                    JSON.parse(JSON.stringify(window.MPP_sessionData))
-                );
-            } catch (e) {}
-        };
-
-        clearTimeout(saveDebounceTimer);
-        if (immediateCloud) {
-            syncToCloud();
-        } else {
-            saveDebounceTimer = setTimeout(syncToCloud, 1200);
+        // Load local cache first for instant UI
+        const localCache = localStorage.getItem(cacheKey);
+        if (localCache) {
+            try { window.MPP_userSolved = JSON.parse(localCache) || {}; } catch (e) {}
         }
-    };
 
-    // 4. Load Saved Session (Merges localStorage & Firebase Cloud)
-    window.MPP_loadStudySession = async function() {
-        if (!document.getElementById('qnaTable')) return null;
-        const { localKey, firebaseKey } = window.MPP_getSessionStorageKey();
+        let savedIndex = parseInt(localStorage.getItem(indexKey), 10);
 
-        let localData = null;
-        try {
-            localData = JSON.parse(localStorage.getItem(localKey) || 'null');
-        } catch (e) {}
-
-        let cloudData = null;
-        if (window.currentUserObj && window.db) {
+        // Sync from Firebase if logged in
+        if (uid !== 'guest') {
             try {
+                const { dbInstance } = await window.MPP_ensureProfsFirebase();
                 const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
-                const snap = await get(ref(window.db, `users/${window.currentUserObj.uid}/study_sessions/${firebaseKey}`));
-                if (snap.exists()) cloudData = snap.val();
-            } catch (e) {}
-        }
 
-        // Merge attempts from both sources and pick the most recent position
-        const mergedAttempts = {
-            ...((cloudData && cloudData.attempts) || {}),
-            ...((localData && localData.attempts) || {})
-        };
-        if (cloudData && localData && cloudData.attempts && localData.attempts) {
-            Object.keys(cloudData.attempts).forEach(qId => {
-                const cAtt = cloudData.attempts[qId];
-                const lAtt = localData.attempts[qId];
-                if (!lAtt || (cAtt.ts || 0) > (lAtt.ts || 0)) {
-                    mergedAttempts[qId] = cAtt;
+                const [solvedSnap, idxSnap] = await Promise.all([
+                    get(ref(dbInstance, fbSolvedPath)).catch(() => null),
+                    get(ref(dbInstance, fbIndexPath)).catch(() => null)
+                ]);
+
+                if (solvedSnap && solvedSnap.exists()) {
+                    const cloudSolved = solvedSnap.val() || {};
+                    for (const qid in cloudSolved) {
+                        if (cloudSolved[qid] && cloudSolved[qid].ans) {
+                            window.MPP_userSolved[qid] = cloudSolved[qid].ans;
+                        }
+                    }
+                    localStorage.setItem(cacheKey, JSON.stringify(window.MPP_userSolved));
                 }
-            });
+
+                if ((isNaN(savedIndex) || savedIndex <= 0) && idxSnap && idxSnap.exists()) {
+                    const cloudIdx = parseInt(idxSnap.val(), 10);
+                    if (!isNaN(cloudIdx) && cloudIdx > 0) {
+                        savedIndex = cloudIdx;
+                        localStorage.setItem(indexKey, String(cloudIdx));
+                    }
+                }
+            } catch (e) {
+                console.warn("Solved cloud sync warning:", e);
+            }
         }
 
-        const newerSource = ((cloudData?.updatedAt || 0) > (localData?.updatedAt || 0)) ? cloudData : (localData || cloudData);
-        if (!newerSource && Object.keys(mergedAttempts).length === 0) return null;
+        // Sync into page's `deckStatus` map
+        const st = getPageDeckState();
+        const qMap = new Map();
+        (st.qnaData || []).forEach(q => { if (q && q.q) qMap.set(String(q.q).trim(), q); });
 
-        window.MPP_sessionData = {
-            lastQid: newerSource?.lastQid || null,
-            overrideQid: newerSource?.overrideQid || null,
-            isDeckMode: Boolean(newerSource?.isDeckMode),
-            filters: newerSource?.filters || {},
-            attempts: mergedAttempts,
-            updatedAt: newerSource?.updatedAt || Date.now()
-        };
-
-        // Sync attempts into page's deckStatus object
-        const rt = window.MPP_getDeckRuntime();
-        const nextDeckStatus = { ...(rt.deckStatus || {}) };
-        Object.keys(mergedAttempts).forEach(qId => {
-            if (mergedAttempts[qId] && mergedAttempts[qId].status) {
-                nextDeckStatus[qId] = mergedAttempts[qId].status;
+        Object.keys(window.MPP_userSolved).forEach(qid => {
+            const picked = window.MPP_userSolved[qid];
+            const qObj = qMap.get(qid) || (window.MPP_resolveQuestionByQid ? window.MPP_resolveQuestionByQid(qid) : null);
+            if (qObj && picked) {
+                const isCorr = String(picked).toUpperCase() === String(qObj.ans_key || 'A').trim().toUpperCase();
+                if (!window.deckStatus) window.deckStatus = {};
+                window.deckStatus[qid] = isCorr ? 'correct' : 'wrong';
             }
         });
-        window.MPP_setDeckRuntime({ deckStatus: nextDeckStatus });
 
-        try {
-            localStorage.setItem(localKey, JSON.stringify(window.MPP_sessionData));
-        } catch (e) {}
-
-        return window.MPP_sessionData;
-    };
-
-    // 5. Record Current Position & Active Filters
-    window.MPP_recordCurrentPosition = function(explicitQid, explicitIsDeck) {
-        const rt = window.MPP_getDeckRuntime();
-        const isDeck = explicitIsDeck !== undefined ? explicitIsDeck : rt.isDeckMode;
-
-        let currentQid = explicitQid;
-        if (!currentQid && isDeck && Array.isArray(rt.activeDeckQuestions) && rt.activeDeckQuestions[rt.deckIndex]) {
-            currentQid = rt.activeDeckQuestions[rt.deckIndex].q;
-        }
-        if (!currentQid) return;
-
-        window.MPP_sessionData.lastQid = String(currentQid).trim();
-        window.MPP_sessionData.overrideQid = (isDeck && window.MPP_state && window.MPP_state.overrideQid) ? window.MPP_state.overrideQid : null;
-        window.MPP_sessionData.isDeckMode = Boolean(isDeck);
-        window.MPP_sessionData.filters = {
-            chapter: document.getElementById('chapterFilter')?.value || '',
-            type: document.getElementById('typeFilter')?.value || '',
-            batch: document.getElementById('batchFilter')?.value || ''
-        };
-
-        window.MPP_saveStudySession(false);
-    };
-
-    // 6. Record an Attempted MCQ Answer
-    window.MPP_recordAttempt = function(qId, picked, correct) {
-        if (!qId || !picked) return;
-        const cleanQid = String(qId).trim();
-        const p = String(picked).trim().toUpperCase();
-        const c = String(correct || 'A').trim().toUpperCase();
-        const status = (p === c) ? 'correct' : 'wrong';
-
-        if (!window.MPP_sessionData.attempts) window.MPP_sessionData.attempts = {};
-        window.MPP_sessionData.attempts[cleanQid] = {
-            picked: p,
-            correct: c,
-            status: status,
-            ts: Date.now()
-        };
-
-        const rt = window.MPP_getDeckRuntime();
-        const nextStatus = { ...(rt.deckStatus || {}), [cleanQid]: status };
-        window.MPP_setDeckRuntime({ deckStatus: nextStatus });
-
-        window.MPP_sessionData.lastQid = cleanQid;
-        window.MPP_saveStudySession(true);
-    };
-
-    // 7. Clear a Single Question's Saved Attempt ("Retry Question")
-    window.MPP_retrySingleQuestion = function(qId) {
-        if (!qId) return;
-        const cleanQid = String(qId).trim();
-        if (window.MPP_sessionData.attempts) {
-            delete window.MPP_sessionData.attempts[cleanQid];
-        }
-        const rt = window.MPP_getDeckRuntime();
-        if (rt.deckStatus && rt.deckStatus[cleanQid]) {
-            delete rt.deckStatus[cleanQid];
-            window.MPP_setDeckRuntime({ deckStatus: rt.deckStatus });
-        }
-        window.MPP_saveStudySession(true);
-
-        if (rt.isDeckMode && typeof window.renderDeckCard === 'function') {
+        // Re-render current view with restored responses
+        if (st.isDeckMode && typeof window.renderDeckCard === 'function') {
             window.renderDeckCard();
-        } else if (typeof window.populateTable === 'function') {
-            window.populateTable();
         }
-    };
 
-    // 8. Re-Apply Saved Attempt Styling to Deck Card & Table Rows
-    window.MPP_applySavedAttemptToDeckDOM = function(displayedQ) {
-        if (!displayedQ || !displayedQ.q) return;
-        const attempt = window.MPP_sessionData.attempts ? window.MPP_sessionData.attempts[displayedQ.q] : null;
-        if (!attempt) return;
-
-        const container = document.getElementById('deck-card-container');
-        if (!container) return;
-
-        const optBtns = Array.from(container.querySelectorAll('button[onclick*="checkDeckAnswer"]'));
-        if (optBtns.length === 0) return;
-
-        const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
-        optBtns.forEach((btn, idx) => {
-            const letter = letters[idx] || String.fromCharCode(65 + idx);
-            btn.disabled = true;
-            btn.classList.remove('deck-opt-correct', 'deck-opt-wrong');
-            if (letter === attempt.correct) {
-                btn.classList.add('deck-opt-correct');
-            } else if (letter === attempt.picked && attempt.status === 'wrong') {
-                btn.classList.add('deck-opt-wrong');
+        // Trigger MedPYQ's "#resume-prompt-overlay" if savedIndex > 0
+        const deckLen = (st.activeDeckQuestions && st.activeDeckQuestions.length) || (st.qnaData && st.qnaData.length) || 0;
+        if (!window.MPP_resumeCheckedForSubject && deckLen > 0) {
+            window.MPP_resumeCheckedForSubject = true;
+            if (!isNaN(savedIndex) && savedIndex > 0 && savedIndex < deckLen) {
+                window.tempSavedIndex = savedIndex;
+                const numEl = document.getElementById('resume-q-num');
+                if (numEl) numEl.innerText = savedIndex + 1;
+                document.getElementById('resume-prompt-overlay').style.display = 'flex';
             }
-        });
-
-        // Add "Previously Attempted" badge + Retry button above options
-        const optionsParent = optBtns[0].parentElement;
-        if (optionsParent && !optionsParent.querySelector('.mpp-saved-attempt-bar')) {
-            const isRight = attempt.status === 'correct';
-            const badgeHtml = `
-                <div class="mpp-saved-attempt-bar flex items-center justify-between gap-2 px-3 py-2 mb-2 rounded-xl border text-xs font-extrabold ${isRight ? 'bg-emerald-50 dark:bg-emerald-900/25 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-900/25 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'}">
-                    <span>${isRight ? `✅ Saved Response: You picked ${attempt.picked} (Correct)` : `❌ Saved Response: You picked ${attempt.picked} (Correct: ${attempt.correct})`}</span>
-                    <button type="button" onclick="window.MPP_retrySingleQuestion('${displayedQ.q}')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 text-[10px] font-black cursor-pointer hover:opacity-80">🔄 Retry</button>
-                </div>`;
-            optionsParent.insertAdjacentHTML('afterbegin', badgeHtml);
-        }
-
-        // Auto-open the explanation panel if available
-        const panel = document.getElementById(`deck-ans-panel-${displayedQ.q}`);
-        if (panel && panel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
-            window.toggleDeckAnswerPanel(displayedQ.q);
         }
     };
 
-    window.MPP_applySavedAttemptsToTableDOM = function() {
-        const tbody = document.getElementById('tableBody');
-        const attempts = window.MPP_sessionData.attempts || {};
-        if (!tbody || Object.keys(attempts).length === 0) return;
+    // 6. Reset Single Question (`window.UD_resetAnswer` equivalent)
+    window.MPP_resetAnswer = function(qid) {
+        if (!qid) return;
+        const cleanQid = String(qid).trim();
+        delete window.MPP_userSolved[cleanQid];
+        if (window.deckStatus) delete window.deckStatus[cleanQid];
 
-        const rt = window.MPP_getDeckRuntime();
-        const disp = rt.displayData || window.displayData || [];
+        const { uid, cacheKey, fbSolvedPath } = window.MPP_getSolvedKeys();
+        localStorage.setItem(cacheKey, JSON.stringify(window.MPP_userSolved));
 
-        Array.from(tbody.querySelectorAll('tr[data-index]')).forEach(row => {
-            const idx = Number(row.getAttribute('data-index'));
-            const item = disp[idx];
-            if (!item || !attempts[item.q]) return;
-
-            const att = attempts[item.q];
-            const optBtns = Array.from(row.querySelectorAll('button[onclick*="check"]'));
-            const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
-
-            optBtns.forEach((btn, bIdx) => {
-                const letter = letters[bIdx] || String.fromCharCode(65 + bIdx);
-                btn.disabled = true;
-                if (letter === att.correct) {
-                    btn.classList.add('deck-opt-correct', 'bg-green-100', 'dark:bg-green-900/30', 'border-green-500');
-                } else if (letter === att.picked && att.status === 'wrong') {
-                    btn.classList.add('deck-opt-wrong', 'bg-red-100', 'dark:bg-red-900/30', 'border-red-500');
-                }
+        if (uid !== 'guest' && window.db) {
+            import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js").then(({ ref, set }) => {
+                set(ref(window.db, `${fbSolvedPath}/${cleanQid}`), null).catch(() => {});
             });
+        }
 
-            if (row.cells[1] && !row.cells[1].querySelector('.mpp-table-attempt-tag')) {
-                const isRight = att.status === 'correct';
-                row.cells[1].insertAdjacentHTML('beforeend', `
-                    <div class="mpp-table-attempt-tag mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-extrabold border ${isRight ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'}">
-                        <span>${isRight ? `✅ Attempted (${att.picked})` : `❌ Attempted (Picked ${att.picked} • Ans: ${att.correct})`}</span>
-                        <button type="button" onclick="event.stopPropagation(); window.MPP_retrySingleQuestion('${item.q}')" class="underline ml-1 cursor-pointer bg-transparent border-none text-inherit font-black">Retry</button>
-                    </div>`);
-            }
-        });
+        if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
-    // 9. Actions: "Continue Where You Left" vs. "Start Fresh"
-    window.MPP_continueWhereLeft = function() {
-        const banner = document.getElementById('mpp-resume-session-banner');
-        if (banner) banner.remove();
-
-        const targetQid = window.MPP_sessionData.lastQid;
-        const targetOverride = window.MPP_sessionData.overrideQid;
-        const preferDeck = window.MPP_sessionData.isDeckMode;
-
-        if (!targetQid) return;
-
-        // Restore filters if they were saved and contain the question
-        const savedFilters = window.MPP_sessionData.filters || {};
-        const chapEl = document.getElementById('chapterFilter');
-        const typeEl = document.getElementById('typeFilter');
-        const batchEl = document.getElementById('batchFilter');
-
-        if (chapEl && savedFilters.chapter && Array.from(chapEl.options).some(o => o.value === savedFilters.chapter)) {
-            chapEl.value = savedFilters.chapter;
-        }
-        if (typeEl && savedFilters.type) typeEl.value = savedFilters.type;
-        if (batchEl && savedFilters.batch && Array.from(batchEl.options).some(o => o.value === savedFilters.batch)) {
-            batchEl.value = savedFilters.batch;
-        }
-        if (typeof window.filterTable === 'function') window.filterTable();
-
-        let rt = window.MPP_getDeckRuntime();
-        const upTarget = String(targetQid).trim().toUpperCase();
-
-        // If active filters hid the target question, reset filters so it is guaranteed to open
-        const existsInFiltered = (rt.displayData || []).some(q => q && String(q.q).trim().toUpperCase() === upTarget);
-        if (!existsInFiltered) {
-            if (chapEl) chapEl.value = 'all';
-            if (typeEl) typeEl.value = 'all';
-            if (batchEl) batchEl.value = 'all';
-            if (typeof window.filterTable === 'function') window.filterTable();
-            rt = window.MPP_getDeckRuntime();
+    // 7. Reset All Progress (`window.resetAllProgress` from MedPYQ)
+    window.resetAllProgress = async function() {
+        const { uid, subjectKey, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
+        if (uid === 'guest') {
+            alert("You must be logged in to reset progress.");
+            return;
         }
 
-        if (preferDeck) {
-            if (!rt.isDeckMode) {
-                if (typeof window.toggleViewMode === 'function') window.toggleViewMode('deck');
-                else if (typeof window.toggleDeckMode === 'function') window.toggleDeckMode();
-                else document.getElementById('btn-view-deck')?.click();
-            }
-            if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
-            rt = window.MPP_getDeckRuntime();
+        const confirmReset = confirm(`Are you sure you want to delete all your answers for ${subjectKey}? This cannot be undone.`);
+        if (!confirmReset) return;
 
-            const deckList = rt.activeDeckQuestions || [];
-            const foundIdx = deckList.findIndex(q => q && String(q.q).trim().toUpperCase() === upTarget);
-            if (foundIdx !== -1) {
-                window.MPP_setDeckRuntime({ deckIndex: foundIdx });
-            }
-            if (window.MPP_state) {
-                window.MPP_state.overrideQid = targetOverride || null;
-                window.MPP_state.fanViewOpen = false;
-            }
-            if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
-        } else {
-            if (rt.isDeckMode && typeof window.toggleViewMode === 'function') {
-                window.toggleViewMode('table');
-            }
-            const disp = rt.displayData || [];
-            const rowIdx = disp.findIndex(q => q && String(q.q).trim().toUpperCase() === upTarget);
-            if (rowIdx !== -1) {
-                const rowEl = document.querySelector(`#tableBody tr[data-index="${rowIdx}"]`);
-                if (rowEl) {
-                    rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    rowEl.style.transition = 'box-shadow 0.4s ease, outline 0.4s ease';
-                    rowEl.style.outline = '3px solid #0ea5e9';
-                    rowEl.style.boxShadow = '0 0 25px rgba(14, 165, 233, 0.35)';
-                    setTimeout(() => {
-                        rowEl.style.outline = '';
-                        rowEl.style.boxShadow = '';
-                    }, 3500);
-                }
-            }
+        window.MPP_userSolved = {};
+        if (window.deckStatus) {
+            Object.keys(window.deckStatus).forEach(k => delete window.deckStatus[k]);
         }
-    };
 
-    window.MPP_startFreshSession = async function(clearAttempts = true) {
-        if (clearAttempts) {
-            const count = Object.keys(window.MPP_sessionData.attempts || {}).length;
-            if (count > 0 && !confirm(`Clear all ${count} saved MCQ response(s) and start fresh from Question 1?`)) {
-                return;
-            }
-            window.MPP_sessionData = {
-                lastQid: null,
-                overrideQid: null,
-                isDeckMode: false,
-                filters: {},
-                attempts: {},
-                updatedAt: Date.now()
-            };
-            window.MPP_setDeckRuntime({ deckIndex: 0, deckStatus: {} });
-        } else {
-            window.MPP_sessionData.lastQid = null;
-            window.MPP_sessionData.overrideQid = null;
-            window.MPP_setDeckRuntime({ deckIndex: 0 });
-        }
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(indexKey);
+        setPageDeckIndex(0);
 
         if (window.MPP_state) {
             window.MPP_state.overrideQid = null;
             window.MPP_state.fanViewOpen = false;
+            window.MPP_state.activeTopicSlug = null;
         }
 
-        const banner = document.getElementById('mpp-resume-session-banner');
-        if (banner) banner.remove();
-
-        window.MPP_saveStudySession(true);
-
-        const rt = window.MPP_getDeckRuntime();
-        if (rt.isDeckMode && typeof window.renderDeckCard === 'function') {
-            window.renderDeckCard();
+        try {
+            const { dbInstance } = await window.MPP_ensureProfsFirebase();
+            const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js");
+            await Promise.all([
+                set(ref(dbInstance, fbSolvedPath), null),
+                set(ref(dbInstance, fbIndexPath), null)
+            ]);
+            alert("Progress successfully reset!");
+        } catch (err) {
+            console.error("Error resetting progress:", err);
+            alert("Failed to reset progress in the database. Please try again.");
         }
-        if (typeof window.populateTable === 'function') {
-            window.populateTable();
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        const statusSel = document.getElementById('filter-attempt-status');
+        if (statusSel) statusSel.value = 'all';
+        window.MPP_attemptFilter = 'all';
+
+        if (typeof window.filterTable === 'function') window.filterTable();
+        if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+        if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
-    // 10. Render the "Continue From Where You Left / Start Fresh" Banner & Header Pill
-    window.MPP_updateHeaderResumePill = function() {
-        const attempts = window.MPP_sessionData.attempts || {};
-        const totalAttempted = Object.keys(attempts).length;
-        const correctCount = Object.values(attempts).filter(a => a && a.status === 'correct').length;
-        const lastQid = window.MPP_sessionData.lastQid;
+    // 8. Inject MedPYQ's Attempt Status Dropdown & "Reset Progress" Button into Controls Bar
+    function injectMedPYQControls() {
+        const searchInput = document.getElementById('searchInput');
+        if (!searchInput || !searchInput.parentElement || document.getElementById('filter-attempt-status')) return;
 
-        let pill = document.getElementById('mpp-session-status-pill');
-        const tableEl = document.getElementById('qnaTable');
-        if (!tableEl) return;
+        const bar = searchInput.parentElement;
 
-        if (!pill) {
-            pill = document.createElement('div');
-            pill.id = 'mpp-session-status-pill';
-            pill.className = 'max-w-7xl mx-auto mb-3 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-brand-200 dark:border-slate-800 shadow-sm flex items-center justify-between flex-wrap gap-2 text-xs';
-            tableEl.parentElement.insertBefore(pill, tableEl);
-        }
-
-        if (totalAttempted === 0 && !lastQid) {
-            pill.classList.add('hidden');
-            return;
-        }
-
-        pill.classList.remove('hidden');
-        pill.innerHTML = `
-            <div class="flex items-center gap-2.5 flex-wrap">
-                <span class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 font-extrabold border border-sky-200 dark:border-sky-800">
-                    📊 Saved Progress: ${totalAttempted} Attempted ${totalAttempted > 0 ? `(${correctCount} ✅ • ${totalAttempted - correctCount} ❌)` : ''}
-                </span>
-                ${lastQid ? `<span class="text-slate-500 dark:text-slate-400 font-bold">📍 Last Question: <b class="text-slate-800 dark:text-white">${lastQid}</b></span>` : ''}
-            </div>
-            <div class="flex items-center gap-2">
-                ${lastQid ? `<button type="button" onclick="window.MPP_continueWhereLeft()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-[11px] border-none cursor-pointer shadow-sm transition-all">▶️ Jump to ${lastQid}</button>` : ''}
-                <button type="button" onclick="window.MPP_startFreshSession(true)" class="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/25 hover:bg-red-100 text-red-600 dark:text-red-400 font-extrabold text-[11px] border border-red-200 dark:border-red-800 cursor-pointer transition-all">🔄 Start Fresh</button>
-            </div>
+        const statusSelect = document.createElement('select');
+        statusSelect.id = 'filter-attempt-status';
+        statusSelect.className = 'px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold outline-none cursor-pointer';
+        statusSelect.innerHTML = `
+            <option value="all">All Questions</option>
+            <option value="unattempted">Unattempted Only</option>
+            <option value="incorrect">Incorrect Only</option>
+            <option value="correct">Correct Only</option>
         `;
-    };
+        statusSelect.onchange = function() {
+            window.MPP_attemptFilter = this.value;
+            if (typeof window.filterTable === 'function') window.filterTable();
+            if (typeof window.syncDeckWithFilters === 'function') window.syncDeckWithFilters();
+        };
 
-    window.MPP_showResumePromptIfNeeded = function() {
-        if (window.MPP_resumeBannerShown || window.accessLevel === 'guest') return;
-        const lastQid = window.MPP_sessionData.lastQid;
-        const attempts = window.MPP_sessionData.attempts || {};
-        const attemptCount = Object.keys(attempts).length;
-        const correctCount = Object.values(attempts).filter(a => a && a.status === 'correct').length;
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.id = 'btn-medpyq-reset-progress';
+        resetBtn.onclick = window.resetAllProgress;
+        resetBtn.className = 'px-3 py-2 rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer flex items-center gap-1.5 hover:bg-red-100 transition-colors shrink-0';
+        resetBtn.innerHTML = `<span>🗑️</span> <span>Reset Progress</span>`;
 
-        const firstQid = (Array.isArray(window.qnaData) && window.qnaData[0]) ? window.qnaData[0].q : null;
-        const hasMeaningfulPosition = Boolean(lastQid && lastQid !== firstQid);
+        bar.appendChild(statusSelect);
+        bar.appendChild(resetBtn);
+    }
 
-        if (!hasMeaningfulPosition && attemptCount === 0) return;
-        window.MPP_resumeBannerShown = true;
+    // 9. Hook Deck Navigation, Answer Checking, Card Rendering & Filtering
+    function installMedPYQDeckHooks() {
+        if (!document.getElementById('qnaTable') || window.MPP_medpyqHooksInstalled) return;
+        window.MPP_medpyqHooksInstalled = true;
 
-        let stemPreview = '';
-        if (lastQid && typeof window.MPP_resolveQuestionByQid === 'function') {
-            const qObj = window.MPP_resolveQuestionByQid(window.MPP_sessionData.overrideQid || lastQid);
-            if (qObj && qObj.stem) {
-                const rawTxt = window.MPP_stripHtml ? window.MPP_stripHtml(qObj.stem) : String(qObj.stem).replace(/<[^>]+>/g, '');
-                stemPreview = rawTxt.length > 110 ? rawTxt.slice(0, 110) + '...' : rawTxt;
-            }
-        }
+        injectMedPYQControls();
 
-        const existing = document.getElementById('mpp-resume-session-banner');
-        if (existing) existing.remove();
-
-        const modeLabel = window.MPP_sessionData.isDeckMode ? '🃏 Deck Mode' : '📋 Table View';
-        const displayQid = window.MPP_sessionData.overrideQid
-            ? `${lastQid} → ${window.MPP_sessionData.overrideQid}`
-            : (lastQid || firstQid || 'Q1');
-
-        const banner = document.createElement('div');
-        banner.id = 'mpp-resume-session-banner';
-        banner.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-[28000] w-[94vw] max-w-lg bg-slate-900/95 dark:bg-slate-900 text-white border-2 border-sky-500 rounded-2xl p-4 shadow-2xl backdrop-blur-md';
-        banner.innerHTML = `
-            <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">📍</span>
-                    <div>
-                        <div class="text-xs font-black uppercase tracking-wider text-sky-400">Welcome Back • Saved Session Found</div>
-                        <div class="text-sm font-extrabold text-white mt-0.5">
-                            Last Left At: <span class="text-amber-300">${displayQid}</span> <span class="text-[11px] font-bold text-slate-400">(${modeLabel})</span>
-                        </div>
-                    </div>
-                </div>
-                <button type="button" onclick="this.closest('#mpp-resume-session-banner').remove()" class="text-slate-400 hover:text-white text-lg font-bold leading-none bg-transparent border-none cursor-pointer">&times;</button>
-            </div>
-            ${stemPreview ? `<p class="text-xs text-slate-300 line-clamp-2 mb-2.5 bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700">${stemPreview}</p>` : ''}
-            <div class="text-[11px] font-bold text-emerald-400 mb-3">
-                ✅ ${attemptCount} Attempted Response(s) Restored ${attemptCount > 0 ? `(${correctCount} Correct • ${attemptCount - correctCount} Wrong)` : ''}
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <button type="button" onclick="window.MPP_continueWhereLeft()" class="flex-1 py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs uppercase tracking-wider border-none cursor-pointer shadow-lg shadow-sky-500/25 transition-all">
-                    ▶️ Continue from ${displayQid}
-                </button>
-                <button type="button" onclick="window.MPP_startFreshSession(false)" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition-all">
-                    📖 Start at Q1 (Keep Answers)
-                </button>
-                <button type="button" onclick="window.MPP_startFreshSession(true)" class="py-2.5 px-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-extrabold text-xs border border-red-500/40 cursor-pointer transition-all">
-                    🔄 Start Fresh
-                </button>
-            </div>
-        `;
-        document.body.appendChild(banner);
-    };
-
-    // 11. Hook Deck & Table Functions to Track Position & Save Responses Automatically
-    function hookSessionTracking() {
-        if (!document.getElementById('qnaTable') || window.MPP_sessionHooksInstalled) return;
-        window.MPP_sessionHooksInstalled = true;
-
-        // Hook renderDeckCard to record position & restore attempted option highlights
-        const prevRenderDeck = window.renderDeckCard;
-        if (typeof prevRenderDeck === 'function') {
-            window.renderDeckCard = function() {
-                const res = prevRenderDeck.apply(this, arguments);
-                const { anchorQ, displayedQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
-                    ? window.MPP_getAnchorAndDisplayedQ()
-                    : { anchorQ: null, displayedQ: null };
-                const activeQ = displayedQ || anchorQ;
-                if (activeQ) {
-                    window.MPP_applySavedAttemptToDeckDOM(activeQ);
-                    window.MPP_recordCurrentPosition(anchorQ ? anchorQ.q : activeQ.q, true);
-                }
+        // A. Hook deckNext, deckPrev & jumpToDeckQuestion to call saveCurrentIndex()
+        const prevNext = window.deckNext;
+        if (typeof prevNext === 'function') {
+            window.deckNext = function() {
+                const res = prevNext.apply(this, arguments);
+                window.saveCurrentIndex();
                 return res;
             };
         }
 
-        // Hook checkDeckAnswer to persist picked letter & status
-        const prevCheckDeck = window.checkDeckAnswer;
-        if (typeof prevCheckDeck === 'function') {
+        const prevPrev = window.deckPrev;
+        if (typeof prevPrev === 'function') {
+            window.deckPrev = function() {
+                const res = prevPrev.apply(this, arguments);
+                window.saveCurrentIndex();
+                return res;
+            };
+        }
+
+        const prevJump = window.jumpToDeckQuestion;
+        if (typeof prevJump === 'function') {
+            window.jumpToDeckQuestion = function() {
+                const res = prevJump.apply(this, arguments);
+                window.saveCurrentIndex();
+                return res;
+            };
+        }
+
+        // B. Hook checkDeckAnswer to Save Selected Option Letter to localStorage & Firebase
+        const prevCheckAns = window.checkDeckAnswer;
+        if (typeof prevCheckAns === 'function') {
             window.checkDeckAnswer = function(btn, picked, correct) {
                 const { displayedQ, anchorQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
                     ? window.MPP_getAnchorAndDisplayedQ()
                     : { displayedQ: null, anchorQ: null };
                 const targetQ = displayedQ || anchorQ;
-                const res = prevCheckDeck.apply(this, arguments);
-                if (targetQ && targetQ.q) {
-                    window.MPP_recordAttempt(targetQ.q, picked, correct);
-                    window.MPP_applySavedAttemptToDeckDOM(targetQ);
-                }
-                return res;
-            };
-        }
+                const qid = targetQ ? String(targetQ.q).trim() : null;
 
-        // Hook populateTable to re-apply saved MCQ attempts in Table View
-        const prevPopTable = window.populateTable;
-        if (typeof prevPopTable === 'function') {
-            window.populateTable = function() {
-                const res = prevPopTable.apply(this, arguments);
-                window.MPP_applySavedAttemptsToTableDOM();
-                window.MPP_updateHeaderResumePill();
-                return res;
-            };
-        }
+                // Prevent re-answering unless Reset Question is clicked (matches MedPYQ UD_checkAns)
+                if (qid && window.MPP_userSolved[qid]) return;
 
-        // Track Table Mode interactions (clicking any row, answer button, or MCQ option in the table)
-        const tbody = document.getElementById('tableBody');
-        if (tbody) {
-            tbody.addEventListener('click', (e) => {
-                const row = e.target.closest('tr[data-index]');
-                if (!row) return;
-                const idx = Number(row.getAttribute('data-index'));
-                const rt = window.MPP_getDeckRuntime();
-                const item = (rt.displayData || [])[idx];
-                if (!item || !item.q) return;
+                const p = String(picked).trim().toUpperCase();
+                const c = String(correct).trim().toUpperCase();
 
-                window.MPP_recordCurrentPosition(item.q, false);
+                if (qid) {
+                    window.MPP_userSolved[qid] = p;
+                    const { uid, cacheKey, fbSolvedPath } = window.MPP_getSolvedKeys();
+                    localStorage.setItem(cacheKey, JSON.stringify(window.MPP_userSolved));
 
-                // If user clicked a Table MCQ option button
-                const optBtn = e.target.closest('button[onclick*="check"]');
-                if (optBtn && item.type === 'MCQ') {
-                    const allBtns = Array.from(row.querySelectorAll('button[onclick*="check"]'));
-                    const bIdx = allBtns.indexOf(optBtn);
-                    if (bIdx !== -1) {
-                        const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
-                        const pickedLetter = letters[bIdx] || String.fromCharCode(65 + bIdx);
-                        window.MPP_recordAttempt(item.q, pickedLetter, item.ans_key || 'A');
+                    if (uid !== 'guest' && window.db) {
+                        const isCorrect = (p === c);
+                        import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js").then(({ ref, set }) => {
+                            set(ref(window.db, `${fbSolvedPath}/${qid}`), {
+                                ans: p,
+                                correct: isCorrect,
+                                timestamp: Date.now()
+                            }).catch(err => console.error("Error recording attempt:", err));
+                        });
                     }
                 }
-            });
+
+                const res = prevCheckAns.apply(this, arguments);
+                if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+                return res;
+            };
         }
 
-        // Hook processDataForAccess so session loads right after question bank loads
-        const prevProcessData = window.processDataForAccess;
-        if (typeof prevProcessData === 'function') {
-            window.processDataForAccess = function() {
-                const res = prevProcessData.apply(this, arguments);
-                window.MPP_loadStudySession().then((sess) => {
-                    if (sess) {
-                        window.MPP_applySavedAttemptsToTableDOM();
-                        window.MPP_updateHeaderResumePill();
-                        window.MPP_showResumePromptIfNeeded();
+        // C. Hook renderDeckCard to Restore Saved Option Highlights, Explanation & "Reset Question" Button
+        const prevRenderCard = window.renderDeckCard;
+        if (typeof prevRenderCard === 'function') {
+            window.renderDeckCard = function() {
+                const res = prevRenderCard.apply(this, arguments);
+
+                const { anchorQ, displayedQ } = typeof window.MPP_getAnchorAndDisplayedQ === 'function'
+                    ? window.MPP_getAnchorAndDisplayedQ()
+                    : { anchorQ: null, displayedQ: null };
+                const q = displayedQ || anchorQ;
+                if (!q || !q.q) return res;
+
+                const qid = String(q.q).trim();
+                const userAns = window.MPP_userSolved[qid];
+                if (!userAns) return res;
+
+                const container = document.getElementById('deck-card-container');
+                if (!container) return res;
+
+                const correctLetter = String(q.ans_key || 'A').trim().toUpperCase();
+                const letters = window.optionLetters || ['A', 'B', 'C', 'D'];
+                const optBtns = Array.from(container.querySelectorAll('button[onclick*="checkDeckAnswer"]'));
+
+                optBtns.forEach((btn, idx) => {
+                    const char = letters[idx] || String.fromCharCode(65 + idx);
+                    btn.disabled = true;
+                    btn.classList.remove('deck-opt-correct', 'deck-opt-wrong');
+                    if (char === correctLetter) {
+                        btn.classList.add('deck-opt-correct');
+                    } else if (char === userAns) {
+                        btn.classList.add('deck-opt-wrong');
                     }
                 });
+
+                // Auto-open the explanation panel if answered
+                const ansPanel = document.getElementById(`deck-ans-panel-${qid}`);
+                if (ansPanel && ansPanel.classList.contains('hidden') && typeof window.toggleDeckAnswerPanel === 'function') {
+                    window.toggleDeckAnswerPanel(qid);
+                }
+
+                // Inject MedPYQ's "↻ Reset Question" button if not already present
+                if (!container.querySelector('#btn-mpp-reset-single-q')) {
+                    const resetWrap = document.createElement('div');
+                    resetWrap.className = 'flex justify-end mt-3';
+                    resetWrap.innerHTML = `
+                        <button type="button" id="btn-mpp-reset-single-q" onclick="window.MPP_resetAnswer('${qid}')" style="background:none; border:none; color:#ef4444; font-size:0.8rem; font-weight:bold; cursor:pointer; text-decoration:underline; display:inline-flex; align-items:center; gap:4px;">
+                            <span>↺ Reset Question</span>
+                        </button>`;
+                    if (ansPanel && ansPanel.parentElement) {
+                        ansPanel.parentElement.insertBefore(resetWrap, ansPanel);
+                    }
+                }
+
                 return res;
             };
         }
 
-        // Also trigger load if data was already loaded
-        if (window.isDataLoaded && Array.isArray(window.qnaData) && window.qnaData.length > 0) {
-            window.MPP_loadStudySession().then((sess) => {
-                if (sess) {
-                    window.MPP_applySavedAttemptsToTableDOM();
-                    window.MPP_updateHeaderResumePill();
-                    window.MPP_showResumePromptIfNeeded();
+        // D. Hook filterTable to Support Attempt Status Filtering (Unattempted / Incorrect / Correct)
+        const prevFilterTable = window.filterTable;
+        if (typeof prevFilterTable === 'function') {
+            window.filterTable = function() {
+                const res = prevFilterTable.apply(this, arguments);
+                if (window.MPP_attemptFilter && window.MPP_attemptFilter !== 'all' && Array.isArray(window.displayData)) {
+                    window.displayData = window.displayData.filter(item => {
+                        if (!item || !item.q) return false;
+                        const userAns = window.MPP_userSolved[String(item.q).trim()];
+                        const corrAns = String(item.ans_key || 'A').trim().toUpperCase();
+                        if (window.MPP_attemptFilter === 'unattempted') return !userAns;
+                        if (window.MPP_attemptFilter === 'incorrect') return Boolean(userAns && userAns !== corrAns);
+                        if (window.MPP_attemptFilter === 'correct') return Boolean(userAns && userAns === corrAns);
+                        return true;
+                    });
+                    try {
+                        (new Function('d', `try { if (typeof displayData !== 'undefined') displayData = d; } catch(e) {}`))(window.displayData);
+                    } catch (e) {}
+                    if (typeof window.populateTable === 'function') window.populateTable();
                 }
-            });
+                return res;
+            };
+        }
+
+        // E. Hook processDataForAccess so Solved Responses & Resume Modal Run as Soon as Bank Loads
+        const prevProcess = window.processDataForAccess;
+        if (typeof prevProcess === 'function') {
+            window.processDataForAccess = function() {
+                const res = prevProcess.apply(this, arguments);
+                injectMedPYQControls();
+                window.MPP_loadSolvedAndResumeState();
+                return res;
+            };
+        }
+
+        if (window.isDataLoaded && Array.isArray(window.qnaData) && window.qnaData.length > 0) {
+            window.MPP_loadSolvedAndResumeState();
         }
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', hookSessionTracking);
+        document.addEventListener('DOMContentLoaded', installMedPYQDeckHooks);
     } else {
-        hookSessionTracking();
+        installMedPYQDeckHooks();
     }
-    window.addEventListener('load', hookSessionTracking);
-    setTimeout(hookSessionTracking, 700);
+    window.addEventListener('load', installMedPYQDeckHooks);
+    setTimeout(installMedPYQDeckHooks, 600);
 })();

@@ -638,3 +638,50 @@ export async function exportFirebaseFirstBank() {
 
     return { loaded, source, fileName };
 }
+// ============================================================================
+// 5. SYNC GITHUB JSON OR CURRENTLY LOADED PAGE -> FIREBASE CLOUD VAULT
+// ============================================================================
+export async function syncGitHubJsonToFirebase(custom = {}) {
+    requireAdmin();
+    const { isClinical, college, subjectKey, candidateFileNames } = getVaultKeys({ ...custom, mode: "review" });
+    if (isClinical) {
+        throw new Error("GitHub JSON sync applies to Review/PYQ pages (Clinical pages already save live to Firebase).");
+    }
+
+    let payload = null;
+    let matchedFile = "";
+    for (const fname of candidateFileNames) {
+        try {
+            const res = await fetch(fname, { cache: "no-store" });
+            if (res.ok) {
+                payload = await res.json();
+                matchedFile = fname;
+                break;
+            }
+        } catch (_) {}
+    }
+
+    if (!payload) {
+        throw new Error(`No GitHub JSON file found for ${college}/${subjectKey}. Checked: ${candidateFileNames.join(", ")}`);
+    }
+
+    const res = await uploadFullBank(college, subjectKey, payload);
+    return { ...res, matchedFile, college };
+}
+
+export async function syncLoadedPageToFirebase(qnaData = [], curriculumData = []) {
+    requireAdmin();
+    const { isClinical, college, subjectKey } = getVaultKeys();
+    if (isClinical) {
+        throw new Error("Clinical pages are already synced live to Firebase.");
+    }
+    if (!Array.isArray(qnaData) || !qnaData.length) {
+        return syncGitHubJsonToFirebase();
+    }
+    const res = await uploadFullBank(college, subjectKey, {
+        collegeName: MPPStore.page.collegeName,
+        curriculumData,
+        qnaData
+    });
+    return { ...res, matchedFile: "Currently Loaded Page", college };
+}

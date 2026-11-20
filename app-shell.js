@@ -7000,60 +7000,115 @@ STRICT OUTPUT FORMAT RULES:
         };
     };
 
-    // 3. Save Current Deck Question Index
-    window.saveCurrentIndex = function() {
-        const st = getPageDeckState();
-        const { uid, indexKey, fbIndexPath } = window.MPP_getSolvedKeys();
-        const deckLen = (st.activeDeckQuestions && st.activeDeckQuestions.length) || 0;
-        const totalLen = (st.qnaData && st.qnaData.length) || 0;
+// 3. Save Current Deck Question Index + QID (Works on filtered & full decks, debounced Firebase write)
+    let _fbIndexSaveTimer = null;
+    window.MPP_hasUserNavigated = false;
 
-        if (deckLen > 0 && (totalLen === 0 || deckLen === totalLen)) {
-            localStorage.setItem(indexKey, String(st.deckIndex));
-            if (uid !== 'guest' && window.db) {
+    window.saveCurrentIndex = function(forceSave = false) {
+        const st = getPageDeckState();
+        const deck = st.activeDeckQuestions || [];
+        if (deck.length === 0) return;
+
+        // Prevent initial page load at index 0 from wiping out a previously saved position
+        if (!forceSave && !window.MPP_hasUserNavigated && st.deckIndex === 0) return;
+
+        const { uid, college, subjectKey, indexKey, fbIndexPath } = window.MPP_getSolvedKeys();
+        const currentQ = deck[st.deckIndex];
+        const payload = JSON.stringify({
+            index: st.deckIndex,
+            qid: currentQ && currentQ.q ? String(currentQ.q).trim() : ""
+        });
+
+        localStorage.setItem(indexKey, payload);
+        // Device fallback key so position still restores even before auth finishes
+        localStorage.setItem(`mpp_index_device_${college}_${subjectKey}`, payload);
+
+        if (uid !== 'guest' && window.db) {
+            clearTimeout(_fbIndexSaveTimer);
+            const idxToSave = st.deckIndex;
+            _fbIndexSaveTimer = setTimeout(() => {
                 import("https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js").then(({ ref, set }) => {
-                    set(ref(window.db, fbIndexPath), st.deckIndex).catch(() => {});
+                    set(ref(window.db, fbIndexPath), idxToSave).catch(() => {});
                 });
-            }
+            }, 450);
         }
     };
+
+    function parseSavedPos(raw) {
+        if (!raw) return { index: NaN, qid: "" };
+        try {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed === 'number') return { index: parsed, qid: "" };
+            if (parsed && typeof parsed === 'object') {
+                return { index: parseInt(parsed.index, 10), qid: String(parsed.qid || "").trim() };
+            }
+        } catch (_) {}
+        return { index: parseInt(raw, 10), qid: "" };
+    }
 
     // 4. MedPYQ `startFresh()` and `resumeSession()` Handlers
     window.startFresh = function() {
         document.getElementById('resume-prompt-overlay').style.display = 'none';
+        window.MPP_hasUserNavigated = true;
         setPageDeckIndex(0);
         if (window.MPP_state) {
             window.MPP_state.overrideQid = null;
             window.MPP_state.fanViewOpen = false;
             window.MPP_state.activeTopicSlug = null;
         }
-        window.saveCurrentIndex();
         ensureDeckModeOpen();
+        setPageDeckIndex(0);
+        window.saveCurrentIndex(true);
         if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
     };
 
     window.resumeSession = function() {
         document.getElementById('resume-prompt-overlay').style.display = 'none';
+        window.MPP_hasUserNavigated = true;
         ensureDeckModeOpen();
-        setPageDeckIndex(window.tempSavedIndex || 0);
-        if (window.MPP_state) {
-            window.MPP_state.overrideQid = null;
-            window.MPP_state.fanViewOpen = false;
-            window.MPP_state.activeTopicSlug = null;
-        }
-        if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+
+        const applyResumeTarget = () => {
+            const st = getPageDeckState();
+            const deck = st.activeDeckQuestions || [];
+            let targetIdx = window.tempSavedIndex || 0;
+
+            // Prefer exact saved QID if found in current deck
+            if (window.tempSavedQid && deck.length > 0) {
+                const foundIdx = deck.findIndex(x => x && String(x.q).trim().toUpperCase() === window.tempSavedQid.toUpperCase());
+                if (foundIdx !== -1) targetIdx = foundIdx;
+            }
+            if (deck.length > 0) {
+                targetIdx = Math.max(0, Math.min(targetIdx, deck.length - 1));
+            }
+
+            setPageDeckIndex(targetIdx);
+            if (window.MPP_state) {
+                window.MPP_state.overrideQid = null;
+                window.MPP_state.fanViewOpen = false;
+                window.MPP_state.activeTopicSlug = null;
+            }
+            if (typeof window.renderDeckCard === 'function') window.renderDeckCard();
+        };
+
+        applyResumeTarget();
+        // Re-apply after 40ms in case toggleDeckMode() asynchronously reset deckIndex = 0
+        setTimeout(applyResumeTarget, 40);
     };
 
     // 5. Load Solved Responses & Last Question Index from localStorage + Firebase
     window.MPP_loadSolvedAndResumeState = async function() {
         if (!document.getElementById('qnaTable')) return;
-        const { uid, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
+        const { uid, college, subjectKey, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = window.MPP_getSolvedKeys();
 
         const localCache = localStorage.getItem(cacheKey);
         if (localCache) {
             try { window.MPP_userSolved = JSON.parse(localCache) || {}; } catch (e) {}
         }
 
-        let savedIndex = parseInt(localStorage.getItem(indexKey), 10);
+        let savedPos = parseSavedPos(localStorage.getItem(indexKey));
+        if (isNaN(savedPos.index) || savedPos.index <= 0) {
+            savedPos = parseSavedPos(localStorage.getItem(`mpp_index_device_${college}_${subjectKey}`));
+        }
 
         if (uid !== 'guest') {
             try {
@@ -7075,11 +7130,11 @@ STRICT OUTPUT FORMAT RULES:
                     localStorage.setItem(cacheKey, JSON.stringify(window.MPP_userSolved));
                 }
 
-                if ((isNaN(savedIndex) || savedIndex <= 0) && idxSnap && idxSnap.exists()) {
+                if ((isNaN(savedPos.index) || savedPos.index <= 0) && idxSnap && idxSnap.exists()) {
                     const cloudIdx = parseInt(idxSnap.val(), 10);
                     if (!isNaN(cloudIdx) && cloudIdx > 0) {
-                        savedIndex = cloudIdx;
-                        localStorage.setItem(indexKey, String(cloudIdx));
+                        savedPos = { index: cloudIdx, qid: "" };
+                        localStorage.setItem(indexKey, JSON.stringify(savedPos));
                     }
                 }
             } catch (e) {}
@@ -7106,14 +7161,19 @@ STRICT OUTPUT FORMAT RULES:
             window.renderDeckCard();
         }
 
-        // Show MedPYQ's "#resume-prompt-overlay" if savedIndex > 0
+        // Wait for logged-in user before locking MPP_resumeCheckedForSubject
         const deckLen = (st.activeDeckQuestions && st.activeDeckQuestions.length) || (st.qnaData && st.qnaData.length) || 0;
-        if (!window.MPP_resumeCheckedForSubject && deckLen > 0 && window.accessLevel !== 'guest') {
+        if (!window.MPP_resumeCheckedForSubject && deckLen > 0 && window.accessLevel !== 'guest' && uid !== 'guest') {
             window.MPP_resumeCheckedForSubject = true;
-            if (!isNaN(savedIndex) && savedIndex > 0 && savedIndex < deckLen) {
-                window.tempSavedIndex = savedIndex;
+            if (!isNaN(savedPos.index) && savedPos.index > 0 && savedPos.index < deckLen) {
+                window.tempSavedIndex = savedPos.index;
+                window.tempSavedQid = savedPos.qid || "";
                 const numEl = document.getElementById('resume-q-num');
-                if (numEl) numEl.innerText = savedIndex + 1;
+                if (numEl) {
+                    numEl.innerText = savedPos.qid
+                        ? `${savedPos.index + 1} (${savedPos.qid})`
+                        : String(savedPos.index + 1);
+                }
                 document.getElementById('resume-prompt-overlay').style.display = 'flex';
             }
         }
@@ -7240,11 +7300,12 @@ STRICT OUTPUT FORMAT RULES:
         if (window.MPP_medpyqHooksInstalled) return;
         window.MPP_medpyqHooksInstalled = true;
 
-        // A. Hook deckNext, deckPrev & jumpToDeckQuestion to call saveCurrentIndex()
-        ['deckNext', 'deckPrev', 'jumpToDeckQuestion'].forEach(fnName => {
+       // A. Hook deck navigation + deck openers to save index reliably
+        ['deckNext', 'deckPrev', 'jumpToDeckQuestion', 'openDeckAt', 'openDeckMode'].forEach(fnName => {
             const origFn = window[fnName];
             if (typeof origFn === 'function') {
                 window[fnName] = function() {
+                    window.MPP_hasUserNavigated = true;
                     const res = origFn.apply(this, arguments);
                     window.saveCurrentIndex();
                     return res;
@@ -9029,12 +9090,13 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     function getSubjectCardInfo(el) {
-        if (document.getElementById("qTableBody")) return null;
+        if (!document.getElementById("view-institutes") || document.getElementById("qnaTable") || document.getElementById("tableBody") || document.getElementById("qTableBody")) return null;
         const card = el.closest("a, button, [onclick], .subject-card, [data-subject]");
         if (!card || card.closest(".mpp-modal-bg, nav, header, footer")) return null;
         const txt = (card.textContent || "").trim();
         if (!txt || txt.length > 90) return null;
-        const matched = KNOWN_SUBJECTS.find(s => txt.toLowerCase().includes(s));
+        const low = txt.toLowerCase();
+        const matched = KNOWN_SUBJECTS.find(s => new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(low));
         if (!matched) return null;
         const title = txt.split("\n").map(l => l.trim()).filter(Boolean).find(l => !/^open/i.test(l) && l.length > 2) || matched;
         return { card, subjectName: title, subjectSlug: slugify(title), baseHref: card.getAttribute("href") || card.dataset.href || "" };
@@ -9120,7 +9182,7 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     function bindPortalVersionManager() {
-        if (document.getElementById("qTableBody")) return;
+        if (!document.getElementById("view-institutes") || document.getElementById("qnaTable") || document.getElementById("tableBody") || document.getElementById("qTableBody")) return;
         loadSubjectVersions();
         let lpTimer = null, lpFired = false, sx = 0, sy = 0;
 

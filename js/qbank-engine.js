@@ -1,1642 +1,2260 @@
 // ============================================================================
-// js/qbank-engine.js
-// Unified QBank Engine for BOTH review.html and clinical.html
-// Features: Table + Deck View, Two-Way Filter Sync, Saved Filter, Bookmark
-// Ribbons, Resume Practice + Solved DB, 3D Answer Cards & Teen Patti Deck
+// js/qbank-engine.js (Phase 2B — Full Chapter List, On-Demand Answers,
+// Clean View Answer Card + Lazy Panzoom, Smooth Teen Patti & Android Polish)
 // ============================================================================
 import {
-    db,
-    APP_LOGO_URL,
     MPPStore,
     isUserAdmin,
-    getUniqueQuestionId,
     onStoreChange,
-    saveOrRemoveBookmark,
-    ref,
-    get,
-    set,
-    onValue
+    getUniqueQuestionId,
+    saveOrRemoveBookmark
 } from "./core-firebase.js";
-import { resolveSubjectMeta, resolveCollegeName } from "./subject-registry.js";
-import { escapeHtml, stripHtml, formatInlineMathAndBold, renderContent } from "./content-renderer.js";
-import { initUIShell, userPanelApp, showModal, closeModal } from "./ui-shell.js";
 import {
     getVaultKeys,
     loadReviewBank,
+    getAnswerOnDemand,
     subscribeReviewAnswers,
     subscribeReviewEdits,
     subscribeClinicalData,
     subscribeSubjectSettings,
-    saveAnswer
+    subscribeCrossLinks,
+    getSharedPGQuestion,
+    submitQuestionReport,
+    loadUserNotes,
+    saveUserNote,
+    toggleSubjectAnswers
 } from "./data-adapter.js";
+import { resolveSubjectMeta, resolveCollegeName } from "./subject-registry.js";
+import {
+    showModal,
+    closeModal,
+    showToast,
+    openImageLightbox,
+    openAuthModal,
+    openSidebar,
+    openSecureCheckout,
+    pushOverlayHistory,
+    popOverlayHistory,
+    escapeHtml
+} from "./ui-shell.js";
+import * as ContentRenderer from "./content-renderer.js";
 
-const OPTION_LETTERS = ["A", "B", "C", "D", "E"];
+// ============================================================================
+// 1. ENGINE STATE & CONSTANTS
+// ============================================================================
+const CHUNK_SIZE = 30;
+const ANDROID_EDGE_GUARD_PX = 30;
+const ATTEMPT_STORAGE_PREFIX = "mpp_attempts_v2_";
 
-// Single Clean State Object (No global `let` bridge hacks needed)
-export const QB = {
+const QB = {
     mode: "review", // "review" | "clinical"
     collegeCode: "deoghar",
     collegeName: "AIIMS Deoghar",
     subjectSlug: "cfm",
     subjectCode: "CFM",
-    subjectName: "Community Medicine",
+    subjectName: "Community Medicine (CFM)",
     bridgeSlug: "cfm",
     versionCode: "",
-    dataSourceTag: "",
 
-    isDataLoaded: false,
-    qnaData: [],
     curriculumData: [],
-    displayData: [],
-    liveAnswers: {},
-    subjectSettings: { showAnswers: false },
-    editsState: { overrides: {}, undoStack: [], redoStack: [] },
+    qnaData: [],
+    liveAnswers: {},        // Populated live for admins; lazily cached per-QID for students
+    questionOverrides: {},  // Delta overrides from question_edits/{college}/{rawSub}/overrides
+    undoStack: [],
+    redoStack: [],
+    subjectShowAnswers: false,
+    userNotes: {},
+    attempts: {},           // { [qId]: { chosen: "A", correct: true/false } }
 
-    // Filters (Unified across Table & Deck)
+    // Cross-Links (Teen Patti)
+    crossLinks: { clusters: {}, node_topics: {}, nodes: {}, history: [] },
+    repeatCountMap: {},     // { [QID_UPPER]: clusterSize }
+    pgCardCache: {},        // On-demand fetched PG questions
+
+    // Active Filters
     filters: {
         search: "",
+        type: "ALL",
+        chapters: new Set(), // Empty = All
+        batches: new Set(),  // Empty = All
+        attempt: "ALL",
         savedOnly: false,
-        attempt: "all", // "all" | "unsolved" | "correct" | "wrong"
-        types: new Set(),
-        chapters: new Set(),
-        exams: new Set()
+        highYieldOnly: false
     },
 
-    // Deck & Solved State
-    isDeckMode: false,
-    initialViewConfigured: false,
+    // Rendered Slices & Deck State
     activeDeck: [],
+    renderedRowCount: 0,
+    deckOpen: false,
     deckIndex: 0,
-    userSolved: {},       // { [qId]: "A"|"B"|... }
-    deckStatus: {},       // { [qId]: "correct"|"wrong" }
-    resumeChecked: false,
-    tempSavedIndex: 0,
+    deckFilterOpen: false,
+    activeFanState: {},     // { [qId]: { topicSlug, pos } }
+    ansCardOpenSet: new Set(),
 
-    // Teen Patti Cross-Link State
-    tp: {
-        overrideQid: null,
-        fanOpen: false,
-        activeTopicSlug: null,
-        examFilter: "all",
-        fanPosMap: {},
-        clusters: {},
-        nodeTopics: {},
-        nodes: {},
-        history: [],
-        sharedCache: {},
-        externalLookup: {} // Populated by Admin MedPYQ Bridge if connected
-    },
-
-    _unsubs: []
+    // Runtime handles
+    _unsubs: [],
+    _observer: null,
+    _searchTimer: null,
+    _deepLinkHandled: false,
+    _panzoomLibPromise: null,
+    _panzoomInstances: new Map(),
+    _sourceTag: ""
 };
 
 // ============================================================================
-// 1. BOOT ENGINE (Called once by review.html or clinical.html)
+// 2. RICH RENDERING, KATEX & LAZY PANZOOM HELPERS
 // ============================================================================
-export function bootQBankEngine({ mode = "review" } = {}) {
-    initUIShell();
-    injectQBankStyles();
-    injectDeckAndResumeDOM();
-
-    const params = new URLSearchParams(window.location.search);
-    const collegeCode = (params.get("college") || "deoghar").toLowerCase().trim();
-    const subjectSlug = (params.get("subject") || "cfm").toLowerCase().trim();
-    const versionCode = mode === "review" ? (params.get("version") || "").toLowerCase().trim() : "";
-    const meta = resolveSubjectMeta(subjectSlug);
-    const collegeName = resolveCollegeName(collegeCode);
-
-    QB.mode = mode;
-    QB.collegeCode = collegeCode;
-    QB.collegeName = collegeName;
-    QB.subjectSlug = meta.slug;
-    QB.subjectCode = meta.code;
-    QB.subjectName = meta.name;
-    QB.bridgeSlug = meta.bridgeSlug;
-    QB.versionCode = versionCode;
-
-    // Sync active page metadata into core store
-    MPPStore.page = {
-        mode,
-        collegeCode,
-        collegeName,
-        subjectSlug: meta.slug,
-        subjectCode: meta.code,
-        subjectName: meta.name,
-        versionCode
-    };
-
-    // Update Page Headers
-    const verLabel = versionCode ? ` (${versionCode.toUpperCase()})` : "";
-    const titleSuffix = mode === "clinical" ? "Clinical Cases" : `PYQs${verLabel}`;
-    const pageTitle = `MBBS Profs Prep - ${meta.name} ${titleSuffix} (${collegeName})`;
-    document.title = pageTitle;
-    const tEl = document.getElementById("dynamic-page-title");
-    if (tEl) tEl.textContent = pageTitle;
-    const h1 = document.getElementById("dynamic-subject-title");
-    if (h1) h1.textContent = `${meta.name} ${titleSuffix}`;
-    const h2 = document.getElementById("dynamic-college-header");
-    if (h2) h2.textContent = `${collegeName} | Professional Examinations`;
-
-    // Store Subscriptions
-    onStoreChange("auth", () => handleAuthOrReload());
-    onStoreChange("bookmarks", () => {
-        updateBookmarkButtonsUI();
-        if (QB.filters.savedOnly) applyFiltersAndRender();
-    });
-    onStoreChange("flags", () => {
-        if (QB.displayData.length) {
-            renderTable();
-            if (QB.isDeckMode) renderDeckCard();
-        }
-    });
-    onStoreChange("adminReady", () => {
-        syncAdminHeaderControls();
-        if (QB.displayData.length) {
-            renderTable();
-            if (QB.isDeckMode) renderDeckCard();
-        }
-    });
-
-    window.addEventListener("mpp:katex-ready", () => {
-        if (QB.displayData.length) {
-            renderTable();
-            if (QB.isDeckMode) renderDeckCard();
-        }
-    });
-
-    window.addEventListener("mpp:global-search", (e) => {
-        QB.filters.search = String(e.detail?.query || "").toLowerCase().trim();
-        applyFiltersAndRender();
-    });
-
-    // Click outside closes multiselect dropdowns
-    document.addEventListener("click", (e) => {
-        if (!e.target.closest(".multiselect-container")) {
-            document.querySelectorAll(".multiselect-menu").forEach(m => m.classList.remove("show"));
-        }
-    });
-
-    if (MPPStore.authReady) handleAuthOrReload();
+function renderRich(raw) {
+    if (!raw) return "";
+    const fn = ContentRenderer.renderRichContent || ContentRenderer.renderMarkdown || ContentRenderer.formatRichText;
+    if (typeof fn === "function") {
+        try { return fn(String(raw)); } catch (_) {}
+    }
+    return escapeHtml(String(raw)).replace(/\n/g, "<br>");
 }
 
-function clearPageSubscriptions() {
-    QB._unsubs.forEach(u => { try { u(); } catch (_) {} });
-    QB._unsubs = [];
-}
-
-async function handleAuthOrReload() {
-    clearPageSubscriptions();
-    syncAdminHeaderControls();
-
-    const tbody = document.getElementById("tableBody");
-    if (!MPPStore.user) {
-        QB.qnaData = [];
-        QB.displayData = [];
-        QB.liveAnswers = {};
-        QB.isDataLoaded = true;
-        processAccessAndRender();
-        return;
-    }
-
-    if (tbody && !QB.qnaData.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-500 dark:text-slate-400"><div class="w-8 h-8 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3"></div><p class="font-bold">Loading ${escapeHtml(QB.subjectName)}...</p></td></tr>`;
-    }
-
-    // 1. Subscribe to Subject Settings (Student Answers Toggle)
-    QB._unsubs.push(
-        subscribeSubjectSettings((settings) => {
-            QB.subjectSettings = settings;
-            const chk = document.getElementById("global-answer-toggle");
-            if (chk) chk.checked = Boolean(settings.showAnswers);
-            if (QB.displayData.length) {
-                renderTable();
-                if (QB.isDeckMode) renderDeckCard();
-            }
-        })
-    );
-
-    // 2. Subscribe to Cross-Links (Teen Patti Deck)
-    QB._unsubs.push(
-        onValue(ref(db, `cross_links/${QB.bridgeSlug}`), (snap) => {
-            if (snap.exists()) ingestCrossLinks(snap.val());
-        })
-    );
-
-    // 3. Load Data Based on Mode
-    if (QB.mode === "clinical") {
-        QB._unsubs.push(
-            subscribeClinicalData(({ qnaData, liveAnswers }) => {
-                QB.qnaData = qnaData;
-                QB.liveAnswers = liveAnswers;
-                QB.dataSourceTag = "firebase-clinical";
-                QB.isDataLoaded = true;
-                processAccessAndRender();
-                loadSolvedAndResumeState();
-            })
-        );
-    } else {
-        // Review Mode: Live Answers + Live Edits + Cloud Vault/Cache Bank
-        QB._unsubs.push(
-            subscribeReviewAnswers((ansMap) => {
-                QB.liveAnswers = ansMap;
-                if (QB.displayData.length) {
-                    renderTable();
-                    if (QB.isDeckMode) renderDeckCard();
-                }
-            })
-        );
-
-        QB._unsubs.push(
-            subscribeReviewEdits((edits) => {
-                QB.editsState = edits;
-                applyOverridesToQna(edits.overrides);
-                if (QB.displayData.length) {
-                    renderTable();
-                    if (QB.isDeckMode && !document.getElementById("mpp-inline-rt-editor")?.classList.contains("open")) {
-                        renderDeckCard();
-                    }
-                }
-            })
-        );
-
-        const bank = await loadReviewBank();
-        QB.qnaData = bank.qnaData || [];
-        QB.curriculumData = bank.curriculumData || [];
-        QB.dataSourceTag = bank.sourceTag || "";
-        QB.isDataLoaded = true;
-        applyOverridesToQna(QB.editsState.overrides);
-        processAccessAndRender();
-        await loadSolvedAndResumeState();
-    }
-}
-
-function applyOverridesToQna(overrides = {}) {
-    if (!overrides || typeof overrides !== "object") return;
-    QB.qnaData.forEach(item => {
-        const up = String(item.q).trim().toUpperCase();
-        const ov = overrides[up];
-        if (!ov) return;
-        if (ov.ans_key) item.ans_key = String(ov.ans_key).trim().toUpperCase();
-        if (Array.isArray(ov.options) && ov.options.length) item.options = ov.options.map(String);
-        if (ov.stem) item.stem = String(ov.stem);
-        if (ov.explanation !== undefined) {
-            QB.liveAnswers[item.q] = { text: String(ov.explanation) };
-        }
-    });
-}
-
-function syncAdminHeaderControls() {
-    const isAdmin = isUserAdmin();
-    const bar = document.getElementById("admin-controls");
-    if (bar) {
-        bar.classList.toggle("hidden", !isAdmin);
-        bar.classList.toggle("flex", isAdmin);
-    }
-    const coffee = document.getElementById("summaryButton");
-    if (coffee) coffee.style.display = isAdmin ? "inline-block" : "none";
-}
-
-function processAccessAndRender() {
-    if (!QB.isDataLoaded) return;
-
-    if (MPPStore.accessLevel === "guest") {
-        QB.displayData = [];
-    } else if (MPPStore.accessLevel === "free" && QB.mode === "clinical") {
-        QB.displayData = QB.qnaData.slice(0, 10);
-    } else {
-        QB.displayData = [...QB.qnaData];
-    }
-
-    buildFilterDropdowns();
-    buildDeckFilterDrawer();
-    applyFiltersAndRender();
-
-    if (!QB.initialViewConfigured) {
-        QB.initialViewConfigured = true;
-        if (window.innerWidth < 768 && !QB.isDeckMode) {
-            toggleDeckMode();
-        }
-    }
-}
-
-// ============================================================================
-// 2. UNIFIED TWO-WAY FILTERING (TABLE <-> DECK)
-// ============================================================================
-function getUniqueValues(field) {
-    const setObj = new Set();
-    QB.qnaData.forEach(item => {
-        const val = field === "exam" ? item.examBatch : item[field];
-        if (Array.isArray(val)) val.forEach(v => v && setObj.add(String(v)));
-        else if (val) setObj.add(String(val));
-    });
-    return Array.from(setObj).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
-}
-
-function isItemBookmarked(qId) {
-    return Boolean(MPPStore.bookmarks[getUniqueQuestionId(qId)]);
-}
-
-function matchesFilters(item) {
-    const f = QB.filters;
-    if (f.savedOnly && !isItemBookmarked(item.q)) return false;
-
-    if (f.attempt !== "all") {
-        const st = QB.deckStatus[item.q];
-        if (f.attempt === "unsolved" && st) return false;
-        if (f.attempt === "correct" && st !== "correct") return false;
-        if (f.attempt === "wrong" && st !== "wrong") return false;
-    }
-
-    if (f.search) {
-        const ch = Array.isArray(item.chapter) ? item.chapter.join(" ") : (item.chapter || "");
-        const ex = Array.isArray(item.examBatch) ? item.examBatch.join(" ") : (item.examBatch || "");
-        const hay = `${item.q} ${stripHtml(item.stem)} ${ch} ${ex}`.toLowerCase();
-        if (!hay.includes(f.search)) return false;
-    }
-
-    if (f.types.size > 0 && !f.types.has(item.type)) return false;
-
-    if (f.chapters.size > 0) {
-        const chs = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-        if (!chs.some(c => f.chapters.has(c))) return false;
-    }
-
-    if (f.exams.size > 0) {
-        const exs = Array.isArray(item.examBatch) ? item.examBatch : [item.examBatch];
-        if (!exs.some(e => f.exams.has(e))) return false;
-    }
-
-    return true;
-}
-
-function buildFilterDropdowns() {
-    const createSelect = (wrapId, dropId, label, items, key) => {
-        const wrap = document.getElementById(wrapId);
-        if (!wrap) return;
-        const list = items.map(it => {
-            const safe = escapeHtml(it);
-            return `<label class="multiselect-option"><input type="checkbox" class="table-filter-cb" data-fkey="${key}" value="${safe}" ${QB.filters[key].has(it) ? "checked" : ""} onchange="window.QBankEngine.toggleSetFilter('${key}', this.value, this.checked)"><span>${safe}</span></label>`;
-        }).join("");
-        wrap.innerHTML = `
-            <div class="multiselect-container">
-                <button type="button" class="multiselect-btn" onclick="window.QBankEngine.toggleDropdown('${dropId}')">
-                    <span id="${dropId}Text" class="text-slate-400">All ${label}s</span>
-                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <div id="${dropId}Menu" class="multiselect-menu">${list || `<div class="p-3 text-xs text-slate-400">None</div>`}</div>
-            </div>`;
-    };
-
-    const isClin = QB.mode === "clinical";
-    createSelect("typeFilterWrapper", "typeSelect", isClin ? "Format" : "Type", getUniqueValues("type"), "types");
-    createSelect("chapterFilterWrapper", "chapterSelect", isClin ? "Topic" : "Chapter", getUniqueValues("chapter"), "chapters");
-    createSelect("examFilterWrapper", "examSelect", isClin ? "Source" : "Batch", getUniqueValues("exam"), "exams");
-    syncFilterButtonsUI();
-}
-
-function buildDeckFilterDrawer() {
-    const container = document.getElementById("deck-filter-content");
+function enhanceRichContainer(container) {
     if (!container) return;
-    const isClin = QB.mode === "clinical";
 
-    const group = (label, key, opts) => {
-        if (!opts.length) return "";
-        return `
-        <details class="mb-4" open>
-            <summary class="font-bold text-xs text-slate-500 uppercase tracking-wider mb-2 px-1 cursor-pointer flex justify-between">${label}<span>▼</span></summary>
-            <div class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                ${opts.map(o => {
-                    const safe = escapeHtml(o);
-                    return `<label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-                        <input type="checkbox" class="deck-filter-cb mt-0.5 w-4 h-4 accent-sky-500" data-fkey="${key}" value="${safe}" ${QB.filters[key].has(o) ? "checked" : ""} onchange="window.QBankEngine.toggleSetFilter('${key}', this.value, this.checked)">
-                        <span class="text-xs font-medium text-slate-700 dark:text-slate-300 leading-snug">${safe}</span>
-                    </label>`;
-                }).join("")}
-            </div>
-        </details>`;
-    };
+    // Bind gallery / interactive hooks from content-renderer.js if exported
+    const bindFn = ContentRenderer.bindRichInteractions || ContentRenderer.initGalleries || ContentRenderer.hydrateContent;
+    if (typeof bindFn === "function") {
+        try { bindFn(container); } catch (_) {}
+    }
 
-    container.innerHTML = `
-        <div class="mb-4 pb-3 border-b border-slate-200 dark:border-slate-800 space-y-2.5">
-            <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 cursor-pointer">
-                <input type="checkbox" id="deck-chk-saved" ${QB.filters.savedOnly ? "checked" : ""} onchange="window.QBankEngine.toggleSavedFilter(this.checked)" class="w-4 h-4 accent-amber-500">
-                <span class="text-xs font-extrabold text-amber-800 dark:text-amber-300">🔖 Saved Bookmarks Only</span>
-            </label>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Attempt Status</label>
-                <select id="deck-attempt-filter" onchange="window.QBankEngine.setAttemptFilter(this.value)" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
-                    <option value="all" ${QB.filters.attempt === "all" ? "selected" : ""}>All Questions</option>
-                    <option value="unsolved" ${QB.filters.attempt === "unsolved" ? "selected" : ""}>Unsolved Only</option>
-                    <option value="correct" ${QB.filters.attempt === "correct" ? "selected" : ""}>Correct Only</option>
-                    <option value="wrong" ${QB.filters.attempt === "wrong" ? "selected" : ""}>Incorrect Only</option>
-                </select>
-            </div>
-            <button type="button" onclick="window.QBankEngine.resetAllProgress()" class="w-full py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 text-[11px] font-extrabold cursor-pointer">
-                🔄 Reset Subject Progress
-            </button>
-        </div>
-        ${group(isClin ? "Topic" : "Chapter", "chapters", getUniqueValues("chapter"))}
-        ${group(isClin ? "Format" : "Type", "types", getUniqueValues("type"))}
-        ${group(isClin ? "Source" : "Exam Batch", "exams", getUniqueValues("exam"))}`;
+    // Bind KaTeX auto-render if loaded
+    if (typeof window.renderMathInElement === "function") {
+        try {
+            window.renderMathInElement(container, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "$", right: "$", display: false },
+                    { left: "\\(", right: "\\)", display: false },
+                    { left: "\\[", right: "\\]", display: true }
+                ],
+                throwOnError: false
+            });
+        } catch (_) {}
+    }
+
+    // Lightbox click on prose images
+    container.querySelectorAll(".mpp-prose img, [data-lightbox-src]").forEach(img => {
+        if (img.dataset.lbBound) return;
+        img.dataset.lbBound = "1";
+        img.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openImageLightbox(img.dataset.lightboxSrc || img.src, img.alt || "");
+        });
+    });
 }
 
-function syncFilterButtonsUI() {
-    const saved = QB.filters.savedOnly;
-    const tBtn = document.getElementById("btn-filter-saved");
-    if (tBtn) {
-        tBtn.className = saved
-            ? "px-3.5 py-2.5 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center gap-1.5 shrink-0 ring-2 ring-amber-400/30 cursor-pointer"
-            : "px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-surface text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 hover:border-amber-400 shrink-0 cursor-pointer";
-    }
-    const dBtn = document.getElementById("deck-header-saved-btn");
-    if (dBtn) {
-        dBtn.className = saved
-            ? "flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 text-xs font-extrabold cursor-pointer"
-            : "flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer";
-    }
-    const dChk = document.getElementById("deck-chk-saved");
-    if (dChk) dChk.checked = saved;
+function loadPanzoomLib() {
+    if (window.Panzoom) return Promise.resolve(window.Panzoom);
+    if (QB._panzoomLibPromise) return QB._panzoomLibPromise;
+    QB._panzoomLibPromise = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js";
+        s.async = true;
+        s.onload = () => resolve(window.Panzoom);
+        s.onerror = () => reject(new Error("Could not load zoom library."));
+        document.head.appendChild(s);
+    });
+    return QB._panzoomLibPromise;
+}
 
-    const tblAtt = document.getElementById("attemptFilterSelect");
-    if (tblAtt) tblAtt.value = QB.filters.attempt;
-    const dckAtt = document.getElementById("deck-attempt-filter");
-    if (dckAtt) dckAtt.value = QB.filters.attempt;
+function destroyPanzoom(key) {
+    const inst = QB._panzoomInstances.get(key);
+    if (inst) {
+        try { inst.destroy(); } catch (_) {}
+        QB._panzoomInstances.delete(key);
+    }
+}
 
-    ["types", "chapters", "exams"].forEach(k => {
-        document.querySelectorAll(`.table-filter-cb[data-fkey="${k}"], .deck-filter-cb[data-fkey="${k}"]`).forEach(cb => {
-            cb.checked = QB.filters[k].has(cb.value);
+async function mountAnswerCardPanzoom(hostEl, key, imgUrl) {
+    if (!hostEl || !imgUrl) return;
+    destroyPanzoom(key);
+
+    hostEl.innerHTML = `
+        <div class="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 overflow-hidden animate-fade-in">
+            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-800/90 border-b border-slate-700 text-xs text-slate-200">
+                <span class="font-bold">Answer Card (Pinch / Drag to Zoom)</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" data-pz="in" class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 font-bold" title="Zoom In">➕</button>
+                    <button type="button" data-pz="out" class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 font-bold" title="Zoom Out">➖</button>
+                    <button type="button" data-pz="reset" class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 font-bold" title="Reset Zoom">↺</button>
+                    <button type="button" data-pz="full" class="px-2 py-1 rounded bg-brand-600 hover:bg-brand-500 text-white font-bold" title="Fullscreen">⛶</button>
+                </div>
+            </div>
+            <div class="pz-viewport p-2">
+                <img src="${escapeHtml(imgUrl)}" alt="Answer Card" class="max-h-[420px] w-auto object-contain select-none" draggable="false" />
+            </div>
+        </div>
+    `;
+
+    const imgEl = hostEl.querySelector("img");
+    const viewport = hostEl.querySelector(".pz-viewport");
+
+    hostEl.querySelector('[data-pz="full"]')?.addEventListener("click", () => openImageLightbox(imgUrl, "Answer Card"));
+
+    try {
+        const Panzoom = await loadPanzoomLib();
+        if (!Panzoom || !imgEl.isConnected) return;
+        const pz = Panzoom(imgEl, { maxScale: 10, minScale: 1, contain: "outside" });
+        QB._panzoomInstances.set(key, pz);
+
+        viewport.addEventListener("wheel", (e) => {
+            if (e.ctrlKey || e.shiftKey) pz.zoomWithWheel(e);
+        }, { passive: false });
+        viewport.addEventListener("dblclick", () => pz.reset());
+        hostEl.querySelector('[data-pz="in"]')?.addEventListener("click", () => pz.zoomIn());
+        hostEl.querySelector('[data-pz="out"]')?.addEventListener("click", () => pz.zoomOut());
+        hostEl.querySelector('[data-pz="reset"]')?.addEventListener("click", () => pz.reset());
+    } catch (_) {
+        imgEl?.addEventListener("click", () => openImageLightbox(imgUrl, "Answer Card"));
+    }
+}
+
+// ============================================================================
+// 3. DATA HELPERS (Overrides, Marks Extraction, Units, Attempts, High-Yield)
+// ============================================================================
+function getAttemptStorageKey() {
+    return `${ATTEMPT_STORAGE_PREFIX}${QB.collegeCode}_${QB.subjectCode}_${QB.mode}_${QB.versionCode || "std"}`;
+}
+
+function loadLocalAttempts() {
+    try {
+        QB.attempts = JSON.parse(localStorage.getItem(getAttemptStorageKey()) || "{}") || {};
+    } catch (_) {
+        QB.attempts = {};
+    }
+}
+
+function saveLocalAttempt(qId, chosen, correctKey) {
+    QB.attempts[qId] = {
+        chosen,
+        isCorrect: Boolean(correctKey && chosen === correctKey),
+        ts: Date.now()
+    };
+    try {
+        localStorage.setItem(getAttemptStorageKey(), JSON.stringify(QB.attempts));
+    } catch (_) {}
+}
+
+export function getDisplayedQuestion(rawQ) {
+    if (!rawQ) return null;
+    const up = String(rawQ.q || "").trim().toUpperCase();
+    const ov = QB.questionOverrides[up];
+    if (!ov) return rawQ;
+    return {
+        ...rawQ,
+        stem: ov.stem !== undefined && ov.stem !== "" ? String(ov.stem) : rawQ.stem,
+        ans_key: ov.ans_key !== undefined ? String(ov.ans_key).trim().toUpperCase() : rawQ.ans_key,
+        options: Array.isArray(ov.options) && ov.options.length ? ov.options.map(String) : rawQ.options
+    };
+}
+
+function extractTheoryMarks(stem, type) {
+    const raw = String(stem || "");
+    if (String(type || "").toUpperCase() === "MCQ") {
+        return { cleanStem: raw, marksBadge: "" };
+    }
+    const regex = /(\(\s*\d+(?:\s*\+\s*\d+)*(?:\s*=\s*\d+)?\s*(?:Marks?|M)?\s*\)|\[\s*\d+(?:\s*\+\s*\d+)*(?:\s*=\s*\d+)?\s*(?:Marks?|M)?\s*\])\s*$/i;
+    const m = raw.match(regex);
+    if (!m) return { cleanStem: raw, marksBadge: "" };
+    return {
+        cleanStem: raw.slice(0, m.index).trim(),
+        marksBadge: m[1].replace(/^[\(\[]|[\)\]]$/g, "").trim()
+    };
+}
+
+function normalizeArr(val, fallback = "General") {
+    if (Array.isArray(val)) return val.map(v => String(v || "").trim()).filter(Boolean);
+    const s = String(val || "").trim();
+    return s ? [s] : [fallback];
+}
+
+function getUnitForChapter(chapterName) {
+    const target = String(chapterName || "").trim().toLowerCase();
+    for (const entry of QB.curriculumData) {
+        if (entry && typeof entry === "object" && Array.isArray(entry.chapters)) {
+            if (entry.chapters.some(c => String(c).trim().toLowerCase() === target)) {
+                return String(entry.unit || "");
+            }
+        }
+    }
+    return "";
+}
+
+function canShowAnswers() {
+    return isUserAdmin() || Boolean(QB.subjectShowAnswers);
+}
+
+function canShowAnswerCards() {
+    return isUserAdmin() || Boolean(MPPStore.featureFlags.showAnswerCards);
+}
+
+function canShowTeenPatti() {
+    return isUserAdmin() || Boolean(MPPStore.featureFlags.showTeenPatti);
+}
+
+function canShowCrossExamPG() {
+    return isUserAdmin() || Boolean(MPPStore.featureFlags.showCrossExamPG);
+}
+
+function recomputeRepeatCounts() {
+    const counts = {};
+    const clusters = QB.crossLinks?.clusters || {};
+    Object.values(clusters).forEach(cl => {
+        if (!cl) return;
+        const profIds = Array.isArray(cl.profs) ? cl.profs : Object.values(cl.profs || {});
+        const pgIds = Array.isArray(cl.medpyq) ? cl.medpyq : Object.values(cl.medpyq || {});
+        const total = profIds.length + (canShowCrossExamPG() ? pgIds.length : 0);
+        profIds.forEach(id => {
+            const up = String(id).trim().toUpperCase();
+            counts[up] = Math.max(counts[up] || 0, total);
+        });
+    });
+    QB.repeatCountMap = counts;
+}
+
+function getClusterTopicsForQid(qId) {
+    const up = String(qId || "").trim().toUpperCase();
+    const nt = QB.crossLinks?.node_topics || {};
+    const clusters = QB.crossLinks?.clusters || {};
+
+    let slugs = [];
+    if (nt[up]) {
+        slugs = Array.isArray(nt[up]) ? nt[up] : Object.keys(nt[up]);
+    } else {
+        Object.keys(clusters).forEach(slug => {
+            const profs = Array.isArray(clusters[slug]?.profs) ? clusters[slug].profs : Object.values(clusters[slug]?.profs || {});
+            if (profs.some(x => String(x).trim().toUpperCase() === up)) slugs.push(slug);
+        });
+    }
+
+    return [...new Set(slugs)]
+        .map(slug => ({ slug, data: clusters[slug] }))
+        .filter(x => x.data);
+}
+
+function buildAiHelpUrl(q) {
+    const parts = [
+        `MBBS Prof Exam Question (${QB.subjectName}, ${QB.collegeName}):`,
+        q.stem || ""
+    ];
+    if (Array.isArray(q.options) && q.options.length) {
+        parts.push("Options:\n" + q.options.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join("\n"));
+    }
+    parts.push("Give a concise, high-yield exam answer with key points, mnemonics, and standard textbook references.");
+    return `https://chatgpt.com/?q=${encodeURIComponent(parts.join("\n\n"))}`;
+}
+
+// ============================================================================
+// 4. FULL CHAPTER LIST (INCLUDING 0-QUESTION CHAPTERS) + UNIT GROUPING
+// ============================================================================
+function buildCompleteChapterStructure() {
+    // Count questions per chapter across the loaded bank
+    const counts = new Map();
+    const extraChapters = [];
+    const seenLower = new Set();
+
+    QB.qnaData.forEach(q => {
+        normalizeArr(q.chapter, "General").forEach(ch => {
+            const key = ch.toLowerCase();
+            counts.set(key, (counts.get(key) || 0) + 1);
         });
     });
 
-    const isClin = QB.mode === "clinical";
-    const setLabel = (id, size, noun) => {
-        const el = document.getElementById(id + "Text");
-        if (!el) return;
-        el.textContent = size ? `${size} ${noun}(s)` : `All ${noun}s`;
-        el.className = size ? "text-brand-600 dark:text-brand-400 font-bold" : "text-slate-400";
-    };
-    setLabel("typeSelect", QB.filters.types.size, isClin ? "Format" : "Type");
-    setLabel("chapterSelect", QB.filters.chapters.size, isClin ? "Topic" : "Chapter");
-    setLabel("examSelect", QB.filters.exams.size, isClin ? "Source" : "Batch");
-}
+    const groups = [];
+    const hasUnitObjects = QB.curriculumData.some(g => g && typeof g === "object" && Array.isArray(g.chapters));
 
-function applyFiltersAndRender() {
-    syncFilterButtonsUI();
-    QB.activeDeck = QB.displayData.filter(matchesFilters);
-    if (QB.deckIndex >= QB.activeDeck.length) QB.deckIndex = 0;
-
-    const sub = document.getElementById("deck-subtitle");
-    if (sub) {
-        if (QB.filters.savedOnly) sub.textContent = `${QB.activeDeck.length} Saved`;
-        else sub.textContent = QB.activeDeck.length === QB.displayData.length
-            ? `${QB.activeDeck.length} ${QB.mode === "clinical" ? "Cases" : "Questions"}`
-            : `${QB.activeDeck.length} Filtered`;
+    if (hasUnitObjects) {
+        QB.curriculumData.forEach(g => {
+            if (g && typeof g === "object" && Array.isArray(g.chapters)) {
+                const chList = [];
+                g.chapters.forEach(c => {
+                    const name = String(c || "").trim();
+                    if (!name) return;
+                    const low = name.toLowerCase();
+                    if (!seenLower.has(low)) {
+                        seenLower.add(low);
+                        chList.push({ name, count: counts.get(low) || 0 });
+                    }
+                });
+                if (chList.length) {
+                    groups.push({ unit: String(g.unit || "General"), chapters: chList });
+                }
+            } else if (typeof g === "string" && g.trim()) {
+                const name = g.trim();
+                const low = name.toLowerCase();
+                if (!seenLower.has(low)) {
+                    seenLower.add(low);
+                    extraChapters.push({ name, count: counts.get(low) || 0 });
+                }
+            }
+        });
+    } else {
+        // Flat curriculumData strings — STILL include all chapters even with 0 questions
+        const flatList = [];
+        QB.curriculumData.forEach(c => {
+            const name = String(c || "").trim();
+            if (!name) return;
+            const low = name.toLowerCase();
+            if (!seenLower.has(low)) {
+                seenLower.add(low);
+                flatList.push({ name, count: counts.get(low) || 0 });
+            }
+        });
+        if (flatList.length) groups.push({ unit: "", chapters: flatList });
     }
 
-    renderTable();
-    if (QB.isDeckMode) renderDeckCard();
-}
-
-// ============================================================================
-// 3. TABLE VIEW RENDERER (Read-Only for Users; Admin Controls for 3 Admins)
-// ============================================================================
-function renderTable() {
-    const tbody = document.getElementById("tableBody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    const isAdmin = isUserAdmin();
-    const showAnsCards = isAdmin || Boolean(MPPStore.featureFlags.showAnswerCards);
-    const filtered = QB.displayData.filter(matchesFilters);
-
-    filtered.forEach((item) => {
-        const realIdx = QB.displayData.indexOf(item);
-        const row = tbody.insertRow();
-        row.className = "hover:bg-brand-50/70 dark:hover:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 transition-colors";
-        row.setAttribute("data-index", String(realIdx));
-        row.setAttribute("data-qid", item.q);
-
-        // Col 1: ID (+ Admin Drag Handle)
-        const c1 = row.insertCell();
-        c1.className = "px-4 py-4 text-center font-bold text-brand-600 dark:text-brand-400 border-r border-slate-200 dark:border-slate-800 align-middle relative";
-        const dragHtml = isAdmin ? `<span class="drag-handle cursor-grab absolute left-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 p-1" title="Drag to reorder">⋮⋮</span>` : "";
-        c1.innerHTML = `${dragHtml}<span class="${isAdmin ? "pl-3" : ""}">${escapeHtml(item.q)}</span>`;
-
-        // Col 2: Stem + MCQ Options + Notes + 3D Answer Card
-        const c2 = row.insertCell();
-        c2.className = "px-6 py-4 align-top";
-
-        const cleanStem = formatInlineMathAndBold(item.stem);
-        let qHtml = "";
-        if (item.type === "MCQ") {
-            qHtml += `<div class="font-semibold mb-2 text-slate-900 dark:text-white leading-relaxed">${cleanStem}</div><div class="space-y-1 mb-2">`;
-            (item.options || []).forEach((opt, i) => {
-                const l = OPTION_LETTERS[i] || "-";
-                const isCorr = l === String(item.ans_key || "").toUpperCase();
-                const fmtOpt = formatInlineMathAndBold(opt);
-                qHtml += isCorr
-                    ? `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2"><span class="correct-option">${l}) ${fmtOpt}</span></div>`
-                    : `<div class="text-sm text-slate-600 dark:text-slate-400 ml-2">${l}) ${fmtOpt}</div>`;
-            });
-            qHtml += `</div>`;
-        } else {
-            qHtml += `<div class="theory-question shadow-sm text-left mb-2">${cleanStem}</div>`;
-        }
-
-        if (item.img && !cleanStem.includes(item.img)) {
-            qHtml += `<img src="${escapeHtml(item.img)}" class="max-h-60 rounded-xl my-2 border border-slate-200 dark:border-slate-700 cursor-zoom-in" alt="Question Image" loading="lazy">`;
-        }
-
-        // Answer Modal Button + Admin Edit/Delete
-        const liveAns = QB.liveAnswers[item.q]?.text || "";
-        const canViewAns = isAdmin || (Boolean(liveAns) && QB.subjectSettings.showAnswers);
-        if (canViewAns || isAdmin) {
-            const btnText = isAdmin ? (liveAns ? "✍️ Edit Answer" : "➕ Add Answer") : "👁️ View Answer";
-            const btnStyle = isAdmin && !liveAns
-                ? "border-dashed border-brand-300 text-brand-500 bg-transparent hover:bg-brand-50 dark:border-slate-700"
-                : "bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700";
-
-            const adminBtns = isAdmin ? `
-                <button type="button" onclick="window.MPPAdmin?.openEditQuestionModal('${escapeHtml(item.q)}')" class="px-3.5 py-2 font-bold rounded-xl border border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 text-xs uppercase cursor-pointer">✏️ Edit</button>
-                <button type="button" onclick="window.MPPAdmin?.confirmDeleteQuestion('${escapeHtml(item.q)}')" class="px-3.5 py-2 font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 text-xs uppercase cursor-pointer">🗑️ Delete</button>` : "";
-
-            qHtml += `
-                <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
-                    <button type="button" onclick="window.QBankEngine.openAnswerModal('${escapeHtml(item.q)}')" class="px-5 py-2 font-bold rounded-xl border text-xs uppercase tracking-wider cursor-pointer ${btnStyle}">${btnText}</button>
-                    ${adminBtns}
-                </div>`;
-        }
-
-        // 3D Answer Card Image (ans_image)
-        if (item.ans_image && showAnsCards) {
-            const safeQ = escapeHtml(item.q);
-            qHtml += `
-                <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" onclick="document.getElementById('ans-img-box-${safeQ}').classList.toggle('hidden')" class="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg border-none cursor-pointer">🖼️ Toggle Visual Answer Card</button>
-                    <div id="ans-img-box-${safeQ}" class="hidden mt-3">
-                        <img src="${escapeHtml(item.ans_image)}" class="max-h-96 rounded-xl border border-brand-200 dark:border-slate-700 cursor-zoom-in" alt="Answer Card" loading="lazy">
-                    </div>
-                </div>`;
-        }
-        c2.innerHTML = qHtml;
-
-        // Col 3: Type Badge
-        const c3 = row.insertCell();
-        c3.className = "px-4 py-4 text-center align-middle";
-        const badgeCls = item.type === "Theory"
-            ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700"
-            : "bg-brand-100 text-brand-800 border-brand-200 dark:bg-brand-900/30 dark:text-brand-200 dark:border-brand-700";
-        c3.innerHTML = `<span class="${badgeCls} border px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">${escapeHtml(item.type)}</span>`;
-
-        // Col 4: Chapter / Topic
-        const c4 = row.insertCell();
-        c4.className = "px-4 py-4 text-left align-middle border-l border-slate-100 dark:border-slate-800";
-        const chs = Array.isArray(item.chapter) ? item.chapter : [item.chapter];
-        c4.innerHTML = chs.map(ch => `<div class="text-xs font-medium text-slate-700 dark:text-slate-300">${escapeHtml(ch)}</div>`).join("");
-
-        // Col 5: Source / Batch
-        const c5 = row.insertCell();
-        c5.className = "px-4 py-4 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 align-middle";
-        const batch = Array.isArray(item.examBatch) ? item.examBatch.join(", ") : (item.examBatch || "");
-        c5.innerHTML = `<div class="uppercase font-bold text-[10px] text-slate-400 mb-0.5">${escapeHtml(QB.collegeName)}</div><div class="font-semibold text-brand-600 dark:text-brand-400">${escapeHtml(batch)}</div>`;
-
-        // Col 6: Bookmark & Ask AI
-        const c6 = row.insertCell();
-        c6.className = "px-4 py-4 text-center align-middle border-l border-slate-100 dark:border-slate-800";
-        const saved = isItemBookmarked(item.q);
-        const bmkCls = saved
-            ? "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700"
-            : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-        c6.innerHTML = `
-            <div class="flex flex-col gap-1.5 items-center">
-                <button type="button" onclick="window.QBankEngine.askAI('${escapeHtml(item.q)}')" class="w-full max-w-[84px] bg-green-500/10 text-green-600 dark:text-green-400 font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase border border-green-500/20 hover:bg-green-500 hover:text-white cursor-pointer">AI Help</button>
-                <button type="button" id="bmk-table-${escapeHtml(item.q)}" onclick="window.QBankEngine.toggleBookmark('${escapeHtml(item.q)}')" class="w-full max-w-[84px] ${bmkCls} font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase border cursor-pointer">${saved ? "⭐ Saved" : "🔖 Save"}</button>
-            </div>`;
+    // Also include any chapter present in qnaData that wasn't listed in curriculumData
+    QB.qnaData.forEach(q => {
+        normalizeArr(q.chapter, "General").forEach(ch => {
+            const low = ch.toLowerCase();
+            if (!seenLower.has(low)) {
+                seenLower.add(low);
+                extraChapters.push({ name: ch, count: counts.get(low) || 0 });
+            }
+        });
     });
 
-    // Empty / Access Gate Rows
-    if (MPPStore.accessLevel === "guest") {
-        appendGateRow(tbody, "Login Required", "Sign in to access questions and sync your progress.", `<button type="button" onclick="window.userPanelApp.open(); window.userPanelApp.setAuthMode('login')" class="px-8 py-3.5 bg-brand-500 text-white font-bold rounded-xl border-none cursor-pointer shadow-lg">Sign In to Continue</button>`);
-    } else if (filtered.length === 0) {
-        const emptyRow = tbody.insertRow();
-        const cell = emptyRow.insertCell();
-        cell.colSpan = 6;
-        cell.className = "p-12 text-center text-slate-400";
-        const adminVaultBtn = isAdmin && QB.dataSourceTag === "not-found"
-            ? `<button type="button" onclick="window.MPPAdmin?.openControlHub?.()" class="mt-3 px-5 py-2.5 bg-sky-500 text-white text-xs font-extrabold rounded-xl border-none cursor-pointer">⚙️ Open Cloud Vault &amp; Upload</button>`
-            : `<button type="button" onclick="window.QBankEngine.resetAllFilters()" class="mt-3 px-5 py-2 bg-brand-500 text-white text-xs font-bold rounded-xl border-none cursor-pointer">Reset Filters</button>`;
-        cell.innerHTML = `<div class="text-3xl mb-2">🔍</div><p class="font-bold text-slate-600 dark:text-slate-300">No questions match your current view.</p>${adminVaultBtn}`;
+    if (extraChapters.length) {
+        extraChapters.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+        if (groups.length && !groups[0].unit) {
+            groups[0].chapters.push(...extraChapters);
+        } else {
+            groups.push({ unit: groups.length ? "Additional Chapters" : "", chapters: extraChapters });
+        }
     }
 
-    if (MPPStore.accessLevel === "free") {
-        appendGateRow(tbody, "Unlock Full Pro Access", "You are viewing a free preview. Upgrade to unlock all questions & explanations.", `<a href="checkout.html" class="inline-block px-8 py-3.5 bg-brand-500 text-white font-bold rounded-xl no-underline shadow-lg">Upgrade to Pro</a>`);
-    }
-
-    // Admin-only SortableJS Drag-to-Reorder hook
-    if (isAdmin && window.MPPAdmin?.attachTableSortable) {
-        window.MPPAdmin.attachTableSortable(tbody);
-    }
+    return groups;
 }
 
-function appendGateRow(tbody, title, desc, ctaHtml) {
-    const row = tbody.insertRow();
-    row.setAttribute("data-locked-row", "true");
-    const cell = row.insertCell();
-    cell.colSpan = 6;
-    cell.className = "p-10 text-center bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700";
-    cell.innerHTML = `<div class="text-4xl mb-3">🔒</div><h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">${title}</h3><p class="text-slate-500 dark:text-slate-400 mb-5 text-sm">${desc}</p>${ctaHtml}`;
+function buildChapterMenuHTML(prefix = "tbl") {
+    const groups = buildCompleteChapterStructure();
+    const selected = QB.filters.chapters;
+
+    const topBar = `
+        <div class="sticky top-0 z-20 bg-white dark:bg-dark-900 border-b border-slate-200 dark:border-slate-700 px-3 py-2 flex items-center justify-between gap-2">
+            <span class="text-[11px] font-bold text-slate-500">${selected.size ? `${selected.size} selected` : "All Chapters"}</span>
+            <button type="button" data-clear-chapters="${prefix}" class="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline">Clear</button>
+        </div>
+    `;
+
+    const body = groups.map((grp, gIdx) => {
+        const chNames = grp.chapters.map(c => c.name);
+        const allChecked = chNames.length > 0 && chNames.every(n => selected.has(n));
+        const unitHeader = grp.unit ? `
+            <label class="multiselect-group-header cursor-pointer">
+                <span class="truncate">${escapeHtml(grp.unit)}</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold normal-case flex-shrink-0">
+                    <input type="checkbox" data-unit-toggle="${escapeHtml(grp.unit)}" data-unit-idx="${gIdx}" ${allChecked ? "checked" : ""} class="rounded text-brand-600 focus:ring-brand-500" />
+                    <span>All</span>
+                </span>
+            </label>
+        ` : "";
+
+        const items = grp.chapters.map(ch => {
+            const isChecked = selected.has(ch.name);
+            const zeroCls = ch.count === 0 ? "text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-200";
+            return `
+                <label class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-dark-800 cursor-pointer text-xs ${zeroCls}">
+                    <span class="flex items-center gap-2 min-w-0">
+                        <input type="checkbox" data-chapter-opt="${escapeHtml(ch.name)}" ${isChecked ? "checked" : ""} class="rounded text-brand-600 focus:ring-brand-500 flex-shrink-0" />
+                        <span class="truncate">${escapeHtml(ch.name)}</span>
+                    </span>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${ch.count === 0 ? "bg-slate-100 dark:bg-dark-800 text-slate-400" : "bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300"} flex-shrink-0">${ch.count}</span>
+                </label>
+            `;
+        }).join("");
+
+        return unitHeader + items;
+    }).join("");
+
+    return topBar + (body || `<div class="p-4 text-xs text-slate-400 text-center">No chapters loaded.</div>`);
 }
 
-// ============================================================================
-// 4. ANSWER MODAL (Read-Only for Students; Live Visual Editor for 3 Admins)
-// ============================================================================
-export function openAnswerModal(qId) {
-    const q = findQuestionByQid(qId);
-    if (!q) return;
+function buildBatchMenuHTML() {
+    const counts = new Map();
+    QB.qnaData.forEach(q => {
+        normalizeArr(q.examBatch, "Prof Exam").forEach(b => {
+            counts.set(b, (counts.get(b) || 0) + 1);
+        });
+    });
+    const batches = [...counts.keys()].sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: "base" }));
+    const selected = QB.filters.batches;
 
-    const liveAns = QB.liveAnswers[q.q]?.text || "";
-    const isAdmin = isUserAdmin();
-    const safeQ = escapeHtml(q.q);
-
-    let html = `
-        <div class="mb-5 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Reference (${safeQ})</span>
-            <div class="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">${formatInlineMathAndBold(q.stem)}</div>
-        </div>`;
-
-    if (isAdmin) {
-        html += `
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 min-h-[420px]">
-            <div class="flex flex-col border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-                <div class="bg-brand-50 dark:bg-slate-800/60 px-4 py-2.5 border-b border-brand-100 dark:border-brand-800 flex justify-between items-center">
-                    <span class="text-xs font-black text-brand-700 dark:text-brand-400 uppercase">Admin Markdown Editor</span>
-                    <button type="button" onclick="window.MPPAdmin?.openMediaPickerFor('admin-ans-modal-${safeQ}', 'admin-preview-modal-${safeQ}', 'upload')" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-[10px] font-extrabold border-none cursor-pointer">📤 Upload / 🔍 Search Media</button>
-                </div>
-                <textarea id="admin-ans-modal-${safeQ}" oninput="window.QBankEngine.updateAnswerPreview('modal', '${safeQ}')" class="flex-1 w-full p-4 bg-transparent text-sm text-slate-800 dark:text-slate-200 outline-none resize-none custom-scrollbar" placeholder="Write Markdown, KaTeX, or use Visual Edit Mode on the right...">${escapeHtml(liveAns)}</textarea>
-                <div class="p-3 bg-brand-50/50 dark:bg-slate-800/50 border-t border-brand-100 dark:border-brand-800">
-                    <button type="button" onclick="window.QBankEngine.publishAnswer('${safeQ}', this, 'modal')" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider border-none cursor-pointer shadow">Publish Answer</button>
-                </div>
-            </div>
-            <div class="flex flex-col border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-                <div class="bg-green-50 dark:bg-green-900/20 px-4 py-2.5 border-b border-green-200 dark:border-green-900/50">
-                    <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase">Live Student Preview</span>
-                </div>
-                <div id="admin-preview-modal-${safeQ}" class="flex-1 p-5 overflow-y-auto custom-scrollbar markdown-body">${renderContent(liveAns)}</div>
-            </div>
-        </div>`;
-    } else {
-        html += `
-        <div class="border border-green-200 dark:border-green-900/50 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-            <div class="bg-green-50 dark:bg-green-900/20 px-4 py-2.5 border-b border-green-200 dark:border-green-900/50">
-                <span class="text-xs font-black text-green-700 dark:text-green-400 uppercase">Model Answer &amp; Explanation</span>
-            </div>
-            <div class="p-5 markdown-body">${renderContent(liveAns)}</div>
-        </div>`;
-    }
-
-    document.getElementById("ans-modal-body").innerHTML = html;
-    document.getElementById("answerModal").classList.remove("hidden");
-
-    if (isAdmin && window.MPPAdmin?.attachPreviewVisualToolbar) {
-        const pv = document.getElementById(`admin-preview-modal-${q.q}`);
-        if (pv) window.MPPAdmin.attachPreviewVisualToolbar(pv, `admin-ans-modal-${q.q}`);
-    }
+    return `
+        <div class="sticky top-0 z-20 bg-white dark:bg-dark-900 border-b border-slate-200 dark:border-slate-700 px-3 py-2 flex items-center justify-between gap-2">
+            <span class="text-[11px] font-bold text-slate-500">${selected.size ? `${selected.size} selected` : "All Batches"}</span>
+            <button type="button" data-clear-batches="1" class="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline">Clear</button>
+        </div>
+        ${batches.map(b => `
+            <label class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-dark-800 cursor-pointer text-xs text-slate-700 dark:text-slate-200">
+                <span class="flex items-center gap-2 min-w-0">
+                    <input type="checkbox" data-batch-opt="${escapeHtml(b)}" ${selected.has(b) ? "checked" : ""} class="rounded text-brand-600 focus:ring-brand-500 flex-shrink-0" />
+                    <span class="truncate">${escapeHtml(b)}</span>
+                </span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-dark-800 text-slate-500">${counts.get(b)}</span>
+            </label>
+        `).join("") || `<div class="p-4 text-xs text-slate-400 text-center">No exam batches found.</div>`}
+    `;
 }
 
-// ============================================================================
-// 5. FULLSCREEN DECK VIEW + TEEN PATTI FANNED DECK + SOLVED PROGRESS
-// ============================================================================
-function renderDeckCard() {
-    const container = document.getElementById("deck-card-container");
+function bindChapterMenuEvents(container) {
     if (!container) return;
+    const groups = buildCompleteChapterStructure();
 
-    container.classList.toggle("tp-fan-open", Boolean(QB.tp.fanOpen));
+    container.querySelector("[data-clear-chapters]")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        QB.filters.chapters.clear();
+        refreshFilterUIAndRender();
+    });
 
-    if (MPPStore.accessLevel === "guest") {
-        container.innerHTML = `<div class="deck-card glass-card items-center justify-center text-center p-8"><div class="text-5xl mb-4">🔒</div><h2 class="text-2xl font-black mb-2">Login Required</h2><p class="text-slate-500 mb-6 text-sm">Sign in to study in Deck Mode.</p><button type="button" onclick="window.QBankEngine.toggleDeckMode(); window.userPanelApp.open(); window.userPanelApp.setAuthMode('login')" class="px-8 py-3.5 bg-brand-500 text-white font-bold rounded-xl border-none cursor-pointer">Sign In</button></div>`;
-        document.getElementById("deck-counter").textContent = "🔒";
-        return;
+    container.querySelectorAll("[data-unit-toggle]").forEach(cb => {
+        cb.addEventListener("change", () => {
+            const idx = Number(cb.dataset.unitIdx);
+            const grp = groups[idx];
+            if (!grp) return;
+            grp.chapters.forEach(c => {
+                if (cb.checked) QB.filters.chapters.add(c.name);
+                else QB.filters.chapters.delete(c.name);
+            });
+            refreshFilterUIAndRender();
+        });
+    });
+
+    container.querySelectorAll("[data-chapter-opt]").forEach(cb => {
+        cb.addEventListener("change", () => {
+            const name = cb.dataset.chapterOpt;
+            if (cb.checked) QB.filters.chapters.add(name);
+            else QB.filters.chapters.delete(name);
+            refreshFilterUIAndRender();
+        });
+    });
+}
+
+function bindBatchMenuEvents(container) {
+    if (!container) return;
+    container.querySelector("[data-clear-batches]")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        QB.filters.batches.clear();
+        refreshFilterUIAndRender();
+    });
+    container.querySelectorAll("[data-batch-opt]").forEach(cb => {
+        cb.addEventListener("change", () => {
+            const name = cb.dataset.batchOpt;
+            if (cb.checked) QB.filters.batches.add(name);
+            else QB.filters.batches.delete(name);
+            refreshFilterUIAndRender();
+        });
+    });
+}
+
+function updateFilterButtonLabels() {
+    const chBtn = document.getElementById("chapterBtnLabel");
+    if (chBtn) {
+        const sz = QB.filters.chapters.size;
+        chBtn.textContent = sz === 0
+            ? (QB.mode === "clinical" ? "All Topics" : "All Chapters")
+            : (sz === 1 ? [...QB.filters.chapters][0] : `${sz} Chapters Selected`);
     }
 
-    if (MPPStore.accessLevel === "free" && QB.deckIndex === QB.activeDeck.length && QB.activeDeck.length > 0) {
-        container.innerHTML = `<div class="deck-card glass-card items-center justify-center text-center p-8"><div class="text-5xl mb-4">🔒</div><h2 class="text-2xl font-black mb-2">End of Free Preview</h2><p class="text-slate-500 mb-6 text-sm">Upgrade to Pro to unlock all questions.</p><a href="checkout.html" class="px-8 py-3.5 bg-brand-500 text-white font-bold rounded-xl no-underline">Upgrade to Pro</a></div>`;
-        document.getElementById("deck-counter").textContent = "🔒";
+    const bBtn = document.getElementById("batchBtnLabel");
+    if (bBtn) {
+        const sz = QB.filters.batches.size;
+        bBtn.textContent = sz === 0
+            ? "All Exam Batches"
+            : (sz === 1 ? [...QB.filters.batches][0] : `${sz} Batches Selected`);
+    }
+
+    // Active state styles for Saved & High-Yield buttons (Table + Deck)
+    const setToggleStyle = (id, active, activeCls) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle("ring-2", active);
+        activeCls.split(" ").forEach(c => el.classList.toggle(c, active));
+    };
+    setToggleStyle("savedOnlyBtn", QB.filters.savedOnly, "bg-brand-50 dark:bg-brand-900/40 border-brand-500 text-brand-700 dark:text-brand-300 ring-brand-500/30");
+    setToggleStyle("deck-saved-btn", QB.filters.savedOnly, "bg-brand-600 text-white border-brand-600 ring-brand-500/30");
+    setToggleStyle("highYieldOnlyBtn", QB.filters.highYieldOnly, "bg-orange-50 dark:bg-orange-950/50 border-orange-500 text-orange-700 dark:text-orange-300 ring-orange-500/30");
+    setToggleStyle("deck-hy-btn", QB.filters.highYieldOnly, "bg-orange-500 text-white border-orange-500 ring-orange-500/30");
+
+    // Deck filter active dot
+    const hasFilters = Boolean(
+        QB.filters.search || QB.filters.type !== "ALL" || QB.filters.chapters.size ||
+        QB.filters.batches.size || QB.filters.attempt !== "ALL" ||
+        QB.filters.savedOnly || QB.filters.highYieldOnly
+    );
+    document.getElementById("deck-filter-dot")?.classList.toggle("hidden", !hasFilters);
+}
+
+function buildFilterDropdowns() {
+    const chMenu = document.getElementById("chapterMultiselectMenu");
+    if (chMenu) {
+        chMenu.innerHTML = buildChapterMenuHTML("tbl");
+        bindChapterMenuEvents(chMenu);
+    }
+    const bMenu = document.getElementById("batchMultiselectMenu");
+    if (bMenu) {
+        bMenu.innerHTML = buildBatchMenuHTML();
+        bindBatchMenuEvents(bMenu);
+    }
+    if (QB.deckFilterOpen) renderDeckFilterDrawer();
+    updateFilterButtonLabels();
+}
+
+function refreshFilterUIAndRender() {
+    buildFilterDropdowns();
+    applyFiltersAndRender();
+}
+
+// ============================================================================
+// 5. FILTERING PIPELINE
+// ============================================================================
+function applyFiltersAndRender() {
+    const f = QB.filters;
+    const term = f.search.trim().toLowerCase();
+
+    QB.activeDeck = QB.qnaData.filter(rawItem => {
+        const q = getDisplayedQuestion(rawItem);
+
+        // Type filter
+        if (f.type !== "ALL") {
+            const isMcq = String(q.type || "").toUpperCase() === "MCQ";
+            if (f.type === "MCQ" && !isMcq) return false;
+            if (f.type === "Theory" && isMcq) return false;
+        }
+
+        // Chapter filter
+        if (f.chapters.size > 0) {
+            const chs = normalizeArr(q.chapter, "General");
+            if (!chs.some(c => f.chapters.has(c))) return false;
+        }
+
+        // Batch filter
+        if (f.batches.size > 0) {
+            const bs = normalizeArr(q.examBatch, "Prof Exam");
+            if (!bs.some(b => f.batches.has(b))) return false;
+        }
+
+        // Attempt status filter
+        if (f.attempt !== "ALL") {
+            const att = QB.attempts[q.q];
+            if (f.attempt === "UNATTEMPTED" && att) return false;
+            if (f.attempt === "CORRECT" && (!att || !att.isCorrect)) return false;
+            if (f.attempt === "WRONG" && (!att || att.isCorrect)) return false;
+        }
+
+        // Saved filter
+        if (f.savedOnly) {
+            const uid = getUniqueQuestionId(q.q);
+            if (!MPPStore.bookmarks?.[uid]) return false;
+        }
+
+        // High-Yield repeated questions filter (cluster size >= 2)
+        if (f.highYieldOnly) {
+            const cnt = QB.repeatCountMap[String(q.q || "").trim().toUpperCase()] || 0;
+            if (cnt < 2) return false;
+        }
+
+        // Search keyword filter
+        if (term) {
+            const hay = [
+                q.q,
+                q.stem,
+                ...(Array.isArray(q.options) ? q.options : []),
+                ...normalizeArr(q.chapter, ""),
+                ...normalizeArr(q.examBatch, "")
+            ].join(" ").toLowerCase();
+            if (!hay.includes(term)) return false;
+        }
+
+        return true;
+    });
+
+    const badge = document.getElementById("q-count-badge");
+    if (badge) {
+        const noun = QB.mode === "clinical" ? "Case" : "Question";
+        const n = QB.activeDeck.length;
+        badge.textContent = `${n} ${noun}${n === 1 ? "" : "s"}`;
+    }
+
+    renderTableFresh();
+
+    if (QB.deckOpen) {
+        if (QB.deckIndex >= QB.activeDeck.length) QB.deckIndex = Math.max(0, QB.activeDeck.length - 1);
+        renderDeckCard();
+    }
+}
+
+// ============================================================================
+// 6. CHUNKED TABLE RENDERER (30 Rows/Chunk + Exact Original 6 Columns)
+// ============================================================================
+function renderTableRowHTML(rawQ, deckIdx) {
+    const q = getDisplayedQuestion(rawQ);
+    const isMcq = String(q.type || "").toUpperCase() === "MCQ";
+    const { cleanStem, marksBadge } = extractTheoryMarks(q.stem, q.type);
+    const chapters = normalizeArr(q.chapter, "General");
+    const batches = normalizeArr(q.examBatch, "Prof Exam");
+    const uniqueId = getUniqueQuestionId(q.q);
+    const isSaved = Boolean(MPPStore.bookmarks?.[uniqueId]);
+    const repeatCount = QB.repeatCountMap[String(q.q || "").trim().toUpperCase()] || 0;
+    const att = QB.attempts[q.q];
+    const showAnsBtn = canShowAnswers();
+    const showCardBtn = Boolean(q.ans_image && canShowAnswerCards());
+    const cardOpen = QB.ansCardOpenSet.has(`tbl_${q.q}`);
+
+    // MCQ interactive options inside Table Col 2
+    const mcqHtml = isMcq && Array.isArray(q.options) && q.options.length ? `
+        <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            ${q.options.map((opt, idx) => {
+                const letter = String.fromCharCode(65 + idx);
+                const cleanOpt = String(opt).replace(/^[A-E][\.\)\:]\s*/i, "");
+                let cls = "border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-dark-800/60 hover:border-brand-400 text-slate-700 dark:text-slate-200";
+                if (att) {
+                    if (letter === q.ans_key) cls = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 font-bold";
+                    else if (letter === att.chosen) cls = "border-red-500 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 font-bold";
+                }
+                return `
+                    <button type="button" data-tbl-mcq="${escapeHtml(q.q)}" data-letter="${letter}"
+                        class="text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${cls}">
+                        <span class="font-extrabold mr-1">${letter})</span>${escapeHtml(cleanOpt)}
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    ` : "";
+
+    // Col 4: Unit header above each chapter (Old UI Parity)
+    const chapterColHtml = chapters.map(ch => {
+        const unit = getUnitForChapter(ch);
+        return `
+            <div class="mb-1.5 last:mb-0">
+                ${unit ? `<div class="text-[10px] font-extrabold uppercase tracking-wider text-brand-600 dark:text-brand-400 leading-tight">${escapeHtml(unit)}</div>` : ""}
+                <div class="text-xs font-medium text-slate-700 dark:text-slate-200 leading-snug">${escapeHtml(ch)}</div>
+            </div>
+        `;
+    }).join("");
+
+    const batchColHtml = batches.map(b => `
+        <span class="inline-block px-2 py-0.5 mr-1 mb-1 rounded-md bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">${escapeHtml(b)}</span>
+    `).join("");
+
+    return `
+        <tr data-qid-row="${escapeHtml(q.q)}" class="hover:bg-slate-50/70 dark:hover:bg-dark-800/40 transition-colors align-top">
+            <!-- Col 1: Q No. -->
+            <td class="py-3.5 px-3 whitespace-nowrap">
+                <button type="button" data-open-deck-idx="${deckIdx}" title="Open in Deck Mode"
+                    class="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-dark-800 hover:bg-brand-100 dark:hover:bg-brand-900/40 text-xs font-extrabold text-slate-800 dark:text-slate-100 transition">
+                    ${escapeHtml(q.q)}
+                </button>
+                ${repeatCount >= 2 ? `<div class="mt-1.5"><span class="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 text-[10px] font-extrabold">🔥 ${repeatCount}&times;</span></div>` : ""}
+            </td>
+
+            <!-- Col 2: Question Content -->
+            <td class="py-3.5 px-4">
+                <div class="mpp-prose text-sm text-slate-800 dark:text-slate-100 leading-relaxed">${renderRich(cleanStem)}</div>
+                ${marksBadge ? `<div class="mt-1.5"><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-[11px] font-extrabold">${escapeHtml(marksBadge)}</span></div>` : ""}
+                ${q.image ? `<img src="${escapeHtml(q.image)}" alt="Question Figure" data-lightbox-src="${escapeHtml(q.image)}" loading="lazy" class="mt-2.5 max-h-48 rounded-xl border border-slate-200 dark:border-slate-700 cursor-zoom-in" />` : ""}
+                ${mcqHtml}
+                ${showCardBtn ? `
+                    <div class="mt-2.5">
+                        <button type="button" data-toggle-anscard="tbl_${escapeHtml(q.q)}" data-img="${escapeHtml(q.ans_image)}"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition">
+                            ${cardOpen ? "🙈 Hide Answer Card" : "👁️ View Answer Card"}
+                        </button>
+                        <div data-anscard-host="tbl_${escapeHtml(q.q)}"></div>
+                    </div>
+                ` : ""}
+            </td>
+
+            <!-- Col 3: Type -->
+            <td class="py-3.5 px-3 whitespace-nowrap">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-extrabold ${isMcq ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300" : "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300"}">
+                    ${isMcq ? "MCQ" : "Theory"}
+                </span>
+            </td>
+
+            <!-- Col 4: Unit & Chapter -->
+            <td class="py-3.5 px-3">${chapterColHtml}</td>
+
+            <!-- Col 5: Exam Batch -->
+            <td class="py-3.5 px-3">${batchColHtml}</td>
+
+            <!-- Col 6: Stacked Action Buttons (Exact Original Layout) -->
+            <td class="py-3.5 px-3 text-right">
+                <div class="flex flex-col items-end gap-1.5">
+                    ${showAnsBtn ? `
+                        <button type="button" data-view-ans="${escapeHtml(q.q)}"
+                            class="w-full max-w-[116px] px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold shadow-xs transition">
+                            View Answer
+                        </button>
+                    ` : ""}
+                    <a href="${escapeHtml(buildAiHelpUrl(q))}" target="_blank" rel="noopener noreferrer"
+                        class="w-full max-w-[116px] text-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-800 hover:border-brand-400 text-slate-700 dark:text-slate-200 text-[11px] font-bold transition">
+                        AI Help &nearr;
+                    </a>
+                    <button type="button" data-save-bmk="${escapeHtml(q.q)}"
+                        class="w-full max-w-[116px] px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition ${isSaved ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-800 text-slate-600 dark:text-slate-300 hover:border-amber-400"}">
+                        ${isSaved ? "🔖 Saved" : "🔖 Save"}
+                    </button>
+                    <button type="button" data-report-q="${escapeHtml(q.q)}"
+                        class="w-full max-w-[116px] px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition">
+                        🚩 Report
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function renderTableFresh() {
+    const tbody = document.getElementById("qTableBody");
+    const sentinel = document.getElementById("table-sentinel");
+    if (!tbody) return;
+
+    // Clean up any table panzoom instances
+    for (const k of QB._panzoomInstances.keys()) {
+        if (k.startsWith("tbl_")) destroyPanzoom(k);
+    }
+
+    QB.renderedRowCount = 0;
+
+    if (!MPPStore.user) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="py-16 px-4 text-center">
+                    <div class="text-3xl mb-2">🔒</div>
+                    <h3 class="font-display font-extrabold text-lg text-slate-900 dark:text-white mb-1">Sign In to View Questions</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Sign in with your student account to access the AIIMS university question bank.</p>
+                    <button id="tbl-signin-cta" type="button" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-sm">Sign In / Create Account</button>
+                </td>
+            </tr>`;
+        tbody.querySelector("#tbl-signin-cta")?.addEventListener("click", () => openAuthModal("login"));
+        sentinel?.classList.add("hidden");
         return;
     }
 
     if (!QB.activeDeck.length) {
-        container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400"><div class="text-4xl mb-3">${QB.filters.savedOnly ? "🔖" : "🔍"}</div><p class="font-bold text-slate-600 dark:text-slate-300">No questions match these filters.</p><button type="button" onclick="window.QBankEngine.resetAllFilters()" class="mt-3 px-5 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl border-none cursor-pointer">Reset Filters</button></div>`;
-        document.getElementById("deck-counter").textContent = "0/0";
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="py-14 px-4 text-center text-slate-400">
+                    <div class="text-2xl mb-1">🔍</div>
+                    <div class="text-sm font-semibold">No questions match your current filters.</div>
+                    <button id="tbl-empty-reset" type="button" class="mt-3 px-4 py-1.5 rounded-lg bg-slate-100 dark:bg-dark-800 text-xs font-bold text-brand-600 dark:text-brand-400">Reset All Filters</button>
+                </td>
+            </tr>`;
+        tbody.querySelector("#tbl-empty-reset")?.addEventListener("click", resetAllFilters);
+        sentinel?.classList.add("hidden");
         return;
     }
 
-    const anchorQ = QB.activeDeck[QB.deckIndex];
-    const displayedQ = QB.tp.overrideQid ? (findQuestionByQid(QB.tp.overrideQid) || anchorQ) : anchorQ;
-    const safeQ = escapeHtml(displayedQ.q);
-    document.getElementById("deck-counter").textContent = `${QB.deckIndex + 1}/${QB.activeDeck.length}`;
+    tbody.innerHTML = "";
+    appendNextTableChunk();
+    setupTableIntersectionObserver();
+}
 
-    const isAdmin = isUserAdmin();
-    const showTP = isAdmin || Boolean(MPPStore.featureFlags.showTeenPatti);
-    const showPG = isAdmin || Boolean(MPPStore.featureFlags.showCrossExamPG);
-    const showAnsCards = isAdmin || Boolean(MPPStore.featureFlags.showAnswerCards);
+function appendNextTableChunk() {
+    const tbody = document.getElementById("qTableBody");
+    const sentinel = document.getElementById("table-sentinel");
+    if (!tbody) return;
 
-    // Teen Patti Cluster Info
-    const clusterInfo = getActiveClusterInfo(anchorQ.q, displayedQ.q, (showPG && QB.tp.fanOpen) ? QB.tp.examFilter : null);
-    const seq = clusterInfo.sequence;
-    const curUp = String(displayedQ.q).trim().toUpperCase();
-    let pos = seq.findIndex(id => String(id).trim().toUpperCase() === curUp);
-    if (pos === -1) pos = 0;
+    const start = QB.renderedRowCount;
+    if (start >= QB.activeDeck.length) {
+        if (sentinel) sentinel.classList.add("hidden");
+        return;
+    }
 
-    const tpPillHtml = showTP ? `
-        <div class="mpp-cluster-pill ${QB.tp.fanOpen ? "pill-fan-active" : ""}"
-             data-tp-pill="${safeQ}" title="Tap to fan cards${isAdmin ? " • Long-press to link sub-topics" : ""}">
-            <button type="button" class="mpp-cluster-btn" onclick="window.QBankEngine.stepCluster(-1, event)" ${pos <= 0 ? "disabled" : ""}>&lt;</button>
-            <span class="mpp-cluster-count" id="mpp-pill-center-text" onclick="window.QBankEngine.toggleFanView(event)">${pos + 1}/${Math.max(1, seq.length)}</span>
-            <button type="button" class="mpp-cluster-btn" onclick="window.QBankEngine.stepCluster(1, event)" ${pos >= seq.length - 1 ? "disabled" : ""}>&gt;</button>
-        </div>` : "";
+    const end = Math.min(start + CHUNK_SIZE, QB.activeDeck.length);
+    const fragHtml = [];
+    for (let i = start; i < end; i++) {
+        fragHtml.push(renderTableRowHTML(QB.activeDeck[i], i));
+    }
 
-    const topicBarHtml = (showTP && (clusterInfo.topics.length > 1 || (clusterInfo.topics.length === 1 && clusterInfo.topics[0].title !== "Linked Concept")))
-        ? `<div class="mpp-topic-dims-bar">${clusterInfo.topics.map(t => {
-            const act = clusterInfo.activeTopic?.slug === t.slug;
-            const tSeq = filterSequenceByRole(t.qids, displayedQ.q);
-            return `<button type="button" class="mpp-topic-dim-pill ${act ? "active" : ""}" onclick="window.QBankEngine.switchTopic('${escapeHtml(t.slug)}')"><span>🏷️ ${escapeHtml(t.title)}</span><span class="mpp-topic-dim-count">${tSeq.length}</span></button>`;
-        }).join("")}</div>` : "";
-
-    const saved = isItemBookmarked(displayedQ.q);
-    const bmkCls = saved
-        ? "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700"
-        : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-
-    // Question Body + Options
-    const cleanStem = formatInlineMathAndBold(displayedQ.stem);
-    const imgHtml = (displayedQ.img && !cleanStem.includes(displayedQ.img))
-        ? `<img src="${escapeHtml(displayedQ.img)}" class="max-h-64 rounded-xl mx-auto my-3 border border-slate-200 dark:border-slate-700 cursor-zoom-in" alt="Question Image">`
-        : "";
-
-    let bodyHtml = "";
-    const pickedOpt = QB.userSolved[displayedQ.q];
-    if (displayedQ.type === "MCQ") {
-        const key = String(displayedQ.ans_key || "").trim().toUpperCase();
-        const optsHtml = (displayedQ.options || []).map((opt, i) => {
-            const l = OPTION_LETTERS[i] || "-";
-            let cls = "deck-option-btn group";
-            if (pickedOpt) {
-                if (l === key) cls += " deck-opt-correct";
-                else if (l === pickedOpt) cls += " deck-opt-wrong";
+    const temp = document.createElement("tbody");
+    temp.innerHTML = fragHtml.join("");
+    const addedRows = [...temp.children];
+    addedRows.forEach(tr => {
+        tbody.appendChild(tr);
+        enhanceRichContainer(tr);
+        // Re-mount open answer card if already toggled open
+        tr.querySelectorAll("[data-anscard-host]").forEach(host => {
+            const key = host.dataset.anscardHost;
+            if (QB.ansCardOpenSet.has(key)) {
+                const btn = tr.querySelector(`[data-toggle-anscard="${CSS.escape(key)}"]`);
+                if (btn?.dataset.img) mountAnswerCardPanzoom(host, key, btn.dataset.img);
             }
-            return `<button type="button" onclick="window.QBankEngine.answerDeckMCQ(this, '${safeQ}', '${l}', '${key}')" class="${cls}" ${pickedOpt ? "disabled" : ""}>
-                <div class="flex items-start gap-3">
-                    <span class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-xs font-extrabold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">${l}</span>
-                    <span class="text-sm font-medium pt-0.5 text-left">${formatInlineMathAndBold(opt)}</span>
-                </div>
-            </button>`;
-        }).join("");
+        });
+    });
 
-        const resetBtn = pickedOpt
-            ? `<div class="flex justify-end mb-2"><button type="button" onclick="window.QBankEngine.resetSingleAnswer('${safeQ}')" class="text-[11px] font-bold text-slate-500 hover:text-brand-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer">🔄 Reset Attempt</button></div>`
-            : "";
+    QB.renderedRowCount = end;
 
-        bodyHtml = `<div class="mb-4 text-lg font-bold text-slate-900 dark:text-white leading-snug text-left">${cleanStem}</div>${imgHtml}<div class="pb-1">${optsHtml}</div>${resetBtn}`;
-    } else {
-        bodyHtml = `<div class="mb-4"><div class="theory-question text-left">${cleanStem}</div>${imgHtml}</div>`;
-    }
-
-    // Answer Panel
-    const liveAns = QB.liveAnswers[displayedQ.q]?.text || "";
-    const canViewAns = isAdmin || (Boolean(liveAns) && QB.subjectSettings.showAnswers);
-    let ansPanelHtml = "";
-
-    if (canViewAns || isAdmin) {
-        const btnText = isAdmin ? (liveAns ? "✍️ Edit Answer" : "➕ Add Answer") : "👁️ View Answer";
-        const btnStyle = isAdmin && !liveAns
-            ? "border-dashed border-brand-300 text-brand-500 bg-transparent"
-            : "bg-brand-50 text-brand-600 border-brand-200 dark:bg-slate-800 dark:text-brand-400 dark:border-slate-700";
-
-        const panelInner = isAdmin
-            ? `<div class="flex flex-col gap-4">
-                <div class="bg-brand-50/50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-dashed border-brand-300 dark:border-brand-700">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase">Markdown Editor</label>
-                        <button type="button" onclick="window.MPPAdmin?.openMediaPickerFor('admin-ans-deck-${safeQ}', 'admin-preview-deck-${safeQ}', 'upload')" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-[10px] font-extrabold border-none cursor-pointer">📤 Upload / 🔍 Search Media</button>
-                    </div>
-                    <textarea id="admin-ans-deck-${safeQ}" oninput="window.QBankEngine.updateAnswerPreview('deck', '${safeQ}')" class="w-full p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm h-44 outline-none dark:text-white resize-y">${escapeHtml(liveAns)}</textarea>
-                    <button type="button" onclick="window.QBankEngine.publishAnswer('${safeQ}', this, 'deck')" class="mt-2.5 w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-extrabold rounded-xl border-none cursor-pointer uppercase">Publish Answer</button>
-                </div>
-                <div class="bg-white dark:bg-dark-surface rounded-xl border border-green-200 dark:border-green-900/50 overflow-hidden">
-                    <div class="px-3.5 py-2 bg-green-50 dark:bg-green-900/20 text-[10px] font-black text-green-600 uppercase">Live Student Preview</div>
-                    <div id="admin-preview-deck-${safeQ}" class="p-4 markdown-body">${renderContent(liveAns)}</div>
-                </div>
-            </div>`
-            : `<div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-xl border border-green-200 dark:border-green-900/30"><div class="markdown-body">${renderContent(liveAns)}</div></div>`;
-
-        const adminRowBtns = isAdmin ? `
-            <button type="button" onclick="window.MPPAdmin?.openEditQuestionModal('${safeQ}')" class="px-3.5 py-2.5 font-bold rounded-xl border border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 text-xs cursor-pointer">✏️ Edit</button>
-            <button type="button" onclick="window.MPPAdmin?.confirmDeleteQuestion('${safeQ}')" class="px-3.5 py-2.5 font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 text-xs cursor-pointer">🗑️</button>` : "";
-
-        ansPanelHtml = `
-            <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div class="flex gap-2">
-                    <button type="button" id="btn-deck-ans-${safeQ}" onclick="window.QBankEngine.toggleDeckAnswerPanel('${safeQ}')" class="flex-1 py-2.5 font-bold rounded-xl border text-xs uppercase cursor-pointer ${btnStyle}">${btnText}</button>
-                    ${adminRowBtns}
-                </div>
-                <div id="deck-ans-panel-${safeQ}" class="hidden mt-4">${panelInner}</div>
-            </div>`;
-    }
-
-    const ansImgHtml = (displayedQ.ans_image && showAnsCards)
-        ? `<div class="mt-3"><button type="button" onclick="document.getElementById('deck-ans-img-${safeQ}').classList.toggle('hidden')" class="w-full py-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-xs font-extrabold cursor-pointer">🖼️ Toggle Visual Answer Card</button><div id="deck-ans-img-${safeQ}" class="hidden mt-2"><img src="${escapeHtml(displayedQ.ans_image)}" class="max-h-96 mx-auto rounded-xl cursor-zoom-in" alt="Answer Card"></div></div>`
-        : "";
-
-    // Teen Patti Fan Overlay
-    const fanOverlayHtml = (showTP && QB.tp.fanOpen) ? buildTeenPattiOverlayHTML(anchorQ, displayedQ, clusterInfo, pos, showPG) : "";
-
-    const chs = Array.isArray(displayedQ.chapter) ? displayedQ.chapter : [displayedQ.chapter];
-    const idDisplay = displayedQ.q !== anchorQ.q ? `${escapeHtml(anchorQ.q)} → ${safeQ}` : safeQ;
-
-    container.innerHTML = `
-        <div class="deck-card glass-card w-full h-full flex flex-col question-card" data-qid="${safeQ}">
-            <div class="mb-3 flex justify-between items-center gap-1.5 flex-nowrap shrink-0">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="px-2.5 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-[11px] font-extrabold border border-brand-200 dark:border-brand-800 whitespace-nowrap">${idDisplay}</span>
-                    ${tpPillHtml}
-                </div>
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="button" id="bmk-deck-${safeQ}" onclick="window.QBankEngine.toggleBookmark('${safeQ}')" class="px-2.5 py-1 rounded-lg ${bmkCls} text-[11px] font-bold border cursor-pointer whitespace-nowrap">${saved ? "⭐ Saved" : "🔖 Save"}</button>
-                    <button type="button" onclick="window.QBankEngine.askAI('${safeQ}')" class="px-2.5 py-1 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-[11px] font-bold border border-green-500/20 cursor-pointer whitespace-nowrap">Ask AI</button>
-                </div>
-            </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                ${topicBarHtml}
-                <div class="${QB.tp.fanOpen ? "mpp-body-under-fan" : ""}">
-                    ${bodyHtml}
-                    ${ansImgHtml}
-                    ${ansPanelHtml}
-                </div>
-                ${fanOverlayHtml}
-            </div>
-            <div class="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5 shrink-0">
-                ${chs.map(c => `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 dark:border-slate-700">${escapeHtml(c)}</span>`).join("")}
-            </div>
-        </div>`;
-    container.scrollTop = 0;
-
-    if (QB.tp.fanOpen) attachFanSwipeInteractions();
-
-    // Admin-only hooks: Visual Preview Toolbar + Long-Press Cross-Linker
-    if (isAdmin && window.MPPAdmin) {
-        const pv = document.getElementById(`admin-preview-deck-${displayedQ.q}`);
-        if (pv && window.MPPAdmin.attachPreviewVisualToolbar) {
-            window.MPPAdmin.attachPreviewVisualToolbar(pv, `admin-ans-deck-${displayedQ.q}`);
-        }
-        const pillEl = container.querySelector("[data-tp-pill]");
-        if (pillEl && window.MPPAdmin.bindSafeLongPress && window.MPPAdmin.openCrossLinkModal) {
-            window.MPPAdmin.bindSafeLongPress(pillEl, () => window.MPPAdmin.openCrossLinkModal(displayedQ.q), 500);
+    if (sentinel) {
+        if (end < QB.activeDeck.length) {
+            sentinel.textContent = `Showing ${end} of ${QB.activeDeck.length} — scroll for more...`;
+            sentinel.classList.remove("hidden");
+        } else {
+            sentinel.classList.add("hidden");
         }
     }
+}
+
+function setupTableIntersectionObserver() {
+    if (QB._observer) QB._observer.disconnect();
+    const sentinel = document.getElementById("table-sentinel");
+    if (!sentinel || !("IntersectionObserver" in window)) return;
+
+    QB._observer = new IntersectionObserver((entries) => {
+        if (entries.some(e => e.isIntersecting)) {
+            appendNextTableChunk();
+        }
+    }, { rootMargin: "250px" });
+    QB._observer.observe(sentinel);
+}
+
+// Single Delegated Click Handler for Table Rows
+function bindTableDelegation() {
+    const tbody = document.getElementById("qTableBody");
+    if (!tbody) return;
+
+    tbody.addEventListener("click", async (e) => {
+        const mcqBtn = e.target.closest("[data-tbl-mcq]");
+        if (mcqBtn) {
+            const qId = mcqBtn.dataset.tblMcq;
+            const letter = mcqBtn.dataset.letter;
+            const q = getDisplayedQuestion(QB.qnaData.find(x => x.q === qId));
+            if (!q) return;
+            saveLocalAttempt(qId, letter, q.ans_key);
+            // Update just this row in-place
+            const tr = mcqBtn.closest("tr");
+            const deckIdx = QB.activeDeck.findIndex(x => x.q === qId);
+            if (tr && deckIdx !== -1) {
+                const temp = document.createElement("tbody");
+                temp.innerHTML = renderTableRowHTML(QB.activeDeck[deckIdx], deckIdx);
+                const newTr = temp.firstElementChild;
+                tr.replaceWith(newTr);
+                enhanceRichContainer(newTr);
+            }
+            return;
+        }
+
+        const deckBtn = e.target.closest("[data-open-deck-idx]");
+        if (deckBtn) {
+            openDeckAt(Number(deckBtn.dataset.openDeckIdx || 0));
+            return;
+        }
+
+        const viewAnsBtn = e.target.closest("[data-view-ans]");
+        if (viewAnsBtn) {
+            openAnswerModal(viewAnsBtn.dataset.viewAns);
+            return;
+        }
+
+        const cardBtn = e.target.closest("[data-toggle-anscard]");
+        if (cardBtn) {
+            const key = cardBtn.dataset.toggleAnscard;
+            const img = cardBtn.dataset.img;
+            const host = tbody.querySelector(`[data-anscard-host="${CSS.escape(key)}"]`);
+            if (QB.ansCardOpenSet.has(key)) {
+                QB.ansCardOpenSet.delete(key);
+                destroyPanzoom(key);
+                if (host) host.innerHTML = "";
+                cardBtn.textContent = "👁️ View Answer Card";
+            } else {
+                QB.ansCardOpenSet.add(key);
+                cardBtn.textContent = "🙈 Hide Answer Card";
+                if (host) mountAnswerCardPanzoom(host, key, img);
+            }
+            return;
+        }
+
+        const saveBtn = e.target.closest("[data-save-bmk]");
+        if (saveBtn) {
+            await handleBookmarkToggle(saveBtn.dataset.saveBmk);
+            return;
+        }
+
+        const repBtn = e.target.closest("[data-report-q]");
+        if (repBtn) {
+            openReportModal(repBtn.dataset.reportQ);
+        }
+    });
 }
 
 // ============================================================================
-// 6. TEEN PATTI SUB-TOPIC CLUSTERS & FAN RENDERING
+// 7. MODEL ANSWER MODAL (On-Demand Single-Answer Fetch + Admin Edit Hook)
 // ============================================================================
-function inferExamFromQid(qid) {
-    const clean = String(qid || "").trim().toUpperCase();
-    if (QB.qnaData.some(x => String(x.q).trim().toUpperCase() === clean)) return "aiims-profs";
-    const ext = QB.tp.externalLookup[clean] || QB.tp.sharedCache[clean];
-    if (ext?.examKey) return ext.examKey;
-    if (clean.startsWith("INI") || clean.startsWith("IN")) return "inicet";
-    if (clean.startsWith("CMS") || clean.startsWith("UPSC")) return "upsc-cms";
-    if (clean.startsWith("FMGE") || clean.startsWith("F")) return "fmge";
-    if (clean.startsWith("N")) return "neet-pg";
-    return "aiims-profs";
-}
+export async function openAnswerModal(qId) {
+    const rawQ = QB.qnaData.find(x => String(x.q) === String(qId));
+    const q = getDisplayedQuestion(rawQ);
+    if (!q) return;
 
-function getExamColor(qid) {
-    const ex = inferExamFromQid(qid);
-    if (ex === "neet-pg") return "#2563eb";
-    if (ex === "inicet") return "#9333ea";
-    if (ex === "upsc-cms") return "#eab308";
-    if (ex === "fmge") return "#22c55e";
-    return "#0ea5e9";
-}
-
-function ingestCrossLinks(val) {
-    const clusters = {};
-    const rawC = val.clusters || {};
-    Object.keys(rawC).forEach(slug => {
-        const c = rawC[slug];
-        if (!c?.qids) return;
-        const qids = (Array.isArray(c.qids) ? c.qids : Object.values(c.qids)).map(x => String(x).trim()).filter(Boolean);
-        if (qids.length) clusters[slug] = { slug, title: String(c.title || "Linked Concept").trim(), qids };
+    const modal = showModal({
+        id: "mpp-answer-modal",
+        size: "lg",
+        title: `Model Answer — ${q.q}`,
+        bodyHtml: `
+            <div class="py-10 text-center text-slate-400">
+                <div class="inline-block w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                <div class="text-xs font-semibold">Loading model answer...</div>
+            </div>
+        `,
+        footerHtml: isUserAdmin()
+            ? `<button id="ans-modal-edit-btn" type="button" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold">✏️ Edit Answer</button>`
+            : ""
     });
 
-    const nodeTopics = {};
-    const rawNT = val.node_topics || {};
-    Object.keys(rawNT).forEach(k => {
-        const arr = (Array.isArray(rawNT[k]) ? rawNT[k] : Object.values(rawNT[k] || {})).filter(s => Boolean(clusters[s]));
-        if (arr.length) nodeTopics[String(k).trim().toUpperCase()] = arr;
-    });
+    let ansText = QB.liveAnswers?.[q.q]?.text || "";
+    if (!ansText && !isUserAdmin()) {
+        try {
+            ansText = await getAnswerOnDemand(q.q);
+            if (ansText) QB.liveAnswers[q.q] = { text: ansText };
+        } catch (_) {}
+    }
 
-    const nodes = {};
-    const rawN = val.nodes || {};
-    Object.keys(rawN).forEach(k => {
-        const up = String(k).trim().toUpperCase();
-        const arr = (Array.isArray(rawN[k]) ? rawN[k] : Object.values(rawN[k] || {})).map(x => String(x).trim()).filter(Boolean);
-        nodes[up] = arr;
-        if (!nodeTopics[up] && arr.length > 1) {
-            const slug = "cluster-" + arr[0].toLowerCase().replace(/[^a-z0-9]+/g, "");
-            if (!clusters[slug]) clusters[slug] = { slug, title: "Linked Concept", qids: arr };
-            nodeTopics[up] = [slug];
+    const correctKey = String(q.ans_key || "").trim().toUpperCase();
+    const isMcq = String(q.type || "").toUpperCase() === "MCQ";
+    const correctIdx = correctKey ? correctKey.charCodeAt(0) - 65 : -1;
+    const correctLine = (isMcq && Array.isArray(q.options) && correctIdx >= 0 && q.options[correctIdx])
+        ? `${correctKey}) ${String(q.options[correctIdx]).replace(/^[A-E][\.\)\:]\s*/i, "")}`
+        : (correctKey ? `Key: ${correctKey}` : "");
+
+    const bodyEl = modal.querySelector(".overflow-y-auto");
+    if (!bodyEl) return;
+
+    bodyEl.innerHTML = `
+        <div class="space-y-4">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-dark-800/70 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
+                ${renderRich(q.stem)}
+            </div>
+            ${correctLine ? `
+                <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm font-extrabold">
+                    ✓ Correct Answer: ${escapeHtml(correctLine)}
+                </div>
+            ` : ""}
+            <div class="mpp-prose text-sm leading-relaxed text-slate-800 dark:text-slate-100">
+                ${ansText
+                    ? renderRich(ansText)
+                    : `<div class="py-6 text-center text-slate-400 italic text-xs">No written model answer uploaded for ${escapeHtml(q.q)} yet.</div>`}
+            </div>
+        </div>
+    `;
+    enhanceRichContainer(bodyEl);
+
+    modal.querySelector("#ans-modal-edit-btn")?.addEventListener("click", () => {
+        closeModal("mpp-answer-modal");
+        if (window.MPPAdmin?.openAnswerEditor) {
+            window.MPPAdmin.openAnswerEditor(q.q, ansText);
+        } else {
+            showToast("Admin editor still loading...", "info");
         }
     });
+}
 
-    QB.tp.clusters = clusters;
-    QB.tp.nodeTopics = nodeTopics;
-    QB.tp.nodes = nodes;
-    QB.tp.history = (Array.isArray(val.history) ? val.history : Object.values(val.history || {})).filter(Boolean).slice(0, 10);
+// ============================================================================
+// 8. BOOKMARK TOGGLE, REPORT MODAL & PERSONAL MNEMONIC NOTES
+// ============================================================================
+async function handleBookmarkToggle(qId) {
+    if (!MPPStore.user) {
+        openAuthModal("login");
+        return;
+    }
+    const rawQ = QB.qnaData.find(x => String(x.q) === String(qId));
+    const q = getDisplayedQuestion(rawQ);
+    if (!q) return;
 
-    if (val.shared_q_cache && typeof val.shared_q_cache === "object") {
-        QB.tp.sharedCache = val.shared_q_cache;
-        Object.values(val.shared_q_cache).forEach(rec => {
-            if (rec?.q && rec.explanation && !QB.liveAnswers[rec.q]) {
-                QB.liveAnswers[rec.q] = { text: rec.explanation };
+    const uniqueId = getUniqueQuestionId(q.q);
+    const isCurrentlySaved = Boolean(MPPStore.bookmarks?.[uniqueId]);
+
+    try {
+        const saved = await saveOrRemoveBookmark(uniqueId, {
+            q: q.q,
+            stem: q.stem,
+            type: q.type,
+            options: Array.isArray(q.options) ? q.options : null,
+            ans_key: q.ans_key || "",
+            image: q.image || "",
+            ans_image: q.ans_image || "",
+            chapter: normalizeArr(q.chapter, "General").join(", "),
+            subject: QB.subjectName,
+            mode: QB.mode,
+            answer: QB.liveAnswers?.[q.q]?.text || ""
+        }, isCurrentlySaved);
+
+        showToast(saved ? `Saved ${q.q} to Bookmarks` : `Removed ${q.q} from Bookmarks`, "success", 2000);
+        if (QB.filters.savedOnly) {
+            applyFiltersAndRender();
+        } else {
+            // Update just the affected table row + deck if open
+            const tr = document.querySelector(`tr[data-qid-row="${CSS.escape(q.q)}"]`);
+            const deckIdx = QB.activeDeck.findIndex(x => x.q === q.q);
+            if (tr && deckIdx !== -1) {
+                const temp = document.createElement("tbody");
+                temp.innerHTML = renderTableRowHTML(QB.activeDeck[deckIdx], deckIdx);
+                const newTr = temp.firstElementChild;
+                tr.replaceWith(newTr);
+                enhanceRichContainer(newTr);
             }
-        });
+            if (QB.deckOpen) renderDeckCard();
+        }
+    } catch (err) {
+        showToast(err.message || "Could not update bookmark.", "error");
     }
-
-    if (QB.isDeckMode) renderDeckCard();
 }
 
-function filterSequenceByRole(rawSeq, fallbackQid, examFilter = null) {
-    const fb = String(fallbackQid || "").trim();
-    if (!Array.isArray(rawSeq) || !rawSeq.length) return fb ? [fb] : [];
-    const canSeePG = isUserAdmin() || Boolean(MPPStore.featureFlags.showCrossExamPG);
-    if (!canSeePG) {
-        const aiimsOnly = rawSeq.filter(id => inferExamFromQid(id) === "aiims-profs");
-        return aiimsOnly.length ? aiimsOnly : (fb ? [fb] : []);
+export function openReportModal(qId) {
+    if (!MPPStore.user) {
+        openAuthModal("login");
+        return;
     }
-    if (examFilter && examFilter !== "all") {
-        return rawSeq.filter(id => inferExamFromQid(id) === examFilter);
-    }
-    return [...rawSeq];
-}
-
-function getActiveClusterInfo(anchorQid, displayedQid, examFilter = null) {
-    const seen = new Set();
-    const topics = [];
-    const canSeePG = isUserAdmin() || Boolean(MPPStore.featureFlags.showCrossExamPG);
-
-    [displayedQid, anchorQid].forEach(qid => {
-        if (!qid) return;
-        const slugs = QB.tp.nodeTopics[String(qid).trim().toUpperCase()] || [];
-        slugs.forEach(s => {
-            const c = QB.tp.clusters[s];
-            if (!c || seen.has(s)) return;
-            if (!canSeePG && !c.qids.some(id => inferExamFromQid(id) === "aiims-profs")) return;
-            seen.add(s);
-            topics.push(c);
-        });
-    });
-
-    const fb = displayedQid || anchorQid;
-    if (!topics.length) return { topics: [], activeTopic: null, sequence: fb ? [String(fb).trim()] : [] };
-    let active = topics.find(t => t.slug === QB.tp.activeTopicSlug) || topics[0];
-    QB.tp.activeTopicSlug = active.slug;
-    return { topics, activeTopic: active, sequence: filterSequenceByRole(active.qids, fb, examFilter) };
-}
-
-function buildFanStageHTML(deckKey, qidList, colorOverride, activePos, topicTitle) {
-    const fbColor = (!colorOverride || colorOverride === "auto") ? "#0ea5e9" : colorOverride;
-    if (!qidList.length) {
-        return `<div class="tp-fan-stage" data-deck-key="${deckKey}" style="height:190px;"><div class="tp-empty-fan-box" style="border-color:${fbColor};">No linked cards in this exam</div></div>`;
-    }
-
-    const total = qidList.length;
-    const safePos = Math.min(Math.max(0, activePos), total - 1);
-    QB.tp.fanPosMap[deckKey] = safePos;
-
-    const lCnt = safePos, rCnt = total - 1 - safePos;
-    const lAng = lCnt ? Math.min(48, lCnt * 10) / lCnt : 0;
-    const lShf = lCnt ? Math.min(22, 110 / lCnt) : 0;
-    const rAng = rCnt ? Math.min(48, rCnt * 10) / rCnt : 0;
-    const rShf = rCnt ? Math.min(22, 110 / rCnt) : 0;
-
-    const cards = qidList.map((qid, idx) => {
-        const qObj = findQuestionByQid(qid) || { q: qid, type: "Theory", stem: `Question ${qid}`, examBatch: inferExamFromQid(qid).toUpperCase() };
-        const color = (!colorOverride || colorOverride === "auto") ? getExamColor(qid) : colorOverride;
-        const off = idx - safePos, d = Math.abs(off);
-        const tr = off < 0
-            ? `rotate(${-(d * lAng).toFixed(2)}deg) translateX(${-(d * lShf).toFixed(2)}px) translateY(${(d * 3).toFixed(2)}px)`
-            : off > 0
-                ? `rotate(${(d * rAng).toFixed(2)}deg) translateX(${(d * rShf).toFixed(2)}px) translateY(${(d * 3).toFixed(2)}px)`
-                : "translate3d(0,0,0)";
-
-        const stemText = escapeHtml(stripHtml(qObj.stem) || qid);
-        const batch = escapeHtml(Array.isArray(qObj.examBatch) ? qObj.examBatch[0] : (qObj.examBatch || QB.collegeName));
-        const safeId = escapeHtml(qid);
-
-        const optsMini = (qObj.type === "MCQ" && Array.isArray(qObj.options))
-            ? qObj.options.slice(0, 4).map((o, i) => `<div class="tp-mini-opt"><span class="tp-mini-opt-char">${OPTION_LETTERS[i]}</span><span class="truncate">${escapeHtml(stripHtml(o))}</span></div>`).join("")
-            : `<div class="p-2 rounded-lg text-[10px] border border-dashed" style="border-color:${color};">📝 Theory / Clinical — Tap to open</div>`;
-
-        return `
-        <div class="tp-patti" data-qid="${safeId}" data-idx="${idx}" data-color="${color}" style="border-color:${color}; transform:${tr}; z-index:${100 - d};">
-            <div style="opacity:${off === 0 ? "1" : "0.25"}; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+    const modal = showModal({
+        id: "mpp-report-modal",
+        size: "sm",
+        title: `🚩 Report Issue — ${qId}`,
+        bodyHtml: `
+            <form id="mpp-report-form" class="space-y-3.5">
                 <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                        <span class="px-2 py-0.5 rounded-full text-white text-[10px] font-extrabold" style="background:${color};">${idx + 1}/${total}</span>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-extrabold border" style="border-color:${color}; color:${color};">${safeId}</span>
-                    </div>
-                    ${topicTitle && topicTitle !== "Linked Concept" ? `<div class="text-[9.5px] font-extrabold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded mb-1 truncate">🏷️ ${escapeHtml(topicTitle)}</div>` : ""}
-                    <div class="tp-center-stem">${stemText}</div>
+                    <label class="block text-xs font-bold mb-1">Issue Type</label>
+                    <select name="reportType" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800 text-sm">
+                        <option value="Wrong Answer Key">Wrong Answer Key / Explanation</option>
+                        <option value="Typo / Formatting">Typo or Formatting Error</option>
+                        <option value="Wrong Chapter / Batch">Wrong Chapter or Exam Batch</option>
+                        <option value="Missing / Broken Image">Missing or Broken Image</option>
+                        <option value="Duplicate Question">Duplicate Question</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
-                <div class="flex flex-col gap-1 my-1">${optsMini}</div>
-                <div class="pt-1 border-t border-dashed border-slate-300 dark:border-slate-700 text-center">
-                    <div class="text-[9.5px] font-extrabold truncate" style="color:${color};">${batch}</div>
-                    <div class="text-[9px] text-slate-400">Tap card to open</div>
+                <div>
+                    <label class="block text-xs font-bold mb-1">Details (optional)</label>
+                    <textarea name="description" rows="3" maxlength="600" placeholder="Briefly describe what needs fixing..."
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800 text-sm"></textarea>
                 </div>
-            </div>
-        </div>`;
-    }).join("");
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold shadow-sm">Submit Report</button>
+            </form>
+        `
+    });
 
-    return `<div class="tp-fan-stage" data-deck-key="${deckKey}">${cards}</div>`;
-}
-
-function buildTeenPattiOverlayHTML(anchorQ, displayedQ, clusterInfo, pos, showPG) {
-    const title = clusterInfo.activeTopic?.title || "";
-    const mainFan = buildFanStageHTML("main", clusterInfo.sequence, "auto", pos, title);
-
-    let extended = "";
-    if (showPG) {
-        const fullSeq = getActiveClusterInfo(anchorQ.q, displayedQ.q, "all").sequence;
-        const exams = [
-            ["aiims-profs", "AIIMS PROFS PYQ", "#0ea5e9"],
-            ["neet-pg", "NEET-PG", "#2563eb"],
-            ["inicet", "INI-CET", "#9333ea"],
-            ["upsc-cms", "UPSC CMS", "#eab308"],
-            ["fmge", "FMGE", "#22c55e"]
-        ];
-        const f = QB.tp.examFilter;
-        const sw = [["all", "All"], ["aiims-profs", "AIIMS"], ["neet-pg", "NEET"], ["inicet", "INI"], ["upsc-cms", "CMS"], ["fmge", "FMGE"]]
-            .map(([k, lbl]) => `<button type="button" class="tp-switch-btn ${f === k ? "active" : ""}" onclick="window.QBankEngine.setTPExamFilter('${k}')">${lbl}</button>`).join("");
-
-        extended = `
-            <div class="w-full max-w-[560px] mx-auto mt-2">
-                <div class="tp-admin-switcher">${sw}</div>
-                ${exams.map(([key, label, col]) => {
-                    const list = fullSeq.filter(id => inferExamFromQid(id) === key);
-                    return `${buildFanStageHTML("ex-" + key, list, col, QB.tp.fanPosMap["ex-" + key] || 0, title)}<div class="tp-exam-label-box">${label}</div>`;
-                }).join("")}
-            </div>`;
-    }
-
-    return `<div class="tp-parent-overlay" onclick="if(event.target===this) window.QBankEngine.toggleFanView()">${mainFan}${extended}</div>`;
-}
-
-function attachFanSwipeInteractions() {
-    document.querySelectorAll(".tp-fan-stage").forEach(stage => {
-        const key = stage.dataset.deckKey;
-        let sx = 0, sy = 0, dx = 0, dy = 0, dragging = false;
-
-        const start = (x, y) => { sx = x; sy = y; dx = 0; dy = 0; dragging = true; };
-        const move = (x, y) => { if (dragging) { dx = x - sx; dy = y - sy; } };
-        const end = (target) => {
-            if (!dragging) return;
-            dragging = false;
-            const cards = stage.querySelectorAll(".tp-patti");
-            if (!cards.length) return;
-            const cur = QB.tp.fanPosMap[key] || 0;
-            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35) {
-                const next = dx < -35 ? Math.min(cards.length - 1, cur + 1) : Math.max(0, cur - 1);
-                if (next !== cur) {
-                    QB.tp.fanPosMap[key] = next;
-                    if (key === "main") QB.tp.overrideQid = cards[next]?.dataset.qid || null;
-                    renderDeckCard();
-                }
-                return;
-            }
-            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                const card = target?.closest?.(".tp-patti");
-                if (card?.dataset.qid) {
-                    QB.tp.overrideQid = card.dataset.qid;
-                    QB.tp.fanOpen = false;
-                    renderDeckCard();
-                }
-            }
-        };
-
-        stage.addEventListener("touchstart", e => e.touches[0] && start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-        stage.addEventListener("touchmove", e => e.touches[0] && move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-        stage.addEventListener("touchend", e => end(e.target));
-        stage.addEventListener("mousedown", e => start(e.clientX, e.clientY));
-        stage.addEventListener("mousemove", e => move(e.clientX, e.clientY));
-        stage.addEventListener("mouseup", e => end(e.target));
+    modal.querySelector("#mpp-report-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const btn = e.target.querySelector("button[type='submit']");
+        btn.disabled = true; btn.textContent = "Submitting...";
+        try {
+            await submitQuestionReport({
+                qId,
+                reportType: fd.get("reportType"),
+                description: fd.get("description")
+            });
+            closeModal("mpp-report-modal");
+            showToast("Thank you! Report sent to Admin queue.", "success");
+        } catch (err) {
+            showToast(err.message || "Failed to send report.", "error");
+            btn.disabled = false; btn.textContent = "Submit Report";
+        }
     });
 }
 
 // ============================================================================
-// 7. SOLVED PROGRESS & RESUME PRACTICE ENGINE
+// 9. DECK MODE (Smooth Teen Patti Wings + Edge-Safe Android Swipe + Notes)
 // ============================================================================
-function getSolvedStorageKeys() {
-    const uid = MPPStore.user?.uid || "guest";
-    const { college, settingsKey } = getVaultKeys();
-    return {
-        uid,
-        cacheKey: `mpp_solved_${uid}_${college}_${settingsKey}`,
-        indexKey: `mpp_index_${uid}_${college}_${settingsKey}`,
-        fbSolvedPath: `users/${uid}/solved/${college}/${settingsKey}`,
-        fbIndexPath: `users/${uid}/last_index/${college}/${settingsKey}`
-    };
-}
-
-function saveCurrentDeckIndex() {
-    const { uid, indexKey, fbIndexPath } = getSolvedStorageKeys();
-    if (!QB.activeDeck.length || QB.activeDeck.length !== QB.displayData.length) return;
-    localStorage.setItem(indexKey, String(QB.deckIndex));
-    if (uid !== "guest") set(ref(db, fbIndexPath), QB.deckIndex).catch(() => {});
-}
-
-async function loadSolvedAndResumeState() {
-    const { uid, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = getSolvedStorageKeys();
-    try { QB.userSolved = JSON.parse(localStorage.getItem(cacheKey) || "{}") || {}; } catch (_) { QB.userSolved = {}; }
-    let savedIndex = parseInt(localStorage.getItem(indexKey), 10);
-
-    if (uid !== "guest") {
-        const [sSnap, iSnap] = await Promise.all([
-            get(ref(db, fbSolvedPath)).catch(() => null),
-            get(ref(db, fbIndexPath)).catch(() => null)
-        ]);
-        if (sSnap && sSnap.exists()) {
-            const cloud = sSnap.val() || {};
-            Object.keys(cloud).forEach(qid => { if (cloud[qid]?.ans) QB.userSolved[qid] = cloud[qid].ans; });
-            localStorage.setItem(cacheKey, JSON.stringify(QB.userSolved));
-        }
-        if ((isNaN(savedIndex) || savedIndex <= 0) && iSnap && iSnap.exists()) {
-            const cIdx = parseInt(iSnap.val(), 10);
-            if (!isNaN(cIdx) && cIdx > 0) { savedIndex = cIdx; localStorage.setItem(indexKey, String(cIdx)); }
-        }
+export function openDeckAt(index = 0) {
+    if (!MPPStore.user) {
+        openAuthModal("login");
+        return;
+    }
+    if (!QB.activeDeck.length) {
+        showToast("No questions in current filter to review.", "info");
+        return;
     }
 
-    QB.deckStatus = {};
-    Object.keys(QB.userSolved).forEach(qid => {
-        const q = findQuestionByQid(qid);
-        if (q) {
-            const corr = String(QB.userSolved[qid]).toUpperCase() === String(q.ans_key || "A").toUpperCase();
-            QB.deckStatus[qid] = corr ? "correct" : "wrong";
-        }
-    });
+    QB.deckIndex = Math.max(0, Math.min(index, QB.activeDeck.length - 1));
+    QB.deckOpen = true;
 
-    if (QB.isDeckMode) renderDeckCard();
+    const layer = document.getElementById("deck-layer");
+    layer?.classList.add("open");
+    document.body.style.overflow = "hidden";
 
-    if (!QB.resumeChecked && QB.displayData.length > 0 && MPPStore.accessLevel !== "guest") {
-        QB.resumeChecked = true;
-        if (!isNaN(savedIndex) && savedIndex > 0 && savedIndex < QB.displayData.length) {
-            QB.tempSavedIndex = savedIndex;
-            const num = document.getElementById("resume-q-num");
-            if (num) num.textContent = String(savedIndex + 1);
-            const ov = document.getElementById("resume-prompt-overlay");
-            if (ov) ov.style.display = "flex";
-        }
+    renderDeckCard();
+    pushOverlayHistory("deck", (fromPop) => closeDeck(fromPop));
+}
+
+export function closeDeck(fromPopState = false) {
+    if (!QB.deckOpen) return;
+    QB.deckOpen = false;
+    QB.deckFilterOpen = false;
+
+    document.getElementById("deck-layer")?.classList.remove("open");
+    document.getElementById("deck-filter-drawer")?.classList.add("hidden");
+    const eye = document.getElementById("floating-eye-btn");
+    if (eye) eye.style.display = "none";
+    document.body.style.overflow = "";
+
+    for (const k of QB._panzoomInstances.keys()) {
+        if (k.startsWith("deck_")) destroyPanzoom(k);
     }
+    popOverlayHistory("deck", fromPopState);
 }
 
-// ============================================================================
-// 8. SHARED DOM & CSS INJECTION FOR DECK + RESUME MODAL
-// ============================================================================
-function injectQBankStyles() {
-    if (document.getElementById("mpp-qbank-css")) return;
-    document.head.insertAdjacentHTML("beforeend", `
-    <style id="mpp-qbank-css">
-        .mpp-cluster-pill {
-            border-radius: 999px; border: 1.5px solid #0284c7; background: #f0f9ff; color: #0369a1;
-            font-weight: 800; font-size: 11.5px; display: inline-flex; align-items: center; overflow: hidden; user-select: none;
-        }
-        html.dark .mpp-cluster-pill { background: #0f172a; border-color: #38bdf8; color: #38bdf8; }
-        .mpp-cluster-pill.pill-fan-active { background: #0284c7 !important; color: #fff !important; }
-        .mpp-cluster-btn { background: transparent; border: none; color: inherit; font-weight: 900; padding: 3px 8px; cursor: pointer; }
-        .mpp-cluster-btn:disabled { opacity: 0.35; cursor: default; }
-        .mpp-cluster-count { padding: 3px 8px; cursor: pointer; border-left: 1px solid rgba(14,165,233,0.3); border-right: 1px solid rgba(14,165,233,0.3); }
-        .mpp-topic-dims-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; padding: 6px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
-        html.dark .mpp-topic-dims-bar { background: rgba(15,23,42,0.7); border-color: #1e293b; }
-        .mpp-topic-dim-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1.5px solid #cbd5e1; background: #fff; color: #475569; font-size: 11px; font-weight: 800; cursor: pointer; }
-        html.dark .mpp-topic-dim-pill { background: #1e293b; border-color: #334155; color: #cbd5e1; }
-        .mpp-topic-dim-pill.active { background: #0284c7; border-color: #0284c7; color: #fff; }
-        .mpp-topic-dim-count { font-size: 9.5px; padding: 1px 6px; border-radius: 999px; background: rgba(0,0,0,0.08); }
-        .mpp-body-under-fan { opacity: 0.25; filter: blur(0.4px); pointer-events: none; }
-        .tp-parent-overlay { position: relative; margin-top: 8px; z-index: 60; display: flex; flex-direction: column; align-items: center; }
-        .tp-fan-stage { position: relative; width: 100%; max-width: 520px; height: 390px; margin: 8px auto 16px; display: flex; align-items: center; justify-content: center; touch-action: pan-y; user-select: none; }
-        .tp-patti { position: absolute; width: 235px; height: 340px; background: #fff; color: #0f172a; border: 2.5px solid #0ea5e9; border-radius: 14px; box-shadow: 0 12px 28px rgba(15,23,42,0.22); padding: 12px; cursor: pointer; transform-origin: 50% 105%; transition: transform 0.25s ease; overflow: hidden; }
-        html.dark .tp-patti { background: #0f172a; color: #f8fafc; }
-        .tp-center-stem { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; font-size: 11.5px; font-weight: 600; line-height: 1.35; text-align: left; }
-        .tp-mini-opt { display: flex; align-items: center; gap: 5px; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; font-size: 10px; font-weight: 600; overflow: hidden; }
-        html.dark .tp-mini-opt { background: #1e293b; border-color: #334155; color: #cbd5e1; }
-        .tp-mini-opt-char { width: 15px; height: 15px; border-radius: 50%; background: #e2e8f0; color: #0f172a; font-size: 9px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .tp-admin-switcher { border: 2px solid #ea580c; border-radius: 10px; background: #fff7ed; padding: 6px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 18px; }
-        html.dark .tp-admin-switcher { background: #1e293b; }
-        .tp-switch-btn { background: #fff; border: 1.5px solid #fdba74; color: #9a3412; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
-        .tp-switch-btn.active { background: #ea580c; color: #fff; border-color: #ea580c; }
-        .tp-exam-label-box { border: 2px solid #ea580c; background: #fff; color: #0f172a; font-weight: 800; font-size: 11px; padding: 4px 18px; border-radius: 6px; margin: -6px auto 22px; width: fit-content; }
-        html.dark .tp-exam-label-box { background: #0f172a; color: #f8fafc; }
-        .tp-empty-fan-box { width: 230px; height: 160px; border: 2px dashed #94a3b8; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: 700; font-size: 12px; text-align: center; padding: 14px; }
-    </style>`);
-}
-
-function injectDeckAndResumeDOM() {
-    if (!document.getElementById("universal-deck-layer")) {
-        document.body.insertAdjacentHTML("beforeend", `
-       <div id="universal-deck-layer">
-            <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 shadow-sm z-10 shrink-0">
-                <div class="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <button type="button" onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="My Account">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
-                    <a href="index.html" class="shrink-0" title="Home">
-                        <img src="${APP_LOGO_URL}" referrerpolicy="no-referrer" class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg object-cover ring-2 ring-offset-2 ring-accent-yellow" alt="MBBS Profs Prep">
-                    </a>
-                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="Filters">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                    </button>
-                    <div class="min-w-0">
-                        <h1 class="font-bold text-base md:text-lg text-brand-600 dark:text-brand-400 leading-tight truncate m-0">Review Mode</h1>
-                        <div id="deck-subtitle" class="text-[10px] text-slate-500 font-semibold truncate">Loading...</div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" id="deck-header-saved-btn" onclick="window.QBankEngine.toggleSavedFilter()" class="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer" title="Show Saved Bookmarks Only">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-                        <span class="hidden sm:inline">Saved</span>
-                    </button>
-                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer">
-                        <span id="deck-counter">0/0</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
+function renderDeckFilterDrawer() {
+    const drawer = document.getElementById("deck-filter-drawer");
+    if (!drawer) return;
+    if (!QB.deckFilterOpen) {
+        drawer.classList.add("hidden");
+        return;
+    }
+    drawer.classList.remove("hidden");
+    drawer.innerHTML = `
+        <div class="max-w-4xl mx-auto space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Deck Filters</span>
+                <div class="flex items-center gap-2">
+                    <button id="df-reset-btn" type="button" class="text-xs font-bold text-red-500 hover:underline">Reset All</button>
+                    <button id="df-done-btn" type="button" class="px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-bold">Done</button>
                 </div>
             </div>
-
-            <div id="deck-card-container" class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg"></div>
-
-            <div class="px-4 pt-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0" style="padding-bottom: calc(92px + env(safe-area-inset-bottom));">
-                <button type="button" onclick="window.QBankEngine.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 border-none cursor-pointer">Previous</button>
-                <button type="button" onclick="window.QBankEngine.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg border-none cursor-pointer">Next</button>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <input id="df-search" type="text" value="${escapeHtml(QB.filters.search)}" placeholder="Search keyword or QID..."
+                    class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800" />
+                <select id="df-type" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800">
+                    <option value="ALL" ${QB.filters.type === "ALL" ? "selected" : ""}>All Types</option>
+                    <option value="MCQ" ${QB.filters.type === "MCQ" ? "selected" : ""}>MCQ</option>
+                    <option value="Theory" ${QB.filters.type === "Theory" ? "selected" : ""}>Theory</option>
+                </select>
+                <select id="df-attempt" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800">
+                    <option value="ALL" ${QB.filters.attempt === "ALL" ? "selected" : ""}>Status: All</option>
+                    <option value="UNATTEMPTED" ${QB.filters.attempt === "UNATTEMPTED" ? "selected" : ""}>Unattempted</option>
+                    <option value="CORRECT" ${QB.filters.attempt === "CORRECT" ? "selected" : ""}>Correct</option>
+                    <option value="WRONG" ${QB.filters.attempt === "WRONG" ? "selected" : ""}>Incorrect</option>
+                </select>
             </div>
-
-            <div id="deck-nav-drawer" class="deck-drawer">
-                <div class="deck-drawer-bg" onclick="window.QBankEngine.toggleDeckDrawer(null)"></div>
-                <div class="deck-drawer-content">
-                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 font-bold flex justify-between items-center text-slate-800 dark:text-white">
-                        <div><span>Navigator</span><span class="block text-[10px] font-semibold text-amber-500">🔖 = Bookmarked</span></div>
-                        <button type="button" onclick="window.QBankEngine.toggleDeckDrawer(null)" class="bg-transparent border-none text-lg cursor-pointer dark:text-white">✕</button>
-                    </div>
-                    <div id="deck-nav-grid" class="nav-grid"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-52 overflow-y-auto" id="df-chapter-list">
+                    ${buildChapterMenuHTML("deck")}
                 </div>
-            </div>
-
-            <div id="deck-filter-drawer" class="deck-drawer">
-                <div class="deck-drawer-bg" onclick="window.QBankEngine.toggleDeckDrawer(null)"></div>
-                <div class="deck-drawer-content">
-                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                        <span class="font-bold text-lg text-slate-800 dark:text-white">Filters</span>
-                        <button type="button" onclick="window.QBankEngine.resetAllFilters()" class="text-xs text-brand-600 font-bold bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-full border border-brand-200 cursor-pointer">RESET</button>
-                    </div>
-                    <div id="deck-filter-content" class="p-4 overflow-y-auto flex-1 custom-scrollbar"></div>
-                    <div class="p-4 border-t border-slate-200 dark:border-slate-700">
-                        <button type="button" onclick="window.QBankEngine.toggleDeckDrawer(null)" class="w-full py-3 bg-brand-500 text-white rounded-xl font-bold border-none cursor-pointer">Done</button>
-                    </div>
+                <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-52 overflow-y-auto" id="df-batch-list">
+                    ${buildBatchMenuHTML()}
                 </div>
             </div>
         </div>
+    `;
 
-        <button id="view-toggle-btn" type="button" onclick="window.QBankEngine.toggleDeckMode()" title="Switch Table / Deck View">🎴</button>
-        <button id="floating-eye-btn" type="button" onclick="window.QBankEngine.toggleTableAnswers()" class="fixed bottom-[96px] right-6 z-[10000] w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-400 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer" title="Reveal MCQ Keys in Table">👁️</button>
+    bindChapterMenuEvents(drawer.querySelector("#df-chapter-list"));
+    bindBatchMenuEvents(drawer.querySelector("#df-batch-list"));
 
-        <!-- RESUME PRACTICE MODAL -->
-        <div id="resume-prompt-overlay" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:39000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
-            <div class="bg-white dark:bg-slate-900 w-[90%] max-w-sm rounded-3xl p-7 text-center shadow-2xl border border-slate-200 dark:border-slate-700">
-                <div class="w-14 h-14 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 mx-auto mb-4 flex items-center justify-center text-2xl">⏱️</div>
-                <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Resume Practice?</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">You left off at Question <span id="resume-q-num" class="font-extrabold text-brand-500"></span>. Continue from there or start fresh?</p>
-                <div class="flex gap-2.5">
-                    <button type="button" onclick="window.QBankEngine.startFresh()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm border-none cursor-pointer">Start Fresh</button>
-                    <button type="button" onclick="window.QBankEngine.resumeSession()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold text-sm border-none cursor-pointer shadow-lg">Continue</button>
-                </div>
-            </div>
-        </div>`);
-    }
-}
-
-// ============================================================================
-// 9. HELPERS & PUBLIC API (window.QBankEngine)
-// ============================================================================
-export function findQuestionByQid(qId) {
-    if (!qId) return null;
-    const up = String(qId).trim().toUpperCase();
-    return QB.qnaData.find(x => String(x.q).trim().toUpperCase() === up)
-        || QB.tp.externalLookup[up]
-        || QB.tp.sharedCache[up]
-        || null;
-}
-
-function updateBookmarkButtonsUI() {
-    QB.displayData.forEach(item => {
-        const saved = isItemBookmarked(item.q);
-        const cls = saved
-            ? "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700"
-            : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-        const t = document.getElementById(`bmk-table-${item.q}`);
-        if (t) { t.className = `w-full max-w-[84px] ${cls} font-semibold py-1.5 px-2 rounded-lg text-[10px] uppercase border cursor-pointer`; t.textContent = saved ? "⭐ Saved" : "🔖 Save"; }
-        const d = document.getElementById(`bmk-deck-${item.q}`);
-        if (d) { d.className = `px-3 py-1.5 rounded-lg ${cls} text-xs font-bold border cursor-pointer`; d.textContent = saved ? "⭐ Saved" : "🔖 Save"; }
+    let t = null;
+    drawer.querySelector("#df-search")?.addEventListener("input", (e) => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+            QB.filters.search = e.target.value;
+            const mainSearch = document.getElementById("searchInput");
+            if (mainSearch) mainSearch.value = e.target.value;
+            applyFiltersAndRender();
+        }, 180);
+    });
+    drawer.querySelector("#df-type")?.addEventListener("change", (e) => {
+        QB.filters.type = e.target.value;
+        const mainType = document.getElementById("typeFilter");
+        if (mainType) mainType.value = e.target.value;
+        applyFiltersAndRender();
+    });
+    drawer.querySelector("#df-attempt")?.addEventListener("change", (e) => {
+        QB.filters.attempt = e.target.value;
+        const mainAtt = document.getElementById("attemptFilter");
+        if (mainAtt) mainAtt.value = e.target.value;
+        applyFiltersAndRender();
+    });
+    drawer.querySelector("#df-reset-btn")?.addEventListener("click", resetAllFilters);
+    drawer.querySelector("#df-done-btn")?.addEventListener("click", () => {
+        QB.deckFilterOpen = false;
+        drawer.classList.add("hidden");
     });
 }
 
-export function toggleDeckMode() {
-    QB.isDeckMode = !QB.isDeckMode;
-    const main = document.getElementById("main-wrapper");
-    const deck = document.getElementById("universal-deck-layer");
-    const fab = document.getElementById("view-toggle-btn");
-    const eye = document.getElementById("floating-eye-btn");
-
-    if (main) main.style.display = QB.isDeckMode ? "none" : "block";
-    if (deck) deck.style.display = QB.isDeckMode ? "flex" : "none";
-if (fab) {
-        fab.style.display = "flex";
-        fab.textContent = QB.isDeckMode ? "📋" : "🎴";
-        fab.title = QB.isDeckMode ? "Switch to Table View" : "Switch to Deck View";
-    }
-    if (eye) eye.style.display = QB.isDeckMode ? "none" : "flex";
-    if (QB.isDeckMode) renderDeckCard();
+function openJumpToModal() {
+    if (!QB.activeDeck.length) return;
+    const modal = showModal({
+        id: "mpp-jump-modal",
+        size: "sm",
+        title: "Jump to Question",
+        bodyHtml: `
+            <form id="mpp-jump-form" class="space-y-3">
+                <p class="text-xs text-slate-500">Enter a card number (1 – ${QB.activeDeck.length}) or exact QID (e.g. ${escapeHtml(QB.activeDeck[0]?.q || "DGT1")}).</p>
+                <input name="target" required autofocus value="${QB.deckIndex + 1}"
+                    class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800 text-sm font-bold" />
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-extrabold">Go</button>
+            </form>
+        `
+    });
+    modal.querySelector("#mpp-jump-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const raw = String(new FormData(e.target).get("target") || "").trim();
+        let nextIdx = -1;
+        if (/^\d+$/.test(raw)) {
+            nextIdx = Number(raw) - 1;
+        } else {
+            nextIdx = QB.activeDeck.findIndex(x => String(x.q).toLowerCase() === raw.toLowerCase());
+        }
+        if (nextIdx >= 0 && nextIdx < QB.activeDeck.length) {
+            QB.deckIndex = nextIdx;
+            closeModal("mpp-jump-modal");
+            renderDeckCard();
+        } else {
+            showToast("Question not found in current deck.", "warning");
+        }
+    });
 }
 
-export const QBankEngine = {
-    state: QB,
-    findQuestionByQid,
-    openAnswerModal,
-    toggleDeckMode,
-    reload: handleAuthOrReload,
-    refreshUI: () => applyFiltersAndRender(),
+// Smooth In-Place Teen Patti Card Class Updater (Zero DOM Rebuild on Swipe)
+function updateStageActiveCard(stageEl, nextPos) {
+    if (!stageEl) return;
+    const cards = [...stageEl.querySelectorAll(".tp-patti")];
+    if (!cards.length) return;
+    const clamped = Math.max(0, Math.min(nextPos, cards.length - 1));
+    stageEl.dataset.activePos = String(clamped);
 
-    setSearch(val) {
-        QB.filters.search = String(val || "").toLowerCase().trim();
-        applyFiltersAndRender();
-    },
+    cards.forEach((el, idx) => {
+        el.classList.remove("tp-active", "tp-prev", "tp-next", "tp-hidden-left", "tp-hidden-right");
+        if (idx === clamped) el.classList.add("tp-active");
+        else if (idx === clamped - 1) el.classList.add("tp-prev");
+        else if (idx === clamped + 1) el.classList.add("tp-next");
+        else if (idx < clamped) el.classList.add("tp-hidden-left");
+        else el.classList.add("tp-hidden-right");
+    });
 
-    toggleDropdown(id) {
-        document.querySelectorAll(".multiselect-menu").forEach(m => { if (m.id !== id + "Menu") m.classList.remove("show"); });
-        document.getElementById(id + "Menu")?.classList.toggle("show");
-    },
+    const counter = stageEl.closest(".tp-fan-section")?.querySelector(".tp-fan-counter");
+    if (counter) counter.textContent = `${clamped + 1} / ${cards.length}`;
 
-    toggleSetFilter(key, val, checked) {
-        if (!QB.filters[key]) return;
-        if (checked) QB.filters[key].add(val); else QB.filters[key].delete(val);
-        applyFiltersAndRender();
-    },
+    // If newly active card is an external PG card not yet hydrated, fetch it on demand
+    const activeCard = cards[clamped];
+    if (activeCard?.dataset.pgQid && activeCard.dataset.pgLoaded !== "1") {
+        hydrateExternalPGCard(activeCard, activeCard.dataset.pgQid);
+    }
+}
 
-    toggleSavedFilter(force) {
-        if (!MPPStore.user) { userPanelApp.open(); userPanelApp.setAuthMode("login"); return; }
-        QB.filters.savedOnly = typeof force === "boolean" ? force : !QB.filters.savedOnly;
-        applyFiltersAndRender();
-    },
+async function hydrateExternalPGCard(cardEl, pgQid) {
+    cardEl.dataset.pgLoaded = "1";
+    const bodyEl = cardEl.querySelector(".tp-pg-body");
+    if (!bodyEl) return;
 
-    setAttemptFilter(val) {
-        QB.filters.attempt = val || "all";
-        applyFiltersAndRender();
-    },
+    let pg = QB.pgCardCache[pgQid];
+    if (!pg) {
+        pg = await getSharedPGQuestion(QB.bridgeSlug, pgQid);
+        if (pg) QB.pgCardCache[pgQid] = pg;
+    }
 
-    resetAllFilters() {
-        QB.filters.search = "";
-        QB.filters.savedOnly = false;
-        QB.filters.attempt = "all";
-        QB.filters.types.clear();
-        QB.filters.chapters.clear();
-        QB.filters.exams.clear();
-        const s = document.getElementById("searchInput");
-        if (s) s.value = "";
-        applyFiltersAndRender();
-    },
+    if (!pg) {
+        bodyEl.innerHTML = `<div class="text-xs text-slate-400 italic">PG card ${escapeHtml(pgQid)} not synced to shared cache yet.</div>`;
+        return;
+    }
 
-    toggleTableAnswers() {
-        document.body.classList.toggle("show-answers");
-        const eye = document.getElementById("floating-eye-btn");
-        if (eye) eye.classList.toggle("ring-2", document.body.classList.contains("show-answers"));
-    },
+    const opts = Array.isArray(pg.options) ? pg.options : [];
+    const correctKey = String(pg.ans_key || pg.answer || "").trim().toUpperCase();
+    bodyEl.innerHTML = `
+        <div class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 leading-relaxed">${renderRich(pg.stem || pg.question || "")}</div>
+        ${pg.image ? `<img src="${escapeHtml(pg.image)}" alt="PG Figure" data-lightbox-src="${escapeHtml(pg.image)}" class="mt-2 max-h-40 rounded-lg border border-slate-200 dark:border-slate-700 cursor-zoom-in" />` : ""}
+        ${opts.length ? `
+            <div class="mt-2 space-y-1">
+                ${opts.map((o, i) => {
+                    const l = String.fromCharCode(65 + i);
+                    const isAns = l === correctKey;
+                    return `<div class="px-2.5 py-1 rounded-lg text-xs border ${isAns ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 font-bold" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"}"><span class="font-extrabold mr-1">${l})</span>${escapeHtml(String(o).replace(/^[A-E][\.\)\:]\s*/i, ""))}</div>`;
+                }).join("")}
+            </div>
+        ` : ""}
+        ${pg.explanation ? `<details class="mt-2 text-xs"><summary class="cursor-pointer font-bold text-indigo-600 dark:text-indigo-400">Show PG Explanation</summary><div class="mpp-prose mt-1.5 p-2.5 rounded-lg bg-slate-50 dark:bg-dark-900 border border-slate-200 dark:border-slate-700">${renderRich(pg.explanation)}</div></details>` : ""}
+    `;
+    enhanceRichContainer(bodyEl);
+}
 
-    async toggleBookmark(qId) {
-        if (!MPPStore.user) {
-            showModal("Login Required", "<p>Sign in to save cloud bookmarks.</p>", `<button type="button" onclick="window.MPPUI.closeModal(); window.userPanelApp.open(); window.userPanelApp.setAuthMode('login')" class="px-5 py-2.5 bg-brand-500 text-white rounded-xl font-bold text-xs border-none cursor-pointer">Sign In</button>`, "🔒");
+function buildTeenPattiSectionHTML(currentQ) {
+    if (!canShowTeenPatti()) return "";
+    const topics = getClusterTopicsForQid(currentQ.q);
+    if (!topics.length && !isUserAdmin()) return "";
+
+    if (!topics.length && isUserAdmin()) {
+        return `
+            <div class="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">🃏 No Teen Patti repeat links yet</span>
+                <button type="button" data-admin-crosslink="${escapeHtml(currentQ.q)}" class="px-3 py-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-extrabold">+ Link Repeat Topic</button>
+            </div>
+        `;
+    }
+
+    const fanState = QB.activeFanState[currentQ.q] || { topicSlug: topics[0].slug, pos: 0 };
+    if (!topics.some(t => t.slug === fanState.topicSlug)) {
+        fanState.topicSlug = topics[0].slug;
+        fanState.pos = 0;
+    }
+    QB.activeFanState[currentQ.q] = fanState;
+
+    const activeTopic = topics.find(t => t.slug === fanState.topicSlug) || topics[0];
+    const cl = activeTopic.data;
+    const profIds = (Array.isArray(cl.profs) ? cl.profs : Object.values(cl.profs || {})).map(x => String(x).trim().toUpperCase());
+    const pgIds = canShowCrossExamPG()
+        ? (Array.isArray(cl.medpyq) ? cl.medpyq : Object.values(cl.medpyq || {})).map(x => String(x).trim().toUpperCase())
+        : [];
+
+    // Build ordered list of sibling cards (Current Profs Q first, then other Profs Qs, then PG Qs)
+    const upCurr = String(currentQ.q).trim().toUpperCase();
+    const orderedProfs = [upCurr, ...profIds.filter(id => id !== upCurr)];
+    const cardsData = [];
+
+    orderedProfs.forEach(id => {
+        const found = QB.qnaData.find(x => String(x.q).trim().toUpperCase() === id);
+        if (found) cardsData.push({ kind: "profs", id, q: getDisplayedQuestion(found) });
+    });
+    pgIds.forEach(id => {
+        cardsData.push({ kind: "pg", id });
+    });
+
+    if (cardsData.length <= 1 && !isUserAdmin()) return "";
+
+    const activePos = Math.max(0, Math.min(fanState.pos || 0, cardsData.length - 1));
+    fanState.pos = activePos;
+
+    return `
+        <div class="tp-fan-section mt-5 pt-4 border-t border-slate-200 dark:border-slate-800" data-tp-qid="${escapeHtml(currentQ.q)}">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="text-xs font-extrabold text-slate-700 dark:text-slate-200">🃏 Related PYQs</span>
+                    ${topics.map(t => `
+                        <button type="button" data-tp-topic="${escapeHtml(t.slug)}"
+                            class="px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${t.slug === activeTopic.slug
+                                ? "bg-brand-600 text-white border-brand-600"
+                                : "bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"}">
+                            ${escapeHtml(t.data.title || t.slug)}
+                        </button>
+                    `).join("")}
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="tp-fan-counter text-[11px] font-extrabold text-slate-500">${activePos + 1} / ${cardsData.length}</span>
+                    ${isUserAdmin() ? `<button type="button" data-admin-crosslink="${escapeHtml(currentQ.q)}" class="px-2 py-1 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[11px] font-extrabold">🔗 Edit Links</button>` : ""}
+                </div>
+            </div>
+
+            <div class="tp-fan-wrap">
+                <div class="tp-stage" data-active-pos="${activePos}">
+                    ${cardsData.map((card, idx) => {
+                        const posCls = idx === activePos ? "tp-active"
+                            : (idx === activePos - 1 ? "tp-prev"
+                            : (idx === activePos + 1 ? "tp-next"
+                            : (idx < activePos ? "tp-hidden-left" : "tp-hidden-right")));
+
+                        if (card.kind === "pg") {
+                            return `
+                                <div class="tp-patti ${posCls} bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/50 dark:to-dark-900 border border-indigo-200 dark:border-indigo-800 shadow-md p-4"
+                                     data-tp-idx="${idx}" data-pg-qid="${escapeHtml(card.id)}">
+                                    <!-- Peeking Left/Right Wing Strips -->
+                                    <div class="tp-wing-strip wing-left"><span class="text-[10px] font-black text-indigo-600">#${idx + 1}</span><span class="text-[9px] font-extrabold writing-vertical text-indigo-500">${escapeHtml(card.id)}</span></div>
+                                    <div class="tp-wing-strip wing-right"><span class="text-[10px] font-black text-indigo-600">#${idx + 1}</span><span class="text-[9px] font-extrabold text-indigo-500">${escapeHtml(card.id)}</span></div>
+
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-extrabold">NEET-PG / INI-CET • ${escapeHtml(card.id)}</span>
+                                        <span class="text-[10px] font-bold text-slate-400">Card ${idx + 1}</span>
+                                    </div>
+                                    <div class="tp-pg-body text-xs text-slate-400">Tap or swipe to load PG question...</div>
+                                </div>
+                            `;
+                        }
+
+                        const cq = card.q;
+                        const isMcq = String(cq.type || "").toUpperCase() === "MCQ";
+                        const rawAns = QB.liveAnswers?.[cq.q]?.text || "";
+                        const snippet = rawAns ? rawAns.replace(/[#*_`>\[\]]/g, "").slice(0, 140) : "";
+
+                        return `
+                            <div class="tp-patti ${posCls} bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-700 shadow-md p-4"
+                                 data-tp-idx="${idx}" data-patti-qid="${escapeHtml(cq.q)}">
+                                <!-- Peeking Wing Strips (Original Old UI Polish) -->
+                                <div class="tp-wing-strip wing-left">
+                                    <span class="text-[10px] font-black text-brand-600 dark:text-brand-400">#${idx + 1}</span>
+                                    <span class="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 truncate max-w-[38px]">${escapeHtml(cq.q)}</span>
+                                    <span class="w-4 h-0.5 bg-brand-400/60 rounded"></span>
+                                    <span class="w-3 h-0.5 bg-brand-400/40 rounded"></span>
+                                </div>
+                                <div class="tp-wing-strip wing-right">
+                                    <span class="text-[10px] font-black text-brand-600 dark:text-brand-400">#${idx + 1}</span>
+                                    <span class="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 truncate max-w-[38px]">${escapeHtml(cq.q)}</span>
+                                    <span class="w-4 h-0.5 bg-brand-400/60 rounded"></span>
+                                    <span class="w-3 h-0.5 bg-brand-400/40 rounded"></span>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="px-2 py-0.5 rounded bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-[10px] font-extrabold">${escapeHtml(cq.q)}</span>
+                                        <span class="text-[10px] font-bold text-slate-500 truncate">${escapeHtml(normalizeArr(cq.examBatch, "Prof").join(", "))}</span>
+                                    </div>
+                                    <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded ${isMcq ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300" : "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300"}">${isMcq ? "MCQ" : "Theory"}</span>
+                                </div>
+
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 leading-relaxed line-clamp-4">${renderRich(cq.stem)}</div>
+                                        ${!isMcq && snippet ? `<div class="mt-2 p-2 rounded-lg bg-slate-50 dark:bg-dark-800 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">${escapeHtml(snippet)}...</div>` : ""}
+                                    </div>
+                                    ${cq.image ? `<div class="tp-patti-thumb-box"><img src="${escapeHtml(cq.image)}" alt="Thumbnail" loading="lazy" /></div>` : ""}
+                                </div>
+
+                                <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400 truncate max-w-[60%]">${escapeHtml(normalizeArr(cq.chapter, "").join(", "))}</span>
+                                    <div class="flex items-center gap-2">
+                                        ${canShowAnswers() ? `<button type="button" data-tp-viewans="${escapeHtml(cq.q)}" class="font-bold text-brand-600 dark:text-brand-400 hover:underline">Answer</button>` : ""}
+                                        ${cq.q !== currentQ.q ? `<button type="button" data-tp-jump="${escapeHtml(cq.q)}" class="font-bold text-slate-600 dark:text-slate-300 hover:text-brand-600">Open &rarr;</button>` : `<span class="text-emerald-600 font-bold">Current</span>`}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join("")}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function attachFanSwipeInteractions(sectionEl, currentQId) {
+    if (!sectionEl) return;
+    const stage = sectionEl.querySelector(".tp-stage");
+    if (!stage) return;
+
+    // Topic pill switchers
+    sectionEl.querySelectorAll("[data-tp-topic]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            QB.activeFanState[currentQId] = { topicSlug: btn.dataset.tpTopic, pos: 0 };
+            renderDeckCard();
+        });
+    });
+
+    // Click peeking prev/next wing card to slide smoothly in-place
+    stage.querySelectorAll(".tp-patti").forEach(cardEl => {
+        cardEl.addEventListener("click", (e) => {
+            if (e.target.closest("button, a, summary")) return;
+            const idx = Number(cardEl.dataset.tpIdx);
+            const cur = Number(stage.dataset.activePos || 0);
+            if (idx !== cur) {
+                QB.activeFanState[currentQId].pos = idx;
+                updateStageActiveCard(stage, idx);
+            }
+        });
+
+        // Admin long-press on .tp-patti card opens Cross-Link Modal
+        if (isUserAdmin()) {
+            let lpTimer = null;
+            cardEl.addEventListener("pointerdown", () => {
+                lpTimer = setTimeout(() => {
+                    const qid = cardEl.dataset.pattiQid || currentQId;
+                    window.MPPAdmin?.openCrossLinkModal?.(qid);
+                }, 650);
+            });
+            ["pointerup", "pointermove", "pointercancel"].forEach(ev => {
+                cardEl.addEventListener(ev, () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+            });
+        }
+    });
+
+    sectionEl.querySelectorAll("[data-tp-viewans]").forEach(btn => {
+        btn.addEventListener("click", (e) => { e.stopPropagation(); openAnswerModal(btn.dataset.tpViewans); });
+    });
+
+    sectionEl.querySelectorAll("[data-tp-jump]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const targetIdx = QB.activeDeck.findIndex(x => x.q === btn.dataset.tpJump);
+            if (targetIdx !== -1) {
+                QB.deckIndex = targetIdx;
+                renderDeckCard();
+            } else {
+                showToast("Question is outside your current filter.", "info");
+            }
+        });
+    });
+
+    sectionEl.querySelector("[data-admin-crosslink]")?.addEventListener("click", (e) => {
+        window.MPPAdmin?.openCrossLinkModal?.(e.currentTarget.dataset.adminCrosslink);
+    });
+
+    // Edge-Safe Android Touch Swipe on Teen Patti Fan
+    let startX = 0, startY = 0, tracking = false;
+    stage.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        if (t.clientX < ANDROID_EDGE_GUARD_PX || t.clientX > window.innerWidth - ANDROID_EDGE_GUARD_PX) {
+            tracking = false;
             return;
         }
-        const item = findQuestionByQid(qId);
-        if (!item) return;
-        const uniqueId = getUniqueQuestionId(item.q);
-        const ch = Array.isArray(item.chapter) ? item.chapter[0] : item.chapter;
-        const isSaved = isItemBookmarked(item.q);
+        startX = t.clientX;
+        startY = t.clientY;
+        tracking = true;
+    }, { passive: true });
 
-        const data = {
-            q: item.q,
-            type: item.type || "Theory",
-            text: stripHtml(item.stem) || "Saved Question",
-            stemHtml: item.stem || "",
-            subject: `${QB.collegeName} - ${QB.subjectName}${QB.mode === "clinical" ? " Clinical" : ""} - ${ch || "General"}`,
-            url: window.location.href
-        };
-        if (item.options) data.options = item.options;
-        if (item.ans_key) data.ans_key = item.ans_key;
-        if (item.img) data.img = item.img;
-        if (item.ans_image) data.ans_image = item.ans_image;
-        if (QB.liveAnswers[item.q]?.text) data.explanation = QB.liveAnswers[item.q].text;
-
-        const nowSaved = await saveOrRemoveBookmark(uniqueId, data, isSaved);
-        showModal(
-            nowSaved ? "Saved to Cloud! ☁️" : "Bookmark Removed",
-            `<p>${nowSaved ? "Synced across all your devices." : "Removed from your saved items."}</p>`,
-            "",
-            nowSaved ? "⭐" : "🗑️"
-        );
-    },
-
-    askAI(qId) {
-        const item = findQuestionByQid(qId);
-        if (!item) return;
-        const stem = stripHtml(item.stem);
-        const ch = Array.isArray(item.chapter) ? item.chapter.join(", ") : (item.chapter || "");
-        const promptText = item.type === "MCQ"
-            ? `Explain this MBBS ${QB.subjectName} MCQ:\n\nQ: ${stem}\nOptions:\n${(item.options || []).map((o, i) => `${OPTION_LETTERS[i]}) ${stripHtml(o)}`).join("\n")}\nKey: ${item.ans_key}`
-            : `Provide a structured MBBS ${QB.subjectName} exam model answer:\n\n"${stem}"\nTopic: ${ch}`;
-        navigator.clipboard?.writeText(promptText).then(() => {
-            showModal("Copied for AI!", "<p>Question copied to clipboard.</p>", `<button type="button" onclick="window.open('https://chatgpt.com/','_blank'); window.MPPUI.closeModal();" class="px-5 py-2.5 bg-brand-500 text-white rounded-xl font-bold text-xs border-none cursor-pointer">Open ChatGPT</button>`, "✅");
-        });
-    },
-
-    // Answer Modal / Deck Panel Helpers
-    closeAnswerModal() { document.getElementById("answerModal")?.classList.add("hidden"); },
-
-    updateAnswerPreview(ctx, qId) {
-        const ta = document.getElementById(`admin-ans-${ctx}-${qId}`);
-        const pv = document.getElementById(`admin-preview-${ctx}-${qId}`);
-        if (ta && pv) pv.innerHTML = renderContent(ta.value);
-    },
-
-    async publishAnswer(qId, btn, ctx) {
-        if (!isUserAdmin()) return;
-        const ta = document.getElementById(`admin-ans-${ctx}-${qId}`);
-        if (!ta) return;
-        const text = ta.value.trim();
-        if (!text && !confirm("Delete the current answer?")) return;
-        const orig = btn.textContent;
-        btn.disabled = true; btn.textContent = "Publishing...";
-        try {
-            await saveAnswer(qId, text);
-            btn.textContent = "Published! ✅";
-            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1100);
-        } catch (err) {
-            alert("Publish failed: " + err.message);
-            btn.textContent = orig; btn.disabled = false;
+    stage.addEventListener("touchend", (e) => {
+        if (!tracking) return;
+        tracking = false;
+        const t = e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+            const cur = Number(stage.dataset.activePos || 0);
+            const next = dx < 0 ? cur + 1 : cur - 1;
+            const total = stage.querySelectorAll(".tp-patti").length;
+            if (next >= 0 && next < total) {
+                QB.activeFanState[currentQId].pos = next;
+                updateStageActiveCard(stage, next);
+            }
         }
-    },
+    }, { passive: true });
 
-    toggleDeckAnswerPanel(qId) {
-        const panel = document.getElementById(`deck-ans-panel-${qId}`);
-        const btn = document.getElementById(`btn-deck-ans-${qId}`);
-        if (!panel || !btn) return;
-        const opening = panel.classList.contains("hidden");
-        panel.classList.toggle("hidden");
-        btn.textContent = opening ? "🙈 Hide Answer" : (isUserAdmin() ? (QB.liveAnswers[qId]?.text ? "✍️ Edit Answer" : "➕ Add Answer") : "👁️ View Answer");
-    },
-
-    // Deck Navigation & MCQ Solving
-    answerDeckMCQ(btn, qId, picked, correct) {
-        const p = picked.toUpperCase(), c = correct.toUpperCase();
-        QB.userSolved[qId] = p;
-        QB.deckStatus[qId] = p === c ? "correct" : "wrong";
-
-        const { uid, cacheKey, fbSolvedPath } = getSolvedStorageKeys();
-        localStorage.setItem(cacheKey, JSON.stringify(QB.userSolved));
-        if (uid !== "guest") {
-            set(ref(db, `${fbSolvedPath}/${qId}`), { ans: p, correct: p === c, ts: Date.now() }).catch(() => {});
-        }
-        renderDeckCard();
-        const panel = document.getElementById(`deck-ans-panel-${qId}`);
-        if (panel && panel.classList.contains("hidden") && (isUserAdmin() || QB.subjectSettings.showAnswers)) {
-            this.toggleDeckAnswerPanel(qId);
-        }
-    },
-
-    resetSingleAnswer(qId) {
-        delete QB.userSolved[qId];
-        delete QB.deckStatus[qId];
-        const { uid, cacheKey, fbSolvedPath } = getSolvedStorageKeys();
-        localStorage.setItem(cacheKey, JSON.stringify(QB.userSolved));
-        if (uid !== "guest") set(ref(db, `${fbSolvedPath}/${qId}`), null).catch(() => {});
-        renderDeckCard();
-    },
-
-    async resetAllProgress() {
-        const { uid, cacheKey, indexKey, fbSolvedPath, fbIndexPath } = getSolvedStorageKeys();
-        if (uid === "guest") return alert("Sign in to reset progress.");
-        if (!confirm(`Reset all solved answers & bookmark position for ${QB.subjectName}?`)) return;
-        QB.userSolved = {};
-        QB.deckStatus = {};
-        QB.deckIndex = 0;
-        localStorage.removeItem(cacheKey);
-        localStorage.removeItem(indexKey);
-        await Promise.all([
-            set(ref(db, fbSolvedPath), null).catch(() => {}),
-            set(ref(db, fbIndexPath), null).catch(() => {})
-        ]);
-        applyFiltersAndRender();
-    },
-
-    deckNext() {
-        QB.tp.overrideQid = null; QB.tp.fanOpen = false; QB.tp.activeTopicSlug = null;
-        if (QB.deckIndex < QB.activeDeck.length - 1) { QB.deckIndex++; saveCurrentDeckIndex(); renderDeckCard(); }
-        else if (MPPStore.accessLevel === "free" && QB.deckIndex === QB.activeDeck.length - 1) { QB.deckIndex++; renderDeckCard(); }
-    },
-
-    deckPrev() {
-        QB.tp.overrideQid = null; QB.tp.fanOpen = false; QB.tp.activeTopicSlug = null;
-        if (QB.deckIndex > 0) { QB.deckIndex--; saveCurrentDeckIndex(); renderDeckCard(); }
-    },
-
-    jumpToDeckIndex(i) {
-        QB.deckIndex = i;
-        QB.tp.overrideQid = null; QB.tp.fanOpen = false; QB.tp.activeTopicSlug = null;
-        saveCurrentDeckIndex();
-        this.toggleDeckDrawer(null);
-        renderDeckCard();
-    },
-
-    toggleDeckDrawer(type) {
-        const nav = document.getElementById("deck-nav-drawer");
-        const filt = document.getElementById("deck-filter-drawer");
-        nav?.classList.remove("open");
-        filt?.classList.remove("open");
-        if (type === "nav") {
-            document.getElementById("deck-nav-grid").innerHTML = QB.activeDeck.map((q, i) => {
-                let cls = "deck-nav-btn";
-                if (QB.deckStatus[q.q] === "correct") cls += " correct";
-                if (QB.deckStatus[q.q] === "wrong") cls += " wrong";
-                if (i === QB.deckIndex) cls += " active";
-                const saved = isItemBookmarked(q.q);
-                if (saved) cls += " ring-2 ring-amber-400/70";
-                const ribbon = saved ? `<span class="absolute -top-1.5 -right-1.5 text-amber-400 text-xs pointer-events-none">🔖</span>` : "";
-                return `<button type="button" onclick="window.QBankEngine.jumpToDeckIndex(${i})" class="${cls}">${escapeHtml(q.q)}${ribbon}</button>`;
-            }).join("");
-            nav?.classList.add("open");
-        } else if (type === "filter") {
-            syncFilterButtonsUI();
-            filt?.classList.add("open");
-        }
-    },
-
-    // Resume Modal Actions
-    startFresh() {
-        document.getElementById("resume-prompt-overlay").style.display = "none";
-        QB.deckIndex = 0;
-        saveCurrentDeckIndex();
-        if (!QB.isDeckMode) toggleDeckMode(); else renderDeckCard();
-    },
-
-    resumeSession() {
-        document.getElementById("resume-prompt-overlay").style.display = "none";
-        QB.deckIndex = QB.tempSavedIndex || 0;
-        if (!QB.isDeckMode) toggleDeckMode(); else renderDeckCard();
-    },
-
-    // Teen Patti Pill Controls
-    toggleFanView(e) {
-        if (e) e.stopPropagation();
-        QB.tp.fanOpen = !QB.tp.fanOpen;
-        renderDeckCard();
-    },
-
-    stepCluster(delta, e) {
-        if (e) { e.stopPropagation(); e.preventDefault(); }
-        const anchor = QB.activeDeck[QB.deckIndex];
-        if (!anchor) return;
-        const disp = QB.tp.overrideQid ? (findQuestionByQid(QB.tp.overrideQid) || anchor) : anchor;
-        const seq = getActiveClusterInfo(anchor.q, disp.q).sequence;
-        const idx = Math.max(0, seq.findIndex(id => id.toUpperCase() === String(disp.q).toUpperCase()));
-        const next = idx + delta;
-        if (next >= 0 && next < seq.length) {
-            QB.tp.overrideQid = seq[next];
-            QB.tp.fanOpen = false;
-            renderDeckCard();
-        }
-    },
-
-    switchTopic(slug) {
-        QB.tp.activeTopicSlug = slug;
-        const c = QB.tp.clusters[slug];
-        if (c?.qids?.length) {
-            const seq = filterSequenceByRole(c.qids, QB.activeDeck[QB.deckIndex]?.q);
-            if (seq.length) QB.tp.overrideQid = seq[0];
-        }
-        renderDeckCard();
-    },
-
-    setTPExamFilter(val) {
-        QB.tp.examFilter = val;
-        renderDeckCard();
+    // Trigger initial PG hydration if active card is PG
+    const initActive = stage.querySelector(".tp-patti.tp-active");
+    if (initActive?.dataset.pgQid) {
+        hydrateExternalPGCard(initActive, initActive.dataset.pgQid);
     }
-};
+}
 
-window.QBankEngine = QBankEngine;
+export function renderDeckCard() {
+    const stage = document.getElementById("deck-card-stage");
+    const eyeBtn = document.getElementById("floating-eye-btn");
+    if (!stage) return;
+
+    for (const k of QB._panzoomInstances.keys()) {
+        if (k.startsWith("deck_")) destroyPanzoom(k);
+    }
+
+    const total = QB.activeDeck.length;
+    const counterBtn = document.getElementById("deck-counter-btn");
+    const prevBtn = document.getElementById("deck-prev-btn");
+    const nextBtn = document.getElementById("deck-next-btn");
+    const fillEl = document.getElementById("deck-progress-fill");
+    const lblEl = document.getElementById("deck-progress-label");
+
+    if (!total) {
+        if (counterBtn) counterBtn.textContent = "0 / 0";
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        if (eyeBtn) eyeBtn.style.display = "none";
+        stage.innerHTML = `<div class="py-16 text-center text-slate-400 text-sm">No questions match your current deck filters.</div>`;
+        return;
+    }
+
+    const rawQ = QB.activeDeck[QB.deckIndex];
+    const q = getDisplayedQuestion(rawQ);
+    const isMcq = String(q.type || "").toUpperCase() === "MCQ";
+    const { cleanStem, marksBadge } = extractTheoryMarks(q.stem, q.type);
+    const chapters = normalizeArr(q.chapter, "General");
+    const batches = normalizeArr(q.examBatch, "Prof Exam");
+    const uniqueId = getUniqueQuestionId(q.q);
+    const isSaved = Boolean(MPPStore.bookmarks?.[uniqueId]);
+    const repeatCount = QB.repeatCountMap[String(q.q || "").trim().toUpperCase()] || 0;
+    const att = QB.attempts[q.q];
+    const personalNote = QB.userNotes?.[uniqueId]?.text || "";
+    const showAnsCardBtn = Boolean(q.ans_image && canShowAnswerCards());
+    const cardKey = `deck_${q.q}`;
+    const ansCardOpen = QB.ansCardOpenSet.has(cardKey);
+
+    if (counterBtn) counterBtn.textContent = `${QB.deckIndex + 1} / ${total}`;
+    if (prevBtn) prevBtn.disabled = QB.deckIndex <= 0;
+    if (nextBtn) nextBtn.disabled = QB.deckIndex >= total - 1;
+    const pct = Math.round(((QB.deckIndex + 1) / total) * 100);
+    if (fillEl) fillEl.style.width = `${pct}%`;
+    if (lblEl) lblEl.textContent = `${pct}% reviewed`;
+
+    if (eyeBtn) {
+        eyeBtn.style.display = canShowAnswers() ? "flex" : "none";
+        eyeBtn.onclick = () => openAnswerModal(q.q);
+    }
+
+    const mcqHtml = isMcq && Array.isArray(q.options) && q.options.length ? `
+        <div class="mt-4 space-y-2.5">
+            ${q.options.map((opt, idx) => {
+                const letter = String.fromCharCode(65 + idx);
+                const cleanOpt = String(opt).replace(/^[A-E][\.\)\:]\s*/i, "");
+                let cls = "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800 hover:border-brand-400 text-slate-800 dark:text-slate-100";
+                let badge = "";
+                if (att) {
+                    if (letter === q.ans_key) {
+                        cls = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 font-bold";
+                        badge = `<span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">✓ Correct</span>`;
+                    } else if (letter === att.chosen) {
+                        cls = "border-red-500 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 font-bold";
+                        badge = `<span class="text-xs font-extrabold text-red-600 dark:text-red-400">✗ Your Pick</span>`;
+                    }
+                }
+                return `
+                    <button type="button" data-deck-opt="${letter}"
+                        class="w-full flex items-center justify-between gap-3 text-left px-4 py-3 rounded-xl border text-sm transition ${cls}">
+                        <span><span class="font-extrabold mr-2">${letter})</span>${escapeHtml(cleanOpt)}</span>
+                        ${badge}
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    ` : "";
+
+    stage.innerHTML = `
+        <article class="deck-card bg-white dark:bg-dark-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-6 animate-fade-in">
+            <!-- Card Header (Original Ask AI external-link SVG + 🚩 + 🔖) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="px-2.5 py-1 rounded-lg bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs font-extrabold">${escapeHtml(q.q)}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold ${isMcq ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300" : "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300"}">${isMcq ? "MCQ" : "Theory"}</span>
+                    ${repeatCount >= 2 ? `<span class="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 text-[11px] font-extrabold">🔥 Asked ${repeatCount}&times;</span>` : ""}
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <a href="${escapeHtml(buildAiHelpUrl(q))}" target="_blank" rel="noopener noreferrer" title="Ask AI"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-dark-800 hover:border-brand-400 text-xs font-bold text-slate-700 dark:text-slate-200">
+                        <span>Ask AI</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                    <button id="deck-card-report-btn" type="button" title="Report Question"
+                        class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-red-400 text-xs">🚩</button>
+                    <button id="deck-card-bmk-btn" type="button" title="Bookmark Question"
+                        class="px-2.5 py-1.5 rounded-lg border text-xs font-bold ${isSaved ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"}">
+                        ${isSaved ? "🔖 Saved" : "🔖"}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chapter & Batch Meta -->
+            <div class="flex flex-wrap items-center gap-1.5 mb-3 text-[11px]">
+                ${chapters.map(ch => {
+                    const u = getUnitForChapter(ch);
+                    return `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-slate-300 font-semibold">${u ? `<strong class="text-brand-600 dark:text-brand-400">${escapeHtml(u)}:</strong> ` : ""}${escapeHtml(ch)}</span>`;
+                }).join("")}
+                ${batches.map(b => `<span class="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold">${escapeHtml(b)}</span>`).join("")}
+            </div>
+
+            <!-- Stem & Marks -->
+            <div class="mpp-prose text-base sm:text-[17px] font-medium text-slate-900 dark:text-white leading-relaxed">${renderRich(cleanStem)}</div>
+            ${marksBadge ? `<div class="mt-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs font-extrabold">${escapeHtml(marksBadge)}</span></div>` : ""}
+            ${q.image ? `<img src="${escapeHtml(q.image)}" alt="Question Figure" data-lightbox-src="${escapeHtml(q.image)}" class="mt-3 max-h-72 mx-auto rounded-xl border border-slate-200 dark:border-slate-700 cursor-zoom-in" />` : ""}
+
+            ${mcqHtml}
+
+            <!-- Action Row: View Answer + Clean View Answer Card (No 3D Flip) -->
+            <div class="mt-5 flex flex-wrap items-center gap-2.5">
+                ${canShowAnswers() ? `
+                    <button id="deck-view-ans-btn" type="button" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">
+                        👁️ View Answer
+                    </button>
+                ` : ""}
+                ${showAnsCardBtn ? `
+                    <button id="deck-toggle-anscard-btn" type="button" class="px-4 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs sm:text-sm font-bold transition">
+                        ${ansCardOpen ? "🙈 Hide Answer Card" : "🖼️ View Answer Card"}
+                    </button>
+                ` : ""}
+            </div>
+
+            <div id="deck-anscard-host"></div>
+
+            <!-- Collapsible Personal Mnemonic / Note -->
+            <details class="mt-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-dark-800/40 px-3.5 py-2.5" ${personalNote ? "open" : ""}>
+                <summary class="cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-300 select-none">
+                    📝 Personal Mnemonic / Note ${personalNote ? "• Saved" : "(Tap to add)"}
+                </summary>
+                <div class="mt-2.5 flex items-center gap-2">
+                    <input id="deck-personal-note-input" type="text" maxlength="500" value="${escapeHtml(personalNote)}"
+                        placeholder="Jot a quick 1-line mnemonic or ward pearl..."
+                        class="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-dark-900" />
+                    <button id="deck-save-note-btn" type="button" class="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold">Save</button>
+                </div>
+            </details>
+
+            <!-- Admin Inline MCQ & Explanation Editor Mount Point (Phase 3) -->
+            <div id="deck-admin-inline-root"></div>
+
+            <!-- Smooth Teen Patti Related PYQs Fan -->
+            ${buildTeenPattiSectionHTML(q)}
+        </article>
+    `;
+
+    enhanceRichContainer(stage);
+
+    // Bind Card Interactions
+    stage.querySelectorAll("[data-deck-opt]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            saveLocalAttempt(q.q, btn.dataset.deckOpt, q.ans_key);
+            renderDeckCard();
+        });
+    });
+
+    stage.querySelector("#deck-card-bmk-btn")?.addEventListener("click", () => handleBookmarkToggle(q.q));
+    stage.querySelector("#deck-card-report-btn")?.addEventListener("click", () => openReportModal(q.q));
+    stage.querySelector("#deck-view-ans-btn")?.addEventListener("click", () => openAnswerModal(q.q));
+
+    const ansCardBtn = stage.querySelector("#deck-toggle-anscard-btn");
+    const ansCardHost = stage.querySelector("#deck-anscard-host");
+    if (ansCardBtn && ansCardHost && q.ans_image) {
+        if (ansCardOpen) mountAnswerCardPanzoom(ansCardHost, cardKey, q.ans_image);
+        ansCardBtn.addEventListener("click", () => {
+            if (QB.ansCardOpenSet.has(cardKey)) {
+                QB.ansCardOpenSet.delete(cardKey);
+                destroyPanzoom(cardKey);
+                ansCardHost.innerHTML = "";
+                ansCardBtn.textContent = "🖼️ View Answer Card";
+            } else {
+                QB.ansCardOpenSet.add(cardKey);
+                ansCardBtn.textContent = "🙈 Hide Answer Card";
+                mountAnswerCardPanzoom(ansCardHost, cardKey, q.ans_image);
+            }
+        });
+    }
+
+    stage.querySelector("#deck-save-note-btn")?.addEventListener("click", async () => {
+        const input = stage.querySelector("#deck-personal-note-input");
+        const val = input?.value || "";
+        try {
+            const savedText = await saveUserNote(uniqueId, val);
+            if (savedText) QB.userNotes[uniqueId] = { text: savedText };
+            else delete QB.userNotes[uniqueId];
+            showToast(savedText ? "Mnemonic note saved!" : "Note cleared.", "success", 1800);
+        } catch (err) {
+            showToast(err.message || "Could not save note.", "error");
+        }
+    });
+
+    // Teen Patti Fan Binding
+    const tpSection = stage.querySelector(".tp-fan-section");
+    if (tpSection) attachFanSwipeInteractions(tpSection, q.q);
+
+    // Phase 3 Admin Inline Editor Hook
+    if (isUserAdmin() && window.MPPAdmin?.renderInlineEditor) {
+        const inlineRoot = stage.querySelector("#deck-admin-inline-root");
+        if (inlineRoot) window.MPPAdmin.renderInlineEditor(inlineRoot, q, QB.liveAnswers?.[q.q]?.text || "");
+    }
+
+    stage.scrollTop = 0;
+}
+
+// ============================================================================
+// 10. GLOBAL EVENTS (Debounce, Dropdowns, Android Edge-Safe Swipe, Keyboard)
+// ============================================================================
+function resetAllFilters() {
+    QB.filters.search = "";
+    QB.filters.type = "ALL";
+    QB.filters.chapters.clear();
+    QB.filters.batches.clear();
+    QB.filters.attempt = "ALL";
+    QB.filters.savedOnly = false;
+    QB.filters.highYieldOnly = false;
+
+    const sEl = document.getElementById("searchInput");
+    if (sEl) sEl.value = "";
+    document.getElementById("clearSearchBtn")?.classList.add("hidden");
+    const tEl = document.getElementById("typeFilter");
+    if (tEl) tEl.value = "ALL";
+    const aEl = document.getElementById("attemptFilter");
+    if (aEl) aEl.value = "ALL";
+
+    refreshFilterUIAndRender();
+}
+
+function bindStaticUIControls() {
+    // 180ms Debounced Search
+    const searchInput = document.getElementById("searchInput");
+    const clearSearchBtn = document.getElementById("clearSearchBtn");
+    searchInput?.addEventListener("input", (e) => {
+        const v = e.target.value;
+        clearSearchBtn?.classList.toggle("hidden", !v);
+        clearTimeout(QB._searchTimer);
+        QB._searchTimer = setTimeout(() => {
+            QB.filters.search = v;
+            applyFiltersAndRender();
+        }, 180);
+    });
+    clearSearchBtn?.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        clearSearchBtn.classList.add("hidden");
+        QB.filters.search = "";
+        applyFiltersAndRender();
+    });
+
+    document.getElementById("typeFilter")?.addEventListener("change", (e) => {
+        QB.filters.type = e.target.value;
+        applyFiltersAndRender();
+    });
+    document.getElementById("attemptFilter")?.addEventListener("change", (e) => {
+        QB.filters.attempt = e.target.value;
+        applyFiltersAndRender();
+    });
+
+    // Multiselect Dropdown Toggle + Outside-Click Close
+    const chMenu = document.getElementById("chapterMultiselectMenu");
+    const bMenu = document.getElementById("batchMultiselectMenu");
+    document.getElementById("chapterMultiselectBtn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        bMenu?.classList.add("hidden");
+        chMenu?.classList.toggle("hidden");
+    });
+    document.getElementById("batchMultiselectBtn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        chMenu?.classList.add("hidden");
+        bMenu?.classList.toggle("hidden");
+    });
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest("#chapterDropdownWrap")) chMenu?.classList.add("hidden");
+        if (!e.target.closest("#batchDropdownWrap")) bMenu?.classList.add("hidden");
+    });
+
+    // Saved & High-Yield Toggles (Synced between Table & Deck)
+    const toggleSaved = () => {
+        QB.filters.savedOnly = !QB.filters.savedOnly;
+        updateFilterButtonLabels();
+        applyFiltersAndRender();
+    };
+    const toggleHighYield = () => {
+        QB.filters.highYieldOnly = !QB.filters.highYieldOnly;
+        updateFilterButtonLabels();
+        applyFiltersAndRender();
+    };
+    document.getElementById("savedOnlyBtn")?.addEventListener("click", toggleSaved);
+    document.getElementById("deck-saved-btn")?.addEventListener("click", toggleSaved);
+    document.getElementById("highYieldOnlyBtn")?.addEventListener("click", toggleHighYield);
+    document.getElementById("deck-hy-btn")?.addEventListener("click", toggleHighYield);
+    document.getElementById("resetFiltersBtn")?.addEventListener("click", resetAllFilters);
+
+    // Deck Controls
+    document.getElementById("open-deck-btn")?.addEventListener("click", () => openDeckAt(0));
+    document.getElementById("deck-close-btn")?.addEventListener("click", () => closeDeck(false));
+    document.getElementById("deck-menu-btn")?.addEventListener("click", () => openSidebar());
+    document.getElementById("deck-counter-btn")?.addEventListener("click", () => openJumpToModal());
+    document.getElementById("deck-filter-btn")?.addEventListener("click", () => {
+        QB.deckFilterOpen = !QB.deckFilterOpen;
+        renderDeckFilterDrawer();
+    });
+    document.getElementById("deck-prev-btn")?.addEventListener("click", () => {
+        if (QB.deckIndex > 0) { QB.deckIndex--; renderDeckCard(); }
+    });
+    document.getElementById("deck-next-btn")?.addEventListener("click", () => {
+        if (QB.deckIndex < QB.activeDeck.length - 1) { QB.deckIndex++; renderDeckCard(); }
+    });
+
+    // Edge-Safe Android Horizontal Swipe on Deck Card Stage (Ignores Teen Patti & Panzoom)
+    const deckStage = document.getElementById("deck-card-stage");
+    let sx = 0, sy = 0, activeSwipe = false;
+    deckStage?.addEventListener("touchstart", (e) => {
+        if (e.target.closest(".tp-fan-wrap, .pz-viewport, input, textarea, select")) {
+            activeSwipe = false;
+            return;
+        }
+        const t = e.touches[0];
+        if (!t || t.clientX < ANDROID_EDGE_GUARD_PX || t.clientX > window.innerWidth - ANDROID_EDGE_GUARD_PX) {
+            activeSwipe = false;
+            return;
+        }
+        sx = t.clientX; sy = t.clientY; activeSwipe = true;
+    }, { passive: true });
+
+    deckStage?.addEventListener("touchend", (e) => {
+        if (!activeSwipe) return;
+        activeSwipe = false;
+        const t = e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+        if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.45) {
+            if (dx < 0 && QB.deckIndex < QB.activeDeck.length - 1) {
+                QB.deckIndex++; renderDeckCard();
+            } else if (dx > 0 && QB.deckIndex > 0) {
+                QB.deckIndex--; renderDeckCard();
+            }
+        }
+    }, { passive: true });
+
+    // Deck Keyboard Shortcuts (Arrows, 1-4, Space)
+    document.addEventListener("keydown", (e) => {
+        if (!QB.deckOpen) return;
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+        if (document.getElementById("mpp-answer-modal") || document.getElementById("mpp-jump-modal") || document.getElementById("mpp-report-modal")) {
+            if (e.key === "Escape") closeModal();
+            return;
+        }
+
+        if (e.key === "ArrowRight" && QB.deckIndex < QB.activeDeck.length - 1) {
+            QB.deckIndex++; renderDeckCard();
+        } else if (e.key === "ArrowLeft" && QB.deckIndex > 0) {
+            QB.deckIndex--; renderDeckCard();
+        } else if (e.key === " " && canShowAnswers()) {
+            e.preventDefault();
+            const cur = QB.activeDeck[QB.deckIndex];
+            if (cur) openAnswerModal(cur.q);
+        } else if (["1", "2", "3", "4"].includes(e.key)) {
+            const cur = getDisplayedQuestion(QB.activeDeck[QB.deckIndex]);
+            if (cur && String(cur.type).toUpperCase() === "MCQ" && Array.isArray(cur.options)) {
+                const letter = String.fromCharCode(64 + Number(e.key));
+                if (Number(e.key) <= cur.options.length) {
+                    saveLocalAttempt(cur.q, letter, cur.ans_key);
+                    renderDeckCard();
+                }
+            }
+        }
+    });
+
+    // Header Subject Answers Toggle (Admin Only)
+    document.getElementById("header-subject-ans-toggle")?.addEventListener("click", async () => {
+        try {
+            await toggleSubjectAnswers(QB.subjectShowAnswers);
+            showToast(`Subject answers turned ${!QB.subjectShowAnswers ? "ON" : "OFF"}`, "success");
+        } catch (err) {
+            showToast(err.message || "Toggle failed.", "error");
+        }
+    });
+}
+
+// ============================================================================
+// 11. ADMIN FLOATING PILL & ACCESS NOTICE BANNER
+// ============================================================================
+function renderAdminFloatingPill() {
+    const pill = document.getElementById("admin-controls");
+    const headerToggle = document.getElementById("header-subject-ans-toggle");
+    const admin = isUserAdmin();
+
+    if (headerToggle) {
+        headerToggle.classList.toggle("hidden", !admin);
+        headerToggle.classList.toggle("inline-flex", admin);
+        const span = headerToggle.querySelector("span");
+        if (span) span.textContent = `Answers: ${QB.subjectShowAnswers ? "ON" : "OFF"}`;
+    }
+
+    if (!pill) return;
+    if (!admin) {
+        pill.classList.add("hidden");
+        pill.innerHTML = "";
+        return;
+    }
+
+    pill.classList.remove("hidden");
+    pill.innerHTML = `
+        <button id="pill-add-q" type="button" class="px-2 py-1 rounded-full bg-brand-600 hover:bg-brand-700 text-white">+ Add Q</button>
+        <button id="pill-hub" type="button" class="px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 hover:bg-amber-200">⚙️ Hub</button>
+    `;
+    pill.querySelector("#pill-add-q")?.addEventListener("click", () => window.MPPAdmin?.openQuestionEditor?.(null));
+    pill.querySelector("#pill-hub")?.addEventListener("click", () => window.MPPAdmin?.openControlHub?.());
+}
+
+function renderAccessNotice() {
+    const bar = document.getElementById("access-notice-bar");
+    if (!bar) return;
+
+    if (!MPPStore.user) {
+        bar.classList.remove("hidden");
+        bar.innerHTML = `
+            <div class="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Sign in to access full university question banks, bookmarks, and model answers.
+            </div>
+            <button id="anb-signin" type="button" class="px-4 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-bold flex-shrink-0">Sign In</button>
+        `;
+        bar.querySelector("#anb-signin")?.addEventListener("click", () => openAuthModal("login"));
+        return;
+    }
+
+    if (MPPStore.accessLevel === "free" && !MPPStore.isAdmin) {
+        bar.classList.remove("hidden");
+        bar.innerHTML = `
+            <div class="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200">
+                <strong>Free Preview Mode:</strong> Showing sample Theory &amp; MCQ questions. Upgrade to Pro to unlock all ${escapeHtml(QB.subjectName)} PYQs &amp; model answers.
+            </div>
+            <button id="anb-upgrade" type="button" class="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold flex-shrink-0">Unlock Pro &rarr;</button>
+        `;
+        bar.querySelector("#anb-upgrade")?.addEventListener("click", () => openSecureCheckout());
+        return;
+    }
+
+    bar.classList.add("hidden");
+    bar.innerHTML = "";
+}
+
+// ============================================================================
+// 12. DEEP-LINKING (&qid=DGT42 & optional &deck=1)
+// ============================================================================
+function handleDeepLinkIfPresent() {
+    if (QB._deepLinkHandled || !QB.activeDeck.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetQid = (params.get("qid") || "").trim();
+    if (!targetQid) { QB._deepLinkHandled = true; return; }
+
+    const idx = QB.activeDeck.findIndex(x => String(x.q).toLowerCase() === targetQid.toLowerCase());
+    if (idx === -1) return;
+
+    QB._deepLinkHandled = true;
+    if (params.get("deck") === "1") {
+        openDeckAt(idx);
+        return;
+    }
+
+    // Ensure enough chunks are rendered to reach the target row
+    while (QB.renderedRowCount <= idx && QB.renderedRowCount < QB.activeDeck.length) {
+        appendNextTableChunk();
+    }
+    const row = document.querySelector(`tr[data-qid-row="${CSS.escape(QB.activeDeck[idx].q)}"]`);
+    if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("qid-deeplink-highlight");
+        setTimeout(() => row.classList.remove("qid-deeplink-highlight"), 4600);
+    }
+}
+
+// ============================================================================
+// 13. BOOT & DATA SUBSCRIPTIONS
+// ============================================================================
+function clearDataSubscriptions() {
+    QB._unsubs.forEach(u => { try { u(); } catch (_) {} });
+    QB._unsubs = [];
+}
+
+async function loadAllSubjectData() {
+    clearDataSubscriptions();
+    renderAccessNotice();
+    renderAdminFloatingPill();
+
+    if (!MPPStore.user) {
+        QB.qnaData = [];
+        QB.curriculumData = [];
+        applyFiltersAndRender();
+        return;
+    }
+
+    // Load user personal notes (cached 15 min in sessionStorage)
+    loadUserNotes().then(notes => { QB.userNotes = notes || {}; }).catch(() => {});
+
+    // Subscribe subject settings (showAnswers)
+    QB._unsubs.push(subscribeSubjectSettings(({ showAnswers }) => {
+        QB.subjectShowAnswers = Boolean(showAnswers);
+        renderAdminFloatingPill();
+        renderTableFresh();
+        if (QB.deckOpen) renderDeckCard();
+    }));
+
+    // Subscribe Cross-Links (Teen Patti) — version-gated IndexedDB for students
+    QB._unsubs.push(subscribeCrossLinks(QB.bridgeSlug, (data) => {
+        QB.crossLinks = data || { clusters: {}, node_topics: {}, nodes: {}, history: [] };
+        recomputeRepeatCounts();
+        renderTableFresh();
+        if (QB.deckOpen) renderDeckCard();
+    }));
+
+    if (QB.mode === "clinical") {
+        QB._unsubs.push(subscribeClinicalData(({ qnaData, liveAnswers }) => {
+            QB.qnaData = qnaData || [];
+            QB.liveAnswers = liveAnswers || {};
+            QB.curriculumData = [];
+            buildFilterDropdowns();
+            applyFiltersAndRender();
+            handleDeepLinkIfPresent();
+        }));
+        return;
+    }
+
+    // REVIEW MODE: Load Bank + Delta Overrides + (Admin-only live answers; students fetch on-demand!)
+    const bank = await loadReviewBank();
+    QB.curriculumData = bank.curriculumData || [];
+    QB.qnaData = bank.qnaData || [];
+    QB._sourceTag = bank.sourceTag || "";
+    if (bank.collegeName) {
+        QB.collegeName = bank.collegeName;
+        MPPStore.page.collegeName = bank.collegeName;
+    }
+
+    buildFilterDropdowns();
+    applyFiltersAndRender();
+    handleDeepLinkIfPresent();
+
+    // Subscribe lightweight delta overrides (students read ONLY overrides from IndexedDB cache)
+    QB._unsubs.push(subscribeReviewEdits(({ overrides, undoStack, redoStack }) => {
+        QB.questionOverrides = overrides || {};
+        QB.undoStack = undoStack || [];
+        QB.redoStack = redoStack || [];
+        applyFiltersAndRender();
+    }));
+
+    // Admins subscribe live answers for instant preview; students rely on getAnswerOnDemand() -> 0 KB upfront!
+    if (isUserAdmin()) {
+        QB._unsubs.push(subscribeReviewAnswers((ansMap) => {
+            QB.liveAnswers = ansMap || {};
+            if (QB.deckOpen) renderDeckCard();
+        }));
+    }
+}
+
+export function bootQBankEngine({ mode = "review" } = {}) {
+    const params = new URLSearchParams(window.location.search);
+    QB.mode = mode === "clinical" ? "clinical" : "review";
+    QB.collegeCode = (params.get("college") || "deoghar").toLowerCase().trim();
+    QB.subjectSlug = (params.get("subject") || "cfm").toLowerCase().trim();
+    QB.versionCode = (params.get("version") || "").trim();
+
+    const meta = resolveSubjectMeta(QB.subjectSlug);
+    QB.subjectCode = meta.code;
+    QB.subjectName = meta.name || meta.title || meta.code;
+    QB.bridgeSlug = meta.bridgeSlug || QB.subjectSlug;
+    QB.collegeName = resolveCollegeName(QB.collegeCode);
+
+    // Sync page metadata into shared store
+    MPPStore.page = {
+        mode: QB.mode,
+        collegeCode: QB.collegeCode,
+        collegeName: QB.collegeName,
+        subjectSlug: QB.subjectSlug,
+        subjectCode: QB.subjectCode,
+        subjectName: QB.subjectName,
+        versionCode: QB.versionCode
+    };
+
+    // Update page headings & badges
+    document.title = `${QB.subjectName} (${QB.mode === "clinical" ? "Clinical" : "PYQs"}) — ${QB.collegeName}`;
+    const titleEl = document.getElementById("page-subject-title");
+    if (titleEl) titleEl.textContent = QB.mode === "clinical" ? `${QB.subjectName} — Clinical & Viva` : QB.subjectName;
+    const colEl = document.getElementById("page-college-badge");
+    if (colEl) colEl.textContent = QB.collegeName;
+    const verEl = document.getElementById("page-version-badge");
+    if (verEl && QB.versionCode) {
+        verEl.textContent = QB.versionCode.toUpperCase();
+        verEl.classList.remove("hidden");
+    }
+    const deckSub = document.getElementById("deck-header-subtitle");
+    if (deckSub) deckSub.textContent = `${QB.subjectName} • ${QB.collegeName}`;
+
+    loadLocalAttempts();
+    bindStaticUIControls();
+    bindTableDelegation();
+
+    // React to Auth / Feature Flags / Bookmarks / Admin Ready
+    onStoreChange("auth", () => loadAllSubjectData());
+    onStoreChange("flags", () => {
+        recomputeRepeatCounts();
+        renderTableFresh();
+        if (QB.deckOpen) renderDeckCard();
+    });
+    onStoreChange("bookmarks", () => {
+        if (QB.filters.savedOnly) applyFiltersAndRender();
+    });
+    onStoreChange("adminReady", () => {
+        renderAdminFloatingPill();
+        if (QB.deckOpen) renderDeckCard();
+    });
+
+    // Expose clean API for ui-shell.js & Phase 3 admin-suite.js
+    window.QBankEngine = {
+        getState: () => QB,
+        getQuestionById: (qId) => getDisplayedQuestion(QB.qnaData.find(x => String(x.q).toLowerCase() === String(qId).toLowerCase())),
+        getDisplayedQuestion,
+        openAnswerModal,
+        openDeckAt,
+        closeDeck,
+        openReportModal,
+        renderTable: renderTableFresh,
+        renderDeckCard,
+        applyFiltersAndRender,
+        refreshData: loadAllSubjectData,
+        setLiveBank: ({ qnaData, curriculumData }) => {
+            if (Array.isArray(qnaData)) QB.qnaData = qnaData;
+            if (Array.isArray(curriculumData)) QB.curriculumData = curriculumData;
+            buildFilterDropdowns();
+            applyFiltersAndRender();
+        }
+    };
+
+    if (MPPStore.authReady) loadAllSubjectData();
+}

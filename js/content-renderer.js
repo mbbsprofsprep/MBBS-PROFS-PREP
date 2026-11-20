@@ -1,8 +1,8 @@
 // ============================================================================
-// js/content-renderer.js
-// Single Unified Content Renderer for ALL Pages (Portal, Review, Clinical,
-// Bookmarks & Neuro-Recall): KaTeX + Flowcharts + Multimedia + Docs +
-// Inline Collapsible Galleries ("See images (N)") + Safe Highlights
+// js/content-renderer.js (Complete Updated Version)
+// Unified Content Renderer for ALL Pages (Portal, Review, Clinical, Bookmarks
+// & Neuro-Recall): KaTeX + Flowcharts + Multimedia + Docs + Collapsible Inline
+// Galleries ("See images (N)") + Safe Highlights + Hotlink-Safe Images
 // ============================================================================
 
 const GALLERY_REGISTRY = new Map();
@@ -252,7 +252,7 @@ function renderGallerySlideHtml(url) {
             ? `<iframe class="w-full h-[260px] rounded-lg" src="https://www.youtube.com/embed/${escapeHtml(vid)}" frameborder="0" allowfullscreen></iframe>`
             : `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-sky-500 font-bold underline">Open Video</a>`;
     }
-    return `<img src="${safeUrl}" alt="Medical Reference Image" loading="lazy" onclick="window.openImageLightbox?.('${safeUrl}')">`;
+    return `<img src="${safeUrl}" referrerpolicy="no-referrer" alt="Medical Reference Image" loading="lazy" onclick="window.openImageLightbox?.('${safeUrl}')">`;
 }
 
 export const MPPRenderer = {
@@ -435,7 +435,7 @@ function buildInlineGalleryHtml(label, urls) {
         ? `<div class="mpp-gallery-thumbs">${urls.map((u, idx) => {
             const k = classifyMediaUrl(u);
             const inner = k === "image"
-                ? `<img src="${escapeHtml(u)}" alt="Thumb ${idx + 1}" loading="lazy">`
+                ? `<img src="${escapeHtml(u)}" referrerpolicy="no-referrer" alt="Thumb ${idx + 1}" loading="lazy">`
                 : `<div class="w-full h-full flex items-center justify-center text-xs font-bold">${k === "audio" ? "🔊" : "🎬"}</div>`;
             return `<div class="mpp-gallery-thumb ${idx === 0 ? "active" : ""}" onclick="window.MPPRenderer.setGallerySlide('${gid}', ${idx})">${inner}</div>`;
         }).join("")}</div>`
@@ -540,7 +540,7 @@ export function renderContent(text) {
 
     // Step 5: Extract Markdown-wrapped Media & Docs (Safely skips ![...] images)
     s = s.replace(/(!?)\[([^\]]+)\]\((https?:\/\/[^\s\)]+|assets\/[^\s\)]+)\)/gi, (full, bang, title, url) => {
-        if (bang === "!") return full; // Keep normal Markdown images for Marked
+        if (bang === "!") return full;
         const ytId = extractYouTubeId(url);
         if (ytId) return pushEmbed(buildYouTubeCard(title, ytId));
         if (/\.(mp4|webm|ogg|mov|m4v)(?:\?|$)/i.test(url)) return pushEmbed(buildVideoCard(title, url));
@@ -551,7 +551,7 @@ export function renderContent(text) {
             const dt = url.includes("/document/") ? "gdoc" : url.includes("/presentation/") ? "gslides" : url.includes("/spreadsheets/") ? "gsheets" : "gdrive";
             return pushEmbed(buildDocCard(title, url, dt));
         }
-        return full; // Keep standard hyperlink
+        return full;
     });
 
     // Step 6: Extract Raw Media & Doc URLs (Markdown links are already protected above)
@@ -589,9 +589,12 @@ export function renderContent(text) {
     if (typeof window.DOMPurify !== "undefined") {
         html = window.DOMPurify.sanitize(html, {
             ADD_TAGS: ["mark"],
-            ADD_ATTR: ["class", "target", "rel", "loading"]
+            ADD_ATTR: ["class", "target", "rel", "loading", "referrerpolicy"]
         });
     }
+
+    // Ensure all Markdown-rendered <img> tags bypass external hotlink blocks
+    html = html.replace(/<img(?![^>]*referrerpolicy)/gi, '<img referrerpolicy="no-referrer" loading="lazy"');
 
     // Step 8: Restore safe, pre-escaped Math, Media Embeds & Inline Galleries
     html = html.replace(/@@MATH_(\d+)@@/g, (_, i) => mathBlocks[Number(i)]);

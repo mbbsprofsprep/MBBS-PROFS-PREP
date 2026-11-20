@@ -1,12 +1,20 @@
 // ============================================================================
-// js/data-adapter.js
+// js/data-adapter.js (Phase 1 — Version-Gated Cache + On-Demand Answers + Delta Edits)
 // Unified Data & Cache Layer for BOTH review.html and clinical.html
-// - IndexedDB Cache (0 KB repeat loads when version unchanged)
-// - Read-Only Loaders for Students
-// - 3-Admin-Only CRUD: Add/Edit/Delete, Bulk Delete, Reorder, Anki Import,
-//   Cloud Vault Sync, 777 Firebase-First JSON Export & Feature Flag Toggles
 // ============================================================================
-import { db, MPPStore, isUserAdmin, ref, get, set, update, remove, onValue } from "./core-firebase.js";
+import {
+    db,
+    MPPStore,
+    isUserAdmin,
+    getSessionCached,
+    invalidateSessionCache,
+    ref,
+    get,
+    set,
+    update,
+    remove,
+    onValue
+} from "./core-firebase.js";
 import { resolveSubjectMeta, resolveCollegeName } from "./subject-registry.js";
 
 const IDB_NAME = "MBBSProfsPrepVaultDB";
@@ -58,6 +66,7 @@ export async function idbSet(key, val) {
 }
 
 export async function clearLocalBankCache() {
+    invalidateSessionCache();
     try {
         const idb = await openIDB();
         if (idb) {
@@ -176,8 +185,19 @@ export function sanitizeBankPayload(rawPayload, collegeFallback = "deoghar") {
     return { collegeName, curriculumData, qnaData };
 }
 
+// Fetch tiny ~120-byte bank_meta once per subject (cached 5 min in sessionStorage)
+async function getSubjectMeta(college, candidateKeys, subjectKey) {
+    return getSessionCached(`meta_${college}_${subjectKey}`, 5 * 60 * 1000, async () => {
+        for (const k of candidateKeys) {
+            const snap = await get(ref(db, `bank_meta/${college}/${k}`)).catch(() => null);
+            if (snap && snap.exists()) return { matchedKey: k, ...snap.val() };
+        }
+        return { matchedKey: subjectKey, version: 0, answersVersion: 0, editsVersion: 0 };
+    });
+}
+
 // ============================================================================
-// 3. READ OPERATIONS (Safe for All Authenticated Users)
+// 3. COST-OPTIMIZED READ OPERATIONS
 // ============================================================================
 export async function loadReviewBank() {
     if (!MPPStore.user) {
@@ -187,15 +207,11 @@ export async function loadReviewBank() {
     const { college, subjectKey, candidateKeys, candidateFileNames } = getVaultKeys({ mode: "review" });
     const isPro = MPPStore.isAdmin || MPPStore.accessLevel === "premium";
 
-    // 1. Pro / Admin: Check IndexedDB against Firebase bank_meta version, then question_banks
     if (isPro) {
-        let remoteVersion = null;
-        for (const k of candidateKeys) {
-            const snap = await get(ref(db, `bank_meta/${college}/${k}/version`)).catch(() => null);
-            if (snap && snap.exists()) { remoteVersion = snap.val(); break; }
-        }
-
+        const meta = await getSubjectMeta(college, candidateKeys, subjectKey);
+        const remoteVersion = meta.version || 0;
         const idbKey = `pro_${college}_${subjectKey}`;
+
         if (remoteVersion) {
             const cached = await idbGet(idbKey);
             if (cached && cached.version === remoteVersion && Array.isArray(cached.qnaData) && cached.qnaData.length) {
@@ -203,7 +219,8 @@ export async function loadReviewBank() {
             }
         }
 
-        for (const k of candidateKeys) {
+        const keysToTry = meta.matchedKey ? [meta.matchedKey, ...candidateKeys.filter(k => k !== meta.matchedKey)] : candidateKeys;
+        for (const k of keysToTry) {
             const snap = await get(ref(db, `question_banks/${college}/${k}`)).catch(() => null);
             if (snap && snap.exists()) {
                 const clean = sanitizeBankPayload(snap.val(), college);
@@ -214,19 +231,25 @@ export async function loadReviewBank() {
             }
         }
     } else {
-        // 2. Free Plan: Read only question_previews node
+        const idbKey = `prev_${college}_${subjectKey}`;
+        const meta = await getSubjectMeta(college, candidateKeys, subjectKey);
+        const cached = await idbGet(idbKey);
+        if (cached && meta.version && cached.version === meta.version && cached.qnaData?.length) {
+            return { ...sanitizeBankPayload(cached, college), sourceTag: "firebase-preview-cache" };
+        }
         for (const k of candidateKeys) {
             const snap = await get(ref(db, `question_previews/${college}/${k}`)).catch(() => null);
             if (snap && snap.exists()) {
                 const clean = sanitizeBankPayload(snap.val(), college);
                 if (clean && clean.qnaData.length) {
+                    await idbSet(idbKey, { version: meta.version || Date.now(), ...clean });
                     return { ...clean, sourceTag: "firebase-preview" };
                 }
             }
         }
     }
 
-    // 3. Fallback to legacy GitHub JSON file (sliced for Free users)
+    // Fallback to static GitHub JSON file
     for (const fname of candidateFileNames) {
         try {
             const res = await fetch(fname);
@@ -248,63 +271,319 @@ export async function loadReviewBank() {
     return { collegeName: MPPStore.page.collegeName, curriculumData: [], qnaData: [], sourceTag: "not-found" };
 }
 
-export function subscribeReviewAnswers(callback) {
-    const { college, rawSub, ver, subjectKey } = getVaultKeys({ mode: "review" });
-    let baseAns = {}, verAns = {};
-    const emit = () => callback({ ...baseAns, ...verAns });
+// ON-DEMAND SINGLE-ANSWER LOADER (Phase 2 calls this on "View Answer" click -> ~85% less RTDB egress)
+export async function getAnswerOnDemand(qId) {
+    if (!qId) return "";
+    const { isClinical, college, rawSub, subjectKey, candidateKeys } = getVaultKeys();
+    const cacheKey = `ans_single_${college}_${isClinical ? rawSub + "_CLIN" : subjectKey}_${qId}`;
 
-    const u1 = onValue(ref(db, `answers/${college}/${rawSub}`), (s) => { baseAns = s.val() || {}; emit(); });
-    const u2 = ver
-        ? onValue(ref(db, `answers/${college}/${subjectKey}`), (s) => { verAns = s.val() || {}; emit(); })
-        : () => {};
-    return () => { u1(); u2(); };
+    let remoteVer = 0;
+    if (isClinical) {
+        const meta = await getSessionCached(`cmeta_${college}_${rawSub}`, 5 * 60 * 1000, async () => {
+            const s = await get(ref(db, `clinical_meta/${college}/${rawSub}/version`)).catch(() => null);
+            return s?.val() || 0;
+        });
+        remoteVer = Number(meta || 0);
+    } else {
+        const meta = await getSubjectMeta(college, candidateKeys, subjectKey);
+        remoteVer = Number(meta.answersVersion || meta.version || 0);
+    }
+
+    const cached = await idbGet(cacheKey);
+    if (cached && cached.ver === remoteVer) {
+        return cached.text || "";
+    }
+
+    const primaryPath = isClinical
+        ? `clinical_data/${college}/${rawSub}/${qId}/answer`
+        : `answers/${college}/${subjectKey}/${qId}/text`;
+    let snap = await get(ref(db, primaryPath)).catch(() => null);
+
+    if ((!snap || !snap.exists()) && !isClinical && subjectKey !== rawSub) {
+        snap = await get(ref(db, `answers/${college}/${rawSub}/${qId}/text`)).catch(() => null);
+    }
+
+    const text = snap?.exists() ? String(snap.val()) : "";
+    await idbSet(cacheKey, { ver: remoteVer, text });
+    return text;
 }
 
+// Backwards-compatible Answers Loader:
+// - Admins get live onValue (instant publishing feedback)
+// - Students get version-gated IndexedDB cache via 1-time get() (0 KB repeat loads)
+export function subscribeReviewAnswers(callback) {
+    const { college, rawSub, ver, subjectKey, candidateKeys } = getVaultKeys({ mode: "review" });
+
+    if (isUserAdmin()) {
+        let baseAns = {}, verAns = {};
+        const emit = () => callback({ ...baseAns, ...verAns });
+        const u1 = onValue(ref(db, `answers/${college}/${rawSub}`), (s) => { baseAns = s.val() || {}; emit(); });
+        const u2 = ver
+            ? onValue(ref(db, `answers/${college}/${subjectKey}`), (s) => { verAns = s.val() || {}; emit(); })
+            : () => {};
+        return () => { u1(); u2(); };
+    }
+
+    let cancelled = false;
+    (async () => {
+        const meta = await getSubjectMeta(college, candidateKeys, subjectKey);
+        const ansVer = Number(meta.answersVersion || meta.version || 1);
+        const idbKey = `ans_map_${college}_${subjectKey}`;
+        const cached = await idbGet(idbKey);
+
+        if (cached && cached.ver === ansVer && cached.data) {
+            if (!cancelled) callback(cached.data);
+            return;
+        }
+
+        const [s1, s2] = await Promise.all([
+            get(ref(db, `answers/${college}/${rawSub}`)).catch(() => null),
+            ver ? get(ref(db, `answers/${college}/${subjectKey}`)).catch(() => null) : Promise.resolve(null)
+        ]);
+        const merged = { ...(s1?.val() || {}), ...(s2?.val() || {}) };
+        await idbSet(idbKey, { ver: ansVer, data: merged });
+        if (!cancelled) callback(merged);
+    })();
+
+    return () => { cancelled = true; };
+}
+
+// Question Edits:
+// - Students read ONLY `overrides` via version-gated IndexedDB (never download undoStack/redoStack!)
+// - Admins get live `overrides` + `admin_private/question_edits_history`
 export function subscribeReviewEdits(callback) {
-    const { college, rawSub } = getVaultKeys({ mode: "review" });
-    return onValue(ref(db, `question_edits/${college}/${rawSub}`), (snap) => {
-        const val = snap.val() || {};
-        callback({
-            overrides: val.overrides || {},
-            undoStack: (Array.isArray(val.undoStack) ? val.undoStack : Object.values(val.undoStack || {})).filter(Boolean).slice(0, 10),
-            redoStack: (Array.isArray(val.redoStack) ? val.redoStack : Object.values(val.redoStack || {})).filter(Boolean).slice(0, 10)
+    const { college, rawSub, subjectKey, candidateKeys } = getVaultKeys({ mode: "review" });
+
+    if (isUserAdmin()) {
+        let overrides = {}, undoStack = [], redoStack = [];
+        const emit = () => callback({ overrides, undoStack, redoStack });
+
+        const u1 = onValue(ref(db, `question_edits/${college}/${rawSub}/overrides`), (s) => {
+            overrides = s.val() || {};
+            emit();
         });
+        const u2 = onValue(ref(db, `admin_private/question_edits_history/${college}/${rawSub}`), (s) => {
+            const v = s.val() || {};
+            undoStack = (Array.isArray(v.undoStack) ? v.undoStack : Object.values(v.undoStack || {})).filter(Boolean).slice(0, 10);
+            redoStack = (Array.isArray(v.redoStack) ? v.redoStack : Object.values(v.redoStack || {})).filter(Boolean).slice(0, 10);
+            emit();
+        });
+        return () => { u1(); u2(); };
+    }
+
+    let cancelled = false;
+    (async () => {
+        const meta = await getSubjectMeta(college, candidateKeys, subjectKey);
+        const editsVer = Number(meta.editsVersion || meta.version || 1);
+        const idbKey = `edits_${college}_${rawSub}`;
+        const cached = await idbGet(idbKey);
+
+        if (cached && cached.ver === editsVer && cached.overrides) {
+            if (!cancelled) callback({ overrides: cached.overrides, undoStack: [], redoStack: [] });
+            return;
+        }
+
+        const snap = await get(ref(db, `question_edits/${college}/${rawSub}/overrides`)).catch(() => null);
+        const overrides = snap?.val() || {};
+        await idbSet(idbKey, { ver: editsVer, overrides });
+        if (!cancelled) callback({ overrides, undoStack: [], redoStack: [] });
+    })();
+
+    return () => { cancelled = true; };
+}
+
+// Clinical Data:
+// - Admins keep live onValue for instant add/edit/reorder
+// - Students use `clinical_meta` version-gated IndexedDB cache via 1-time get()
+function parseClinicalSnapshot(data = {}) {
+    const qnaData = Object.keys(data).map(key => ({
+        q: key,
+        stem: String(data[key].stem || ""),
+        chapter: Array.isArray(data[key].chapter) ? data[key].chapter : [String(data[key].chapter || "General Clinical")],
+        type: data[key].type || "Theory",
+        examBatch: data[key].examBatch || "Clinical Wards",
+        options: Array.isArray(data[key].options) ? data[key].options.map(String) : null,
+        ans_key: String(data[key].ans_key || "").trim().toUpperCase(),
+        order: Number(data[key].order || 0)
+    })).sort((a, b) => a.order - b.order);
+
+    const liveAnswers = {};
+    Object.keys(data).forEach(k => {
+        if (data[k]?.answer) liveAnswers[k] = { text: data[k].answer };
     });
+    return { qnaData, liveAnswers };
 }
 
 export function subscribeClinicalData(callback) {
     const { college, rawSub } = getVaultKeys({ mode: "clinical" });
-    return onValue(ref(db, `clinical_data/${college}/${rawSub}`), (snap) => {
-        const data = snap.val() || {};
-        const qnaData = Object.keys(data).map(key => ({
-            q: key,
-            stem: String(data[key].stem || ""),
-            chapter: Array.isArray(data[key].chapter) ? data[key].chapter : [String(data[key].chapter || "General Clinical")],
-            type: data[key].type || "Theory",
-            examBatch: data[key].examBatch || "Clinical Wards",
-            options: Array.isArray(data[key].options) ? data[key].options.map(String) : null,
-            ans_key: String(data[key].ans_key || "").trim().toUpperCase(),
-            order: Number(data[key].order || 0)
-        })).sort((a, b) => a.order - b.order);
 
-        const liveAnswers = {};
-        Object.keys(data).forEach(k => {
-            if (data[k]?.answer) liveAnswers[k] = { text: data[k].answer };
+    if (isUserAdmin()) {
+        return onValue(ref(db, `clinical_data/${college}/${rawSub}`), (snap) => {
+            callback(parseClinicalSnapshot(snap.val() || {}));
         });
+    }
 
-        callback({ qnaData, liveAnswers });
-    });
+    let cancelled = false;
+    (async () => {
+        const metaVer = await getSessionCached(`cmeta_${college}_${rawSub}`, 5 * 60 * 1000, async () => {
+            const s = await get(ref(db, `clinical_meta/${college}/${rawSub}/version`)).catch(() => null);
+            return Number(s?.val() || 1);
+        });
+        const idbKey = `clin_${college}_${rawSub}`;
+        const cached = await idbGet(idbKey);
+
+        if (cached && cached.ver === metaVer && cached.parsed) {
+            if (!cancelled) callback(cached.parsed);
+            return;
+        }
+
+        const snap = await get(ref(db, `clinical_data/${college}/${rawSub}`)).catch(() => null);
+        const parsed = parseClinicalSnapshot(snap?.val() || {});
+        await idbSet(idbKey, { ver: metaVer, parsed });
+        if (!cancelled) callback(parsed);
+    })();
+
+    return () => { cancelled = true; };
 }
 
+// Subject Settings (showAnswers toggle):
+// - Admins: live onValue
+// - Students: 1-time get() cached 15 min in sessionStorage
 export function subscribeSubjectSettings(callback) {
     const { college, settingsKey } = getVaultKeys();
-    return onValue(ref(db, `settings/${college}/${settingsKey}`), (snap) => {
-        callback({ showAnswers: Boolean(snap.val()?.showAnswers) });
-    });
+
+    if (isUserAdmin()) {
+        return onValue(ref(db, `settings/${college}/${settingsKey}`), (snap) => {
+            callback({ showAnswers: Boolean(snap.val()?.showAnswers) });
+        });
+    }
+
+    let cancelled = false;
+    getSessionCached(`sset_${college}_${settingsKey}`, 15 * 60 * 1000, async () => {
+        const snap = await get(ref(db, `settings/${college}/${settingsKey}`)).catch(() => null);
+        return { showAnswers: Boolean(snap?.val()?.showAnswers) };
+    }).then(val => { if (!cancelled) callback(val); });
+
+    return () => { cancelled = true; };
+}
+
+// Cross-Links (Teen Patti) Version-Gated Loader (Skips heavy `shared_q_cache` & admin `history` for students)
+export function subscribeCrossLinks(bridgeSlug, callback) {
+    if (isUserAdmin()) {
+        let base = {}, hist = [];
+        const emit = () => callback({ ...base, history: hist });
+        const u1 = onValue(ref(db, `cross_links/${bridgeSlug}`), (s) => {
+            base = s.val() || {};
+            if (!hist.length && base.history) {
+                hist = (Array.isArray(base.history) ? base.history : Object.values(base.history)).filter(Boolean).slice(0, 10);
+            }
+            emit();
+        });
+        const u2 = onValue(ref(db, `admin_private/cross_links_history/${bridgeSlug}`), (s) => {
+            if (s.exists()) {
+                const v = s.val();
+                hist = (Array.isArray(v) ? v : Object.values(v)).filter(Boolean).slice(0, 10);
+                emit();
+            }
+        });
+        return () => { u1(); u2(); };
+    }
+
+    let cancelled = false;
+    (async () => {
+        const clVer = await getSessionCached(`clmeta_${bridgeSlug}`, 10 * 60 * 1000, async () => {
+            const s = await get(ref(db, `cross_links/${bridgeSlug}/version`)).catch(() => null);
+            return Number(s?.val() || 1);
+        });
+        const idbKey = `cl_${bridgeSlug}`;
+        const cached = await idbGet(idbKey);
+        if (cached && cached.ver === clVer && cached.data) {
+            if (!cancelled) callback(cached.data);
+            return;
+        }
+
+        // Fetch ONLY clusters, node_topics, and nodes — NOT shared_q_cache or admin history
+        const [cSnap, ntSnap, nSnap] = await Promise.all([
+            get(ref(db, `cross_links/${bridgeSlug}/clusters`)).catch(() => null),
+            get(ref(db, `cross_links/${bridgeSlug}/node_topics`)).catch(() => null),
+            get(ref(db, `cross_links/${bridgeSlug}/nodes`)).catch(() => null)
+        ]);
+        const data = {
+            clusters: cSnap?.val() || {},
+            node_topics: ntSnap?.val() || {},
+            nodes: nSnap?.val() || {},
+            history: []
+        };
+        await idbSet(idbKey, { ver: clVer, data });
+        if (!cancelled) callback(data);
+    })();
+
+    return () => { cancelled = true; };
+}
+
+// On-Demand Single PG Card Loader (Fetches 1 PG MCQ only when a student opens it)
+export async function getSharedPGQuestion(bridgeSlug, qid) {
+    if (!bridgeSlug || !qid) return null;
+    const up = String(qid).trim().toUpperCase();
+    const cacheKey = `pgq_${bridgeSlug}_${up}`;
+    const cached = await idbGet(cacheKey);
+    if (cached) return cached;
+
+    const snap = await get(ref(db, `cross_links/${bridgeSlug}/shared_q_cache/${up}`)).catch(() => null);
+    if (!snap || !snap.exists()) return null;
+    const val = snap.val();
+    await idbSet(cacheKey, val);
+    return val;
 }
 
 // ============================================================================
-// 4. ADMIN-ONLY WRITE OPERATIONS (Strictly Guarded for the 3 Admins)
+// 4. STUDENT WRITES (Bug Reports & Personal Mnemonic Notes)
+// ============================================================================
+export async function submitQuestionReport({ qId, reportType, description }) {
+    if (!MPPStore.user) throw new Error("Please sign in to report an issue.");
+    const { isClinical, college, rawSub, subjectKey } = getVaultKeys();
+    const reportId = `RPT_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const payload = {
+        id: reportId,
+        qid: String(qId || "").trim(),
+        college,
+        subject: isClinical ? `${rawSub}_CLINICAL` : subjectKey,
+        subjectSlug: MPPStore.page.subjectSlug || rawSub.toLowerCase(),
+        mode: isClinical ? "clinical" : "review",
+        type: String(reportType || "Other"),
+        description: String(description || "").trim().slice(0, 600),
+        url: window.location.href,
+        reportedBy: MPPStore.user.email || MPPStore.user.uid,
+        uid: MPPStore.user.uid,
+        status: "open",
+        createdAt: Date.now()
+    };
+    await set(ref(db, `reports/${reportId}`), payload);
+    return payload;
+}
+
+export async function loadUserNotes() {
+    if (!MPPStore.user) return {};
+    const uid = MPPStore.user.uid;
+    return getSessionCached(`notes_${uid}`, 15 * 60 * 1000, async () => {
+        const s = await get(ref(db, `users/${uid}/notes`)).catch(() => null);
+        return s?.val() || {};
+    });
+}
+
+export async function saveUserNote(uniqueId, text) {
+    if (!MPPStore.user) throw new Error("Sign in required.");
+    const uid = MPPStore.user.uid;
+    const clean = String(text || "").trim().slice(0, 500);
+    const noteRef = ref(db, `users/${uid}/notes/${uniqueId}`);
+    if (clean) await set(noteRef, { text: clean, updatedAt: Date.now() });
+    else await remove(noteRef);
+    invalidateSessionCache(`notes_${uid}`);
+    return clean;
+}
+
+// ============================================================================
+// 5. ADMIN-ONLY WRITE OPERATIONS (Strictly Guarded for Admins)
 // ============================================================================
 function mergeNewChaptersIntoCurriculum(existingCurr, qnaList) {
     const updatedCurr = JSON.parse(JSON.stringify(existingCurr || []));
@@ -331,6 +610,11 @@ function mergeNewChaptersIntoCurriculum(existingCurr, qnaList) {
         }
     }
     return updatedCurr;
+}
+
+async function bumpClinicalVersion(college, rawSub) {
+    await set(ref(db, `clinical_meta/${college}/${rawSub}/version`), Date.now()).catch(() => {});
+    invalidateSessionCache(`cmeta_${college}_${rawSub}`);
 }
 
 export async function uploadFullBank(college, subjectKey, rawPayload) {
@@ -360,19 +644,53 @@ export async function uploadFullBank(college, subjectKey, rawPayload) {
         [`question_previews/${normCol}/${normSubKey}`]: {
             collegeName: clean.collegeName, curriculumData, qnaData: previewQna, version: versionStamp
         },
-        [`bank_meta/${normCol}/${normSubKey}`]: {
-            version: versionStamp,
-            totalQuestions: cleanQna.length,
-            updatedAt: new Date().toISOString(),
-            updatedBy: MPPStore.user.email
-        }
+        [`bank_meta/${normCol}/${normSubKey}/version`]: versionStamp,
+        [`bank_meta/${normCol}/${normSubKey}/totalQuestions`]: cleanQna.length,
+        [`bank_meta/${normCol}/${normSubKey}/updatedAt`]: new Date().toISOString(),
+        [`bank_meta/${normCol}/${normSubKey}/updatedBy`]: MPPStore.user.email
     });
 
+    invalidateSessionCache(`meta_${normCol}_${normSubKey}`);
     await idbSet(`pro_${normCol}_${normSubKey}`, {
         version: versionStamp, collegeName: clean.collegeName, curriculumData, qnaData: cleanQna
     });
 
     return { versionStamp, count: cleanQna.length, normSubKey, collegeName: clean.collegeName, curriculumData, qnaData: cleanQna };
+}
+
+// Lightweight ~200-byte Delta Override (Avoids rewriting 300 KB question_banks on typo/key fixes)
+export async function saveQuestionDeltaOverride(qId, { stem, options, ans_key, explanation }, historyAction = null, currentUndo = []) {
+    requireAdmin();
+    const { college, rawSub, subjectKey } = getVaultKeys({ mode: "review" });
+    const up = String(qId).trim().toUpperCase();
+    const now = Date.now();
+
+    const overridePayload = { updatedAt: now };
+    if (stem !== undefined) overridePayload.stem = String(stem);
+    if (ans_key !== undefined) overridePayload.ans_key = String(ans_key).trim().toUpperCase();
+    if (Array.isArray(options)) overridePayload.options = options.map(String);
+    if (explanation !== undefined) overridePayload.explanation = String(explanation);
+
+    const updates = {
+        [`question_edits/${college}/${rawSub}/overrides/${up}`]: overridePayload,
+        [`bank_meta/${college}/${subjectKey}/editsVersion`]: now
+    };
+
+    if (explanation !== undefined) {
+        updates[`answers/${college}/${subjectKey}/${qId}`] = explanation
+            ? { text: explanation, updatedAt: new Date().toISOString(), updatedBy: MPPStore.user.email }
+            : null;
+        updates[`bank_meta/${college}/${subjectKey}/answersVersion`] = now;
+    }
+
+    if (historyAction) {
+        updates[`admin_private/question_edits_history/${college}/${rawSub}/undoStack`] = [historyAction, ...currentUndo].slice(0, 10);
+        updates[`admin_private/question_edits_history/${college}/${rawSub}/redoStack`] = [];
+    }
+
+    await update(ref(db), updates);
+    invalidateSessionCache(`meta_${college}_${subjectKey}`);
+    return overridePayload;
 }
 
 export async function saveQuestion({ qId, editId, stem, options, ans_key, chapter, type, examBatch, answer }, currentQna = [], currentCurriculum = []) {
@@ -400,10 +718,32 @@ export async function saveQuestion({ qId, editId, stem, options, ans_key, chapte
         const updates = { [`clinical_data/${college}/${rawSub}/${qId}`]: payload };
         if (editId && editId !== qId) updates[`clinical_data/${college}/${rawSub}/${editId}`] = null;
         await update(ref(db), updates);
+        await bumpClinicalVersion(college, rawSub);
         return null;
     }
 
-    // REVIEW / PYQ MODE
+    // REVIEW / PYQ MODE — Use ~200-byte delta override if editing same QID with unchanged metadata!
+    const existingItem = editId && editId === qId
+        ? currentQna.find(x => String(x.q).toLowerCase() === String(qId).toLowerCase())
+        : null;
+
+    if (existingItem) {
+        const sameType = (existingItem.type || "Theory") === (type || "Theory");
+        const sameChap = JSON.stringify(existingItem.chapter) === JSON.stringify(chapter || "General");
+        const sameBatch = JSON.stringify(existingItem.examBatch) === JSON.stringify(examBatch || "Prof Exam");
+
+        if (sameType && sameChap && sameBatch) {
+            await saveQuestionDeltaOverride(qId, {
+                stem,
+                options: type === "MCQ" ? options : undefined,
+                ans_key: type === "MCQ" ? (ans_key || "") : "",
+                explanation: answer
+            });
+            return null;
+        }
+    }
+
+    // Structural change (new QID, renamed QID, chapter/batch/type change) -> update full bank
     const nextList = [...currentQna];
     const newObj = {
         q: qId,
@@ -429,7 +769,10 @@ export async function saveQuestion({ qId, editId, stem, options, ans_key, chapte
         ansUpdates[`answers/${college}/${subjectKey}/${qId}`] = null;
     }
     if (editId && editId !== qId) ansUpdates[`answers/${college}/${subjectKey}/${editId}`] = null;
-    if (Object.keys(ansUpdates).length) await update(ref(db), ansUpdates);
+    if (Object.keys(ansUpdates).length) {
+        ansUpdates[`bank_meta/${college}/${subjectKey}/answersVersion`] = Date.now();
+        await update(ref(db), ansUpdates);
+    }
 
     return uploadFullBank(college, subjectKey, {
         collegeName: MPPStore.page.collegeName,
@@ -444,11 +787,17 @@ export async function deleteQuestion(qId, currentQna = [], currentCurriculum = [
 
     if (isClinical) {
         await remove(ref(db, `clinical_data/${college}/${rawSub}/${qId}`));
+        await bumpClinicalVersion(college, rawSub);
         return null;
     }
 
     const nextList = currentQna.filter(x => String(x.q) !== String(qId));
-    await remove(ref(db, `answers/${college}/${subjectKey}/${qId}`)).catch(() => {});
+    await update(ref(db), {
+        [`answers/${college}/${subjectKey}/${qId}`]: null,
+        [`question_edits/${college}/${rawSub}/overrides/${String(qId).toUpperCase()}`]: null,
+        [`bank_meta/${college}/${subjectKey}/answersVersion`]: Date.now()
+    }).catch(() => {});
+
     return uploadFullBank(college, subjectKey, {
         collegeName: MPPStore.page.collegeName,
         curriculumData: currentCurriculum,
@@ -464,6 +813,7 @@ export async function deleteQuestionsBulk(qidSet, currentQna = [], currentCurric
         const updates = {};
         qidSet.forEach(id => { updates[`clinical_data/${college}/${rawSub}/${id}`] = null; });
         await update(ref(db), updates);
+        await bumpClinicalVersion(college, rawSub);
         return null;
     }
 
@@ -482,15 +832,18 @@ export async function saveAnswer(qId, text) {
     if (isClinical) {
         const ansRef = ref(db, `clinical_data/${college}/${rawSub}/${qId}/answer`);
         if (text) await set(ansRef, text); else await remove(ansRef);
+        await bumpClinicalVersion(college, rawSub);
         return;
     }
 
-    const ansRef = ref(db, `answers/${college}/${subjectKey}/${qId}`);
-    if (text) {
-        await set(ansRef, { text, updatedAt: new Date().toISOString(), updatedBy: MPPStore.user.email });
-    } else {
-        await remove(ansRef);
-    }
+    const now = Date.now();
+    await update(ref(db), {
+        [`answers/${college}/${subjectKey}/${qId}`]: text
+            ? { text, updatedAt: new Date().toISOString(), updatedBy: MPPStore.user.email }
+            : null,
+        [`bank_meta/${college}/${subjectKey}/answersVersion`]: now
+    });
+    invalidateSessionCache(`meta_${college}_${subjectKey}`);
 }
 
 export async function reorderQuestion(oldIndex, newIndex, currentQna = [], currentCurriculum = []) {
@@ -515,6 +868,7 @@ export async function reorderQuestion(oldIndex, newIndex, currentQna = [], curre
             nextOrder = list[newIndex + 1]?.order || Date.now();
         }
         await update(ref(db, `clinical_data/${college}/${rawSub}/${moved.q}`), { order: (prevOrder + nextOrder) / 2 });
+        await bumpClinicalVersion(college, rawSub);
         return null;
     }
 
@@ -551,6 +905,7 @@ export async function importAnkiBatch(parsedItems, currentQna = [], currentCurri
             updates[`clinical_data/${college}/${rawSub}/${item.q}`] = payload;
         });
         await update(ref(db), updates);
+        await bumpClinicalVersion(college, rawSub);
         return { count: parsedItems.length };
     }
 
@@ -571,7 +926,10 @@ export async function importAnkiBatch(parsedItems, currentQna = [], currentCurri
             };
         }
     });
-    if (Object.keys(ansUpdates).length) await update(ref(db), ansUpdates);
+    if (Object.keys(ansUpdates).length) {
+        ansUpdates[`bank_meta/${college}/${subjectKey}/answersVersion`] = Date.now();
+        await update(ref(db), ansUpdates);
+    }
 
     const res = await uploadFullBank(college, subjectKey, {
         collegeName: MPPStore.page.collegeName,
@@ -585,6 +943,7 @@ export async function toggleSubjectAnswers(currentVal) {
     requireAdmin();
     const { college, settingsKey } = getVaultKeys();
     await set(ref(db, `settings/${college}/${settingsKey}/showAnswers`), !Boolean(currentVal));
+    invalidateSessionCache(`sset_${college}_${settingsKey}`);
 }
 
 export async function toggleGlobalFeatureFlag(flagName, currentVal) {
@@ -594,9 +953,9 @@ export async function toggleGlobalFeatureFlag(flagName, currentVal) {
     } else {
         await set(ref(db, `settings/global/features/${flagName}`), !Boolean(currentVal));
     }
+    invalidateSessionCache("global_flags");
 }
 
-// Firebase-First JSON Export (Powers 777calm / 777pankaj admin export)
 export async function exportFirebaseFirstBank() {
     requireAdmin();
     const { college, rawSub, subjectKey, candidateKeys, fileName, candidateFileNames } = getVaultKeys({ mode: "review" });
@@ -638,9 +997,7 @@ export async function exportFirebaseFirstBank() {
 
     return { loaded, source, fileName };
 }
-// ============================================================================
-// 5. SYNC GITHUB JSON OR CURRENTLY LOADED PAGE -> FIREBASE CLOUD VAULT
-// ============================================================================
+
 export async function syncGitHubJsonToFirebase(custom = {}) {
     requireAdmin();
     const { isClinical, college, subjectKey, candidateFileNames } = getVaultKeys({ ...custom, mode: "review" });
@@ -672,12 +1029,9 @@ export async function syncGitHubJsonToFirebase(custom = {}) {
 export async function syncLoadedPageToFirebase(qnaData = [], curriculumData = []) {
     requireAdmin();
     const { isClinical, college, subjectKey } = getVaultKeys();
-    if (isClinical) {
-        throw new Error("Clinical pages are already synced live to Firebase.");
-    }
-    if (!Array.isArray(qnaData) || !qnaData.length) {
-        return syncGitHubJsonToFirebase();
-    }
+    if (isClinical) throw new Error("Clinical pages are already synced live to Firebase.");
+    if (!Array.isArray(qnaData) || !qnaData.length) return syncGitHubJsonToFirebase();
+
     const res = await uploadFullBank(college, subjectKey, {
         collegeName: MPPStore.page.collegeName,
         curriculumData,

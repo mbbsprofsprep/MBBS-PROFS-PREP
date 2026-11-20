@@ -7812,17 +7812,17 @@ STRICT OUTPUT FORMAT RULES:
     }, 500);
 })();
 /* ============================================================================
-   MBBS PROFS PREP — VISUAL TOOLKIT, INLINE MEDIA & VERSION MANAGER (v2.2)
-   Complete Drop-in Add-On for OLD app-shell.js (No HTML edits required)
-   - Academic inline SVG icons (no camera emoji)
-   - Zero pill duplication (WeakMap off-DOM token store + TextNode parser)
-   - marked.js-proof [[m2:...]] encoding + 3-step resilient image loader
-   - Long-press Toolkit (Multi-select Media + Direct Preview WYSIWYG Editor)
-   - Portal Subject Card Long-Press -> Select Version Manager (RTDB synced)
+   MBBS PROFS PREP — VISUAL TOOLKIT, INLINE MEDIA/DOCS & VERSION MANAGER (v2.3)
+   Drop-in Add-On for OLD app-shell.js (No HTML edits required)
+   - Instant paste-to-pill inside Live Preview (YouTube, Video, Audio, Image,
+     PDF, Google Drive/Docs/Slides/Sheets, DOCX/PPTX/XLSX)
+   - Auto-upgrades raw media & document URLs inside rendered answers
+   - Preserves existing .yt-container & .vid-container embeds during Visual Edit
+   - Clean academic SVG icons, zero pill duplication, 3-step resilient image loader
    ============================================================================ */
 (function () {
-    if (window.__MPP_EXTENSIVE_TOOLKIT_V22__) return;
-    window.__MPP_EXTENSIVE_TOOLKIT_V22__ = true;
+    if (window.__MPP_EXTENSIVE_TOOLKIT_V23__) return;
+    window.__MPP_EXTENSIVE_TOOLKIT_V23__ = true;
 
     const CFG_KEY = "mpp_toolkit_media_cfg_v2";
     const VER_CACHE_KEY = "mpp_subject_versions_cache_v2";
@@ -7837,11 +7837,12 @@ STRICT OUTPUT FORMAT RULES:
         images: '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5L5 20"/></svg>',
         audio:  '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>',
         video:  '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>',
+        doc:    '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
         edit:   '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
         hl:     '<svg class="mpp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>'
     };
 
-    const _pillTokenMap = new WeakMap(); // Stores raw tokens off-DOM (prevents duplication)
+    const _pillTokenMap = new WeakMap();
     let _cachedAuthInfo = { email: "", token: "", checkedAt: 0 };
     let _subjectVersionsMap = {};
 
@@ -7871,14 +7872,18 @@ STRICT OUTPUT FORMAT RULES:
         .dark .mpp-media-pill.kind-audio{background:rgba(139,92,246,.2);color:#c4b5fd;}
         .mpp-media-pill.kind-video{border-color:#f87171;background:#fee2e2;color:#b91c1c;}
         .dark .mpp-media-pill.kind-video{background:rgba(239,68,68,.2);color:#fca5a5;}
+        .mpp-media-pill.kind-doc{border-color:#34d399;background:#d1fae5;color:#047857;}
+        .dark .mpp-media-pill.kind-doc{background:rgba(16,185,129,.2);color:#6ee7b7;}
 
         .mpp-media-drawer{margin:10px 0 12px;border-radius:14px;border:1px solid #cbd5e1;background:#f8fafc;overflow:hidden;box-shadow:0 8px 20px rgba(15,23,42,.08);font-family:system-ui,-apple-system,sans-serif;}
         .dark .mpp-media-drawer{background:#0f172a;border-color:#334155;}
-        .mpp-md-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:700;}
+        .mpp-md-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:700;flex-wrap:wrap;}
         .dark .mpp-md-bar{background:#1e293b;border-color:#334155;color:#e2e8f0;}
         .mpp-md-stage{position:relative;background:#020617;min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px;}
         .mpp-md-stage img{max-height:360px;max-width:100%;object-fit:contain;border-radius:6px;cursor:zoom-in;}
-        .mpp-md-stage video,.mpp-md-stage iframe{width:100%;max-width:560px;height:280px;border-radius:8px;border:0;}
+        .mpp-md-stage video{width:100%;max-width:600px;max-height:360px;border-radius:8px;background:#000;}
+        .mpp-md-stage iframe{width:100%;max-width:680px;height:360px;border-radius:8px;border:0;background:#fff;}
+        .mpp-md-stage iframe.mpp-doc-frame{height:440px;}
         .mpp-md-stage audio{width:92%;max-width:440px;}
         .mpp-md-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:34px;height:34px;border-radius:999px;border:none;background:rgba(15,23,42,.78);color:#fff;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;}
         .mpp-md-prev{left:8px;} .mpp-md-next{right:8px;}
@@ -7892,7 +7897,7 @@ STRICT OUTPUT FORMAT RULES:
         .mpp-md-thumbs img{width:54px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:.58;border:2px solid transparent;flex-shrink:0;background:#0f172a;}
         .mpp-md-thumbs img.active{opacity:1;border-color:#0284c7;}
 
-        #mpp-tk-popover{position:fixed;z-index:99980;width:274px;max-width:92vw;background:#fff;color:#0f172a;border-radius:14px;border:1px solid #cbd5e1;box-shadow:0 20px 45px rgba(2,6,23,.28);overflow:hidden;font-family:system-ui,-apple-system,sans-serif;animation:mppPop .14s ease-out;}
+        #mpp-tk-popover{position:fixed;z-index:99980;width:278px;max-width:92vw;background:#fff;color:#0f172a;border-radius:14px;border:1px solid #cbd5e1;box-shadow:0 20px 45px rgba(2,6,23,.28);overflow:hidden;font-family:system-ui,-apple-system,sans-serif;animation:mppPop .14s ease-out;}
         .dark #mpp-tk-popover{background:#0f172a;color:#f1f5f9;border-color:#334155;}
         @keyframes mppPop{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
         .mpp-tk-head{padding:9px 12px;background:linear-gradient(135deg,#0284c7,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;}
@@ -7907,7 +7912,7 @@ STRICT OUTPUT FORMAT RULES:
         .mpp-ve-active{outline:2.5px solid #0284c7!important;outline-offset:4px;border-radius:12px;background:rgba(14,165,233,.03);}
         .mpp-ve-dock{position:sticky;top:64px;z-index:9500;margin-bottom:10px;padding:8px;border-radius:12px;border:1.5px solid #0284c7;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);box-shadow:0 12px 30px rgba(2,132,199,.2);display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-family:system-ui,-apple-system,sans-serif;}
         .dark .mpp-ve-dock{background:rgba(15,23,42,.97);border-color:#38bdf8;}
-        .mpp-ve-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 8px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-size:11.5px;font-weight:700;cursor:pointer;}
+        .mpp-ve-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 8px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:none;}
         .dark .mpp-ve-btn{background:#1e293b;border-color:#475569;color:#f1f5f9;}
         .mpp-ve-btn:hover{border-color:#0284c7;background:#e0f2fe;} .dark .mpp-ve-btn:hover{border-color:#38bdf8;background:#0c4a6e;}
         .mpp-ve-btn.primary{background:#0284c7;border-color:#0284c7;color:#fff;}
@@ -7940,7 +7945,7 @@ STRICT OUTPUT FORMAT RULES:
 
         .mpp-sel-strip{display:flex;gap:8px;overflow-x:auto;padding:8px;margin-bottom:10px;border-radius:10px;background:#f1f5f9;border:1px solid #cbd5e1;}
         .dark .mpp-sel-strip{background:#1e293b;border-color:#334155;}
-        .mpp-sel-chip{position:relative;width:58px;height:46px;border-radius:7px;overflow:hidden;flex-shrink:0;border:2px solid #0284c7;background:#020617;}
+        .mpp-sel-chip{position:relative;width:58px;height:46px;border-radius:7px;overflow:hidden;flex-shrink:0;border:2px solid #0284c7;background:#020617;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;}
         .mpp-sel-chip img{width:100%;height:100%;object-fit:cover;}
         .mpp-sel-chip button{position:absolute;top:1px;right:1px;width:17px;height:17px;border-radius:999px;border:none;background:rgba(220,38,38,.92);color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
@@ -7965,7 +7970,7 @@ STRICT OUTPUT FORMAT RULES:
     document.head.appendChild(css);
 
     // ========================================================================
-    // 2. UTILITIES, MARKDOWN-SAFE ENCODING & 3-STEP RESILIENT IMAGE LOADER
+    // 2. UTILITIES, URL CLASSIFIER, ENCODING & 3-STEP RESILIENT IMAGE LOADER
     // ========================================================================
     const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -7975,7 +7980,63 @@ STRICT OUTPUT FORMAT RULES:
         return el.value;
     }
 
-    // Outputs ONLY A-Za-z0-9+/ (zero _, *, =, &, http://) -> 100% immune to marked.js
+    // Detects YouTube, Video, Audio, Image, PDF, Google Drive/Docs/Slides/Sheets, DOCX/PPTX/XLSX
+    function classifyUrl(rawUrl) {
+        const u = String(rawUrl || "").trim();
+        if (!/^https?:\/\//i.test(u)) return null;
+
+        if (/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i.test(u)) {
+            return { kind: "video", label: "Watch video", caption: "YouTube Video", url: u };
+        }
+        if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(u)) {
+            return { kind: "video", label: "Watch video", caption: decodeURIComponent(u.split("/").pop().split(/[?#]/)[0] || "Video"), url: u };
+        }
+        if (/\.(mp3|wav|ogg|m4a|aac|opus)(\?|#|$)/i.test(u)) {
+            return { kind: "audio", label: "Listen audio", caption: decodeURIComponent(u.split("/").pop().split(/[?#]/)[0] || "Audio"), url: u };
+        }
+        if (/\.(jpe?g|png|webp|gif|svg|avif)(\?|#|$)/i.test(u) || /lh3\.googleusercontent\.com\/|blogger\.googleusercontent\.com\/img\//i.test(u)) {
+            return { kind: "images", label: "See image", caption: decodeURIComponent(u.split("/").pop().split(/[?#]/)[0] || "Clinical Figure").replace(/\.[^.]+$/, ""), url: u };
+        }
+        if (/docs\.google\.com\/(document|presentation|spreadsheets)\/d\/([^/?#]+)/i.test(u)) {
+            const m = u.match(/docs\.google\.com\/(document|presentation|spreadsheets)\/d\//i);
+            const t = m[1].toLowerCase();
+            const nice = t === "presentation" ? "View slides" : (t === "spreadsheets" ? "View sheet" : "View document");
+            return { kind: "doc", label: nice, caption: "Google " + t.charAt(0).toUpperCase() + t.slice(1), url: u };
+        }
+        if (/drive\.google\.com\/file\/d\/([^/?#]+)/i.test(u)) {
+            return { kind: "doc", label: "View file", caption: "Google Drive File", url: u };
+        }
+        if (/\.(pdf|docx?|pptx?|xlsx?|rtf|txt)(\?|#|$)/i.test(u)) {
+            const ext = (u.match(/\.([a-z0-9]+)(?:\?|#|$)/i)?.[1] || "doc").toUpperCase();
+            const fname = decodeURIComponent(u.split("/").pop().split(/[?#]/)[0] || `${ext} File`);
+            return { kind: "doc", label: ext === "PDF" ? "View PDF" : `View ${ext}`, caption: fname, url: u };
+        }
+        return null;
+    }
+
+    function toEmbedInfo(url, kindHint = "") {
+        const u = String(url || "").trim();
+        const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+        if (yt) return { type: "iframe", isDoc: false, src: `https://www.youtube.com/embed/${yt[1]}` };
+
+        const gdoc = u.match(/docs\.google\.com\/(document|presentation|spreadsheets)\/d\/([^/?#]+)/i);
+        if (gdoc) return { type: "iframe", isDoc: true, src: `https://docs.google.com/${gdoc[1]}/d/${gdoc[2]}/preview` };
+
+        const gd = u.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+        if (gd) return { type: "iframe", isDoc: true, src: `https://drive.google.com/file/d/${gd[1]}/preview` };
+
+        if (/\.(pdf|docx?|pptx?|xlsx?|rtf|txt)(\?|#|$)/i.test(u) || kindHint === "doc") {
+            return { type: "iframe", isDoc: true, src: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(u)}` };
+        }
+        if (/\.(mp3|wav|ogg|m4a|aac|opus)(\?|#|$)/i.test(u) || kindHint === "audio") {
+            return { type: "audio", isDoc: false, src: u };
+        }
+        if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(u) || kindHint === "video") {
+            return { type: "video", isDoc: false, src: u };
+        }
+        return { type: "image", isDoc: false, src: u };
+    }
+
     function encodeMediaToken(spec) {
         const payload = {
             k: spec.kind || "images",
@@ -8019,7 +8080,7 @@ STRICT OUTPUT FORMAT RULES:
         );
         let kind = "images", label = "See images", listStr = cleaned;
         const p1 = cleaned.indexOf("|"), p2 = p1 > -1 ? cleaned.indexOf("|", p1 + 1) : -1;
-        if (p1 > -1 && /^(images?|audio|video)$/i.test(cleaned.slice(0, p1).trim()) && p2 > -1) {
+        if (p1 > -1 && /^(images?|audio|video|doc)$/i.test(cleaned.slice(0, p1).trim()) && p2 > -1) {
             kind = cleaned.slice(0, p1).trim().toLowerCase();
             if (kind === "image") kind = "images";
             label = cleaned.slice(p1 + 1, p2).trim() || "See images";
@@ -8033,7 +8094,6 @@ STRICT OUTPUT FORMAT RULES:
         return items.length ? { kind, label, items } : null;
     }
 
-    // 3-Step Resilient Image Loader: 1) Direct no-referrer -> 2) wsrv.nl WebP proxy -> 3) Thumbnail fallback
     function loadResilientImage(imgEl, url, thumb = "", preferThumb = false) {
         if (!imgEl) return;
         imgEl.referrerPolicy = "no-referrer";
@@ -8142,7 +8202,7 @@ STRICT OUTPUT FORMAT RULES:
             if (ta && !ta.closest(".mpp-modal-bg")) {
                 const pubBtn = [...cur.querySelectorAll("button")].find(b => /publish\s*answer|save\s*answer/i.test(b.textContent || "")) || null;
                 if (pubBtn || /markdown|answer|explanation|editor|clinical/i.test(`${ta.id} ${ta.className} ${cur.textContent.slice(0, 260)}`)) {
-                    let preview = cur.querySelector("#deck-ans-preview, #answer-preview, #live-preview, .live-preview, .prose, .markdown-body");
+                    let preview = cur.querySelector("#deck-ans-preview, #answer-preview, #live-preview, .live-preview, .markdown-body, .prose");
                     if (!preview || preview.contains(ta)) {
                         const cands = [...cur.querySelectorAll("div, section, article")].filter(d => !d.contains(ta) && !d.closest(".mpp-ve-dock, .mpp-media-drawer") && d.offsetHeight >= 40 && (d.contains(startEl) || d === startEl));
                         preview = cands[0] || startEl.closest("div");
@@ -8156,18 +8216,8 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     // ========================================================================
-    // 4. INLINE MEDIA PILL (CLEAN SVG ICON) & SWIPEABLE VIEWER
+    // 4. INLINE MEDIA & DOCUMENT PILL + EXPANDABLE VIEWER
     // ========================================================================
-    function toEmbedInfo(url) {
-        const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{6,})/);
-        if (yt) return { type: "iframe", src: `https://www.youtube.com/embed/${yt[1]}` };
-        const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-        if (gd) return { type: "iframe", src: `https://drive.google.com/file/d/${gd[1]}/preview` };
-        if (/\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(url)) return { type: "audio", src: url };
-        if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return { type: "video", src: url };
-        return { type: "image", src: url };
-    }
-
     function createInlineMediaPill(spec, rawOriginalToken) {
         const iconSvg = ICONS[spec.kind] || ICONS.images;
         const count = spec.items.length;
@@ -8176,7 +8226,7 @@ STRICT OUTPUT FORMAT RULES:
         btn.type = "button";
         btn.className = `mpp-media-pill kind-${spec.kind}`;
         btn.contentEditable = "false";
-        btn.innerHTML = `${iconSvg}<span>${esc(spec.label)} (${count})</span>`;
+        btn.innerHTML = `${iconSvg}<span>${esc(spec.label)}${count > 1 || spec.kind === "images" ? ` (${count})` : ""}</span>`;
         _pillTokenMap.set(btn, rawOriginalToken || encodeMediaToken(spec));
 
         let drawerEl = null;
@@ -8194,19 +8244,26 @@ STRICT OUTPUT FORMAT RULES:
 
             const renderDrawer = () => {
                 const cur = spec.items[idx] || spec.items[0];
-                const media = toEmbedInfo(cur.url);
+                const media = toEmbedInfo(cur.url, spec.kind);
                 let stageHtml = "";
-                if (media.type === "iframe") stageHtml = `<iframe src="${esc(media.src)}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
-                else if (media.type === "video") stageHtml = `<video src="${esc(media.src)}" controls playsinline></video>`;
-                else if (media.type === "audio") stageHtml = `<audio src="${esc(media.src)}" controls></audio>`;
-                else stageHtml = `<img class="mpp-md-main-img" alt="${esc(cur.caption || "Clinical figure")}" />`;
+                if (media.type === "iframe") {
+                    stageHtml = `<iframe class="${media.isDoc ? "mpp-doc-frame" : ""}" src="${esc(media.src)}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+                } else if (media.type === "video") {
+                    stageHtml = `<video src="${esc(media.src)}" controls playsinline></video>`;
+                } else if (media.type === "audio") {
+                    stageHtml = `<audio src="${esc(media.src)}" controls></audio>`;
+                } else {
+                    stageHtml = `<img class="mpp-md-main-img" alt="${esc(cur.caption || "Clinical figure")}" />`;
+                }
 
                 const admin = isAdminSync();
                 drawerEl.innerHTML = `
                     <div class="mpp-md-bar">
                         <span style="display:inline-flex;align-items:center;gap:6px;">${iconSvg}<span>${esc(spec.label)} &bull; ${idx + 1} / ${count}</span></span>
                         <div style="display:flex;align-items:center;gap:5px;">
-                            ${media.type === "image" ? `<button type="button" data-act="full" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">Zoom</button>` : ""}
+                            ${media.type === "image"
+                                ? `<button type="button" data-act="full" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">Zoom</button>`
+                                : `<a href="${esc(cur.url)}" target="_blank" rel="noopener noreferrer" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">Open &nearr;</a>`}
                             ${admin ? `<button type="button" data-act="edit" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">Edit</button>` : ""}
                             ${admin ? `<button type="button" data-act="del" class="mpp-ve-btn danger" style="padding:3px 7px;font-size:11px;">Remove</button>` : ""}
                             <button type="button" data-act="close" style="border:none;background:transparent;color:inherit;font-size:19px;cursor:pointer;line-height:1;">&times;</button>
@@ -8219,7 +8276,7 @@ STRICT OUTPUT FORMAT RULES:
                     </div>
                     <div class="mpp-md-foot">
                         <div class="mpp-md-dots-row">
-                            <span style="font-size:12px;font-weight:600;opacity:.85;">${esc(cur.caption || `Figure ${idx + 1}`)}</span>
+                            <span style="font-size:12px;font-weight:600;opacity:.85;">${esc(cur.caption || `Item ${idx + 1}`)}</span>
                             <div class="mpp-md-dots">
                                 ${spec.items.map((_, i) => `<button type="button" class="mpp-md-dot ${i === idx ? "active" : ""}" data-di="${i}" aria-label="Slide ${i + 1}"></button>`).join("")}
                                 <span style="font-size:11px;font-weight:800;margin-left:4px;opacity:.75;">(${idx + 1}/${count})</span>
@@ -8285,18 +8342,19 @@ STRICT OUTPUT FORMAT RULES:
         return btn;
     }
 
-    // Safe DOM Enhancer (TextNode-only for [[m2:...]] & ==hl== -> zero duplication possible)
+    // Safe DOM Enhancer:
+    // A) [[m2:...]] tokens  B) Legacy [[media/gallery:...]]  C) Raw & <a> media/doc URLs inside answers  D) ==highlights==
     function enhanceDOM(root) {
         if (!root || root.nodeType !== 1) return;
         if (root.closest?.(".mpp-modal-bg, .mpp-ve-dock, #mpp-tk-popover, script, style, textarea")) return;
 
-        // A. Upgrade [[m2:...]] tokens safely inside TextNodes
+        // A. [[m2:...]] tokens
         const m2Walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
             acceptNode(node) {
                 if (!node.nodeValue || !node.nodeValue.includes("[[m2:")) return NodeFilter.FILTER_REJECT;
                 const p = node.parentElement;
                 if (!p || /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|BUTTON)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
-                if (p.closest(".mpp-media-pill, .mpp-media-drawer, .mpp-modal-bg, .mpp-ve-dock")) return NodeFilter.FILTER_REJECT;
+                if (p.closest(".mpp-media-pill, .mpp-media-drawer, .mpp-modal-bg, .mpp-ve-dock, .mpp-ve-active")) return NodeFilter.FILTER_REJECT;
                 return NodeFilter.FILTER_ACCEPT;
             }
         });
@@ -8321,10 +8379,10 @@ STRICT OUTPUT FORMAT RULES:
             tn.parentNode.replaceChild(frag, tn);
         });
 
-        // B. Backwards-compatible legacy [[media:...]] / [[gallery:...]] (never touches existing pills)
+        // B. Legacy [[media:...]] / [[gallery:...]]
         if (root.textContent && (root.textContent.includes("[[media:") || root.textContent.includes("[[gallery:"))) {
             [...root.querySelectorAll("p, li, div, td")].forEach(el => {
-                if (el.closest(".mpp-media-pill, .mpp-media-drawer, .mpp-modal-bg, .mpp-ve-dock, textarea")) return;
+                if (el.closest(".mpp-media-pill, .mpp-media-drawer, .mpp-modal-bg, .mpp-ve-dock, .mpp-ve-active, textarea")) return;
                 if (el.querySelector("textarea, input")) return;
                 if (!el.textContent.includes("[[media:") && !el.textContent.includes("[[gallery:")) return;
                 if ([...el.children].some(ch => !ch.classList.contains("mpp-media-pill") && (ch.textContent.includes("[[media:") || ch.textContent.includes("[[gallery:")))) return;
@@ -8356,13 +8414,75 @@ STRICT OUTPUT FORMAT RULES:
             });
         }
 
-        // C. Upgrade ==highlight== & ==color:highlight== inside TextNodes
+        // C. Auto-upgrade raw media/document URLs & <a> links inside rendered answer blocks (even without leading space!)
+        const answerScopes = [...root.querySelectorAll(".markdown-body, [id^='deck-ans-preview'], [id^='deck-ans-content'], #ans-modal-body, .live-preview")];
+        if (root.matches?.(".markdown-body, [id^='deck-ans-preview'], [id^='deck-ans-content'], #ans-modal-body, .live-preview")) {
+            answerScopes.push(root);
+        }
+
+        answerScopes.forEach(scope => {
+            if (!scope || scope.classList.contains("mpp-ve-active") || scope.isContentEditable) return;
+
+            // C1. Upgrade <a href="..."> pointing to YouTube, Video, Audio, Image, PDF, Drive, Docs, Slides, Office files
+            [...scope.querySelectorAll("a[href]")].forEach(a => {
+                if (a.closest(".mpp-media-pill, .mpp-media-drawer, .yt-container, .vid-container, code, pre")) return;
+                if (a.querySelector("img")) return;
+                const info = classifyUrl(a.href);
+                if (!info) return;
+                const txt = (a.textContent || "").trim();
+                const customLbl = (txt && !/^https?:\/\//i.test(txt) && txt.length <= 42) ? txt : info.label;
+                const spec = { kind: info.kind, label: customLbl, items: [{ url: info.url, thumb: info.kind === "images" ? info.url : "", caption: info.caption }] };
+                a.replaceWith(createInlineMediaPill(spec, encodeMediaToken(spec)));
+            });
+
+            // C2. Upgrade raw unlinked URLs in TextNodes (e.g. "blue filter.https://youtu.be/...")
+            const urlWalker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    if (!node.nodeValue || !/https?:\/\//i.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+                    const p = node.parentElement;
+                    if (!p || /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|BUTTON|A)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+                    if (p.closest(".mpp-media-pill, .mpp-media-drawer, .yt-container, .vid-container")) return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            const uNodes = [];
+            let un;
+            while ((un = urlWalker.nextNode())) uNodes.push(un);
+
+            const rawUrlRe = /https?:\/\/[^\s<>"']+/gi;
+            uNodes.forEach(tn => {
+                const val = tn.nodeValue;
+                if (!rawUrlRe.test(val)) return;
+                rawUrlRe.lastIndex = 0;
+
+                const frag = document.createDocumentFragment();
+                let last = 0, m, changed = false;
+                while ((m = rawUrlRe.exec(val)) !== null) {
+                    let raw = m[0], trail = "";
+                    while (/[.,;:!?)\]]$/.test(raw)) { trail = raw.slice(-1) + trail; raw = raw.slice(0, -1); }
+                    const info = classifyUrl(raw);
+                    if (!info) continue;
+                    changed = true;
+                    if (m.index > last) frag.appendChild(document.createTextNode(val.slice(last, m.index)));
+                    const spec = { kind: info.kind, label: info.label, items: [{ url: info.url, thumb: info.kind === "images" ? info.url : "", caption: info.caption }] };
+                    frag.appendChild(createInlineMediaPill(spec, encodeMediaToken(spec)));
+                    if (trail) frag.appendChild(document.createTextNode(trail));
+                    last = m.index + m[0].length;
+                }
+                if (changed) {
+                    if (last < val.length) frag.appendChild(document.createTextNode(val.slice(last)));
+                    tn.parentNode.replaceChild(frag, tn);
+                }
+            });
+        });
+
+        // D. ==highlight== & ==color:highlight==
         const hlWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
             acceptNode(node) {
                 if (!node.nodeValue || !node.nodeValue.includes("==")) return NodeFilter.FILTER_REJECT;
                 const p = node.parentElement;
                 if (!p || /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|MARK|BUTTON)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
-                if (p.closest(".katex, .mpp-ve-dock, .mpp-modal-bg, .mpp-media-pill")) return NodeFilter.FILTER_REJECT;
+                if (p.closest(".katex, .mpp-ve-dock, .mpp-modal-bg, .mpp-media-pill, .mpp-ve-active")) return NodeFilter.FILTER_REJECT;
                 return NodeFilter.FILTER_ACCEPT;
             }
         });
@@ -8393,7 +8513,7 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     // ========================================================================
-    // 5. PHRASE-ANCHORED INSERTION & HTML -> MARKDOWN SERIALIZER
+    // 5. PHRASE-ANCHORED INSERTION & EMBED-SAFE HTML -> MARKDOWN SERIALIZER
     // ========================================================================
     function insertTokenNearPhrase(textarea, anchorText, token) {
         if (!textarea) return;
@@ -8427,15 +8547,46 @@ STRICT OUTPUT FORMAT RULES:
             if (node.nodeType === 3) return node.nodeValue || "";
             if (node.nodeType !== 1) return "";
             const el = node;
+
             if (el.classList?.contains("mpp-media-drawer") || el.classList?.contains("mpp-ve-dock")) return "";
+
+            // Preserve inline media/doc pills
             if (el.classList?.contains("mpp-media-pill")) {
                 const tok = _pillTokenMap.get(el) || "";
                 return tok ? ` ${tok} ` : "";
             }
+
+            // Preserve existing app-shell.js YouTube containers (fixes "▶ Play YouTube Video" breaking into plain text!)
+            if (el.classList?.contains("yt-container")) {
+                const btn = el.querySelector("button[onclick*='toggleYT']");
+                const m = btn?.getAttribute("onclick")?.match(/toggleYT\([^,]+,\s*['"]([^'"]+)['"]\)/);
+                if (m && m[1]) {
+                    const titleTxt = (el.querySelector(".yt-title")?.textContent || "").trim();
+                    if (/^▶\s*Play:\s*/i.test(titleTxt)) {
+                        return `\n\n[${titleTxt.replace(/^▶\s*Play:\s*/i, "").trim()}](https://youtu.be/${m[1]})\n\n`;
+                    }
+                    return `\n\nhttps://youtu.be/${m[1]}\n\n`;
+                }
+            }
+
+            // Preserve existing app-shell.js Web Video containers
+            if (el.classList?.contains("vid-container")) {
+                const btn = el.querySelector("button[onclick*='toggleWebVideo']");
+                const m = btn?.getAttribute("onclick")?.match(/toggleWebVideo\([^,]+,\s*['"]([^'"]+)['"]\)/);
+                if (m && m[1]) {
+                    const titleTxt = (el.querySelector(".vid-title")?.textContent || "").replace(/^🎬\s*Play Video:\s*/i, "").trim() || "Video";
+                    return `\n\n[${titleTxt}](${m[1]})\n\n`;
+                }
+            }
+
             const tag = el.tagName.toLowerCase();
             if (tag === "br") return "\n";
             if (tag === "hr") return "\n---\n";
             if (tag === "img") return `![${el.alt || "figure"}](${el.src})`;
+            if (tag === "audio" || tag === "video") {
+                const src = el.getAttribute("src") || el.querySelector("source")?.getAttribute("src") || "";
+                return src ? `\n\n${src}\n\n` : "";
+            }
 
             const inner = () => [...el.childNodes].map(c => walk(c, depth)).join("");
             if (/^h[1-6]$/.test(tag)) return `\n${"#".repeat(Number(tag[1]))} ${inner().trim()}\n\n`;
@@ -8480,23 +8631,33 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     // ========================================================================
-    // 6. DIRECT VISUAL TEXT EDITING INSIDE LIVE STUDENT PREVIEW
+    // 6. DIRECT VISUAL TEXT EDITING INSIDE LIVE STUDENT PREVIEW (WITH SMART PASTE)
     // ========================================================================
     let _activeVE = null;
 
     function stopVisualEditing(syncFirst = true) {
         if (!_activeVE) return;
-        const { preview, textarea, dock, pubBtn, pubGuard } = _activeVE;
+        const { preview, textarea, dock, pubBtn, pubGuard, pasteGuard } = _activeVE;
         if (syncFirst && preview && textarea) {
             const md = domToMarkdown(preview);
             if (md) textarea.value = md;
         }
-        if (preview) { preview.contentEditable = "false"; preview.classList.remove("mpp-ve-active"); }
+        if (preview) {
+            preview.contentEditable = "false";
+            preview.classList.remove("mpp-ve-active");
+            if (pasteGuard) preview.removeEventListener("paste", pasteGuard);
+        }
         dock?.remove();
         if (pubBtn && pubGuard) pubBtn.removeEventListener("click", pubGuard, true);
         _activeVE = null;
+
         if (syncFirst && textarea) {
             textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            // Re-render preview immediately so every YouTube/Video/Image/Audio/Doc pill & player appears right away
+            if (preview && typeof window.sharedRenderMarkdown === "function") {
+                preview.innerHTML = window.sharedRenderMarkdown(textarea.value);
+                enhanceDOM(preview);
+            }
             toast("Visual edits synced! Tap Publish Answer to save.", "#059669");
         }
     }
@@ -8557,6 +8718,44 @@ STRICT OUTPUT FORMAT RULES:
 
         const syncQuiet = () => { const md = domToMarkdown(preview); if (md) textarea.value = md; };
 
+        // SMART PASTE: Pasting a YouTube / Video / Audio / Image / PDF / Drive / Doc URL directly in Live Preview immediately creates an inline clickable pill!
+        const pasteGuard = (e) => {
+            const pasted = (e.clipboardData || window.clipboardData)?.getData("text/plain")?.trim() || "";
+            if (!pasted || /\s/.test(pasted)) return; // Normal multi-word text pastes normally
+            const info = classifyUrl(pasted);
+            if (!info) return;
+
+            e.preventDefault();
+            const spec = {
+                kind: info.kind,
+                label: info.label,
+                items: [{ url: info.url, thumb: info.kind === "images" ? info.url : "", caption: info.caption }]
+            };
+            const tok = encodeMediaToken(spec);
+            const pill = createInlineMediaPill(spec, tok);
+
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount && preview.contains(sel.anchorNode)) {
+                const r = sel.getRangeAt(0);
+                r.deleteContents();
+                const spBefore = document.createTextNode(" ");
+                const spAfter = document.createTextNode(" ");
+                r.insertNode(spAfter);
+                r.insertNode(pill);
+                r.insertNode(spBefore);
+                r.setStartAfter(spAfter);
+                r.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(r);
+            } else {
+                preview.appendChild(document.createTextNode(" "));
+                preview.appendChild(pill);
+            }
+            syncQuiet();
+            toast(`Embedded "${info.label}" pill!`, "#059669");
+        };
+        preview.addEventListener("paste", pasteGuard);
+
         dock.addEventListener("mousedown", (e) => { if (e.target.tagName !== "SELECT") e.preventDefault(); });
         dock.addEventListener("click", (e) => {
             const btn = e.target.closest("button");
@@ -8606,17 +8805,17 @@ STRICT OUTPUT FORMAT RULES:
         const pubGuard = () => { if (_activeVE?.preview === preview) { syncQuiet(); stopVisualEditing(false); } };
         if (publishBtn) publishBtn.addEventListener("click", pubGuard, true);
 
-        _activeVE = { preview, textarea, dock, pubBtn: publishBtn, pubGuard };
+        _activeVE = { preview, textarea, dock, pubBtn: publishBtn, pubGuard, pasteGuard };
         preview.focus();
-        toast("Direct editing enabled! Tap text to edit or highlight.", "#0284c7");
+        toast("Direct editing enabled! Paste any media/doc URL or select text to style.", "#0284c7");
     }
 
     // ========================================================================
-    // 7. MULTI-SELECT MEDIA SEARCH & UPLOAD MODAL
+    // 7. MULTI-SELECT MEDIA & DOCUMENT PICKER MODAL
     // ========================================================================
     async function uploadBlobToGitHub(blob, name = "med") {
         const cfg = loadCfg();
-        if (!cfg.ghToken || !cfg.ghOwner || !cfg.ghRepo) throw new Error("Configure GitHub Repo & Token in Keys tab first.");
+        if (!cfg.ghToken || !cfg.ghOwner || !cfg.ghRepo) throw new Error("Configure GitHub Repo & Token in API Keys tab first.");
         const u = URL.createObjectURL(blob);
         let b64 = "", ext = "webp";
         try {
@@ -8655,7 +8854,7 @@ STRICT OUTPUT FORMAT RULES:
 
     async function searchSerper(query, limit = 10) {
         const cfg = loadCfg();
-        if (!cfg.serperKey) throw new Error("Add your Serper API key in Keys tab (or use Free Wikimedia).");
+        if (!cfg.serperKey) throw new Error("Add your Serper API key in API Keys tab (or use Free Wikimedia).");
         const res = await fetch("https://google.serper.dev/images", {
             method: "POST",
             headers: { "X-API-KEY": cfg.serperKey, "Content-Type": "application/json" },
@@ -8670,7 +8869,7 @@ STRICT OUTPUT FORMAT RULES:
         document.getElementById("mpp-media-picker-bg")?.remove();
         const selected = [...initialItems];
         let mediaKind = initialKind || "images";
-        let currentTab = loadCfg().serperKey ? "serper" : "wiki";
+        let currentTab = (mediaKind === "video" || mediaKind === "audio" || mediaKind === "doc") ? "av" : (loadCfg().serperKey ? "serper" : "wiki");
         let lastResults = [];
         let resultCount = 10;
 
@@ -8683,8 +8882,8 @@ STRICT OUTPUT FORMAT RULES:
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="mpp-tk-ico-badge">${ICONS.images}</span>
                         <div>
-                            <div style="font-size:15px;font-weight:800;">Add Image / Audio / Video Here</div>
-                            <div style="font-size:11px;opacity:.7;">Select multiple items to attach as an inline expandable figure pill</div>
+                            <div style="font-size:15px;font-weight:800;">Add Image / Video / Audio / Document</div>
+                            <div style="font-size:11px;opacity:.7;">Select multiple items to attach as an inline expandable viewer pill</div>
                         </div>
                     </div>
                     <button type="button" id="mp-close" style="border:none;background:transparent;color:inherit;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
@@ -8693,7 +8892,7 @@ STRICT OUTPUT FORMAT RULES:
                     <button type="button" class="mpp-m-tab" data-tab="wiki">Wikimedia (Free)</button>
                     <button type="button" class="mpp-m-tab" data-tab="serper">Google Images</button>
                     <button type="button" class="mpp-m-tab" data-tab="upload">Upload WebP</button>
-                    <button type="button" class="mpp-m-tab" data-tab="av">Audio / Video / URL</button>
+                    <button type="button" class="mpp-m-tab" data-tab="av">Video / Audio / PDF &amp; Docs</button>
                     <button type="button" class="mpp-m-tab" data-tab="keys">API Keys</button>
                 </div>
                 <div class="mpp-m-body" id="mp-body"></div>
@@ -8713,7 +8912,12 @@ STRICT OUTPUT FORMAT RULES:
             if (!strip) return;
             if (!selected.length) { strip.style.display = "none"; strip.innerHTML = ""; return; }
             strip.style.display = "flex";
-            strip.innerHTML = selected.map((s, i) => `<div class="mpp-sel-chip" title="${esc(s.caption || s.url)}"><img data-si="${i}" /><button type="button" data-rm-sel="${i}">&times;</button></div>`).join("");
+            strip.innerHTML = selected.map((s, i) => `
+                <div class="mpp-sel-chip" title="${esc(s.caption || s.url)}">
+                    ${mediaKind === "images" ? `<img data-si="${i}" />` : `<span>${mediaKind.toUpperCase()}</span>`}
+                    <button type="button" data-rm-sel="${i}">&times;</button>
+                </div>
+            `).join("");
             strip.querySelectorAll("[data-si]").forEach(img => {
                 const it = selected[Number(img.dataset.si)];
                 if (it) loadResilientImage(img, it.url, it.thumb, true);
@@ -8726,7 +8930,12 @@ STRICT OUTPUT FORMAT RULES:
 
         const renderFooter = () => {
             const totalAvail = lastResults.length || selected.length;
-            const defaultLbl = initialLabel || (mediaKind === "audio" ? "Listen audio" : mediaKind === "video" ? "Watch video" : "See images");
+            const defaultLbl = initialLabel || (
+                mediaKind === "audio" ? "Listen audio"
+                : mediaKind === "video" ? "Watch video"
+                : mediaKind === "doc" ? "View document"
+                : "See images"
+            );
             footEl.innerHTML = `
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span style="font-size:12px;font-weight:800;color:#0284c7;">Selected (${selected.length}${totalAvail ? "/" + totalAvail : ""})</span>
@@ -8752,6 +8961,10 @@ STRICT OUTPUT FORMAT RULES:
                         ctx.textarea.dispatchEvent(new Event("input", { bubbles: true }));
                     } else {
                         insertTokenNearPhrase(ctx.textarea, anchorText, tok);
+                    }
+                    if (ctx.preview && typeof window.sharedRenderMarkdown === "function") {
+                        ctx.preview.innerHTML = window.sharedRenderMarkdown(ctx.textarea.value);
+                        enhanceDOM(ctx.preview);
                     }
                 }
                 close();
@@ -8878,20 +9091,26 @@ STRICT OUTPUT FORMAT RULES:
 
             if (currentTab === "av") {
                 bodyEl.innerHTML = `
-                    <form id="mp-av-form" style="display:grid;gap:10px;max-width:560px;">
-                        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;">
-                            <select name="kind" class="mpp-m-input">
-                                <option value="images" ${mediaKind === "images" ? "selected" : ""}>Image URL</option>
+                    <form id="mp-av-form" style="display:grid;gap:10px;max-width:600px;">
+                        <div style="font-size:12px;opacity:.75;">Paste any YouTube, MP4, MP3, Image, PDF, Google Drive, Docs, Slides, DOCX, or PPTX URL — type is auto-detected.</div>
+                        <div style="display:grid;grid-template-columns:145px 1fr;gap:8px;">
+                            <select name="kind" id="mp-av-kind" class="mpp-m-input">
                                 <option value="video" ${mediaKind === "video" ? "selected" : ""}>Video / YouTube</option>
+                                <option value="images" ${mediaKind === "images" ? "selected" : ""}>Image URL</option>
                                 <option value="audio" ${mediaKind === "audio" ? "selected" : ""}>Audio (MP3/WAV)</option>
+                                <option value="doc" ${mediaKind === "doc" ? "selected" : ""}>PDF / Doc / Drive</option>
                             </select>
-                            <input name="url" type="url" required class="mpp-m-input" placeholder="https://... (Image, YouTube, Drive, MP3, MP4)" />
+                            <input name="url" id="mp-av-url" type="url" required class="mpp-m-input" placeholder="https://youtu.be/... or PDF / Drive / Image / Audio URL" />
                         </div>
-                        <input name="caption" class="mpp-m-input" placeholder="Caption (e.g. Wessely ring slit-lamp view)" />
+                        <input name="caption" class="mpp-m-input" placeholder="Caption (optional, e.g. Slit-lamp fluorescein demo)" />
                         <button type="submit" class="mpp-ve-btn primary" style="justify-self:start;padding:8px 14px;">+ Add to Selection</button>
                     </form>
                     <div id="mp-sel-list" style="margin-top:14px;display:grid;gap:6px;"></div>
                 `;
+                bodyEl.querySelector("#mp-av-url").addEventListener("input", (e) => {
+                    const guessed = classifyUrl(e.target.value);
+                    if (guessed) bodyEl.querySelector("#mp-av-kind").value = guessed.kind;
+                });
                 const drawSel = () => {
                     const box = bodyEl.querySelector("#mp-sel-list");
                     box.innerHTML = selected.map((s, i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:12px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><b>#${i + 1}</b> ${esc(s.caption || s.url)}</span><button type="button" data-rm="${i}" class="mpp-ve-btn danger" style="padding:2px 7px;">&times;</button></div>`).join("");
@@ -8901,10 +9120,14 @@ STRICT OUTPUT FORMAT RULES:
                 bodyEl.querySelector("#mp-av-form").addEventListener("submit", (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.target);
-                    mediaKind = fd.get("kind");
                     const u = String(fd.get("url")).trim();
-                    selected.push({ url: u, thumb: mediaKind === "images" ? u : "", caption: String(fd.get("caption") || "").trim() });
-                    e.target.reset(); drawSel(); renderFooter();
+                    const guessed = classifyUrl(u);
+                    mediaKind = fd.get("kind") || guessed?.kind || "video";
+                    const cap = String(fd.get("caption") || "").trim() || guessed?.caption || "";
+                    selected.push({ url: u, thumb: mediaKind === "images" ? u : "", caption: cap });
+                    e.target.reset();
+                    bodyEl.querySelector("#mp-av-kind").value = mediaKind;
+                    drawSel(); renderFooter();
                 });
                 return;
             }
@@ -8964,7 +9187,7 @@ STRICT OUTPUT FORMAT RULES:
         closeToolkitPopover();
         const pop = document.createElement("div");
         pop.id = "mpp-tk-popover";
-        pop.style.left = `${Math.min(Math.max(10, x - 120), window.innerWidth - 284)}px`;
+        pop.style.left = `${Math.min(Math.max(10, x - 120), window.innerWidth - 288)}px`;
         pop.style.top = `${Math.min(Math.max(10, y + 10), window.innerHeight - 230)}px`;
 
         const isEditing = _activeVE?.preview === ctx.preview;
@@ -8976,11 +9199,11 @@ STRICT OUTPUT FORMAT RULES:
             <div class="mpp-tk-list">
                 <button type="button" class="mpp-tk-item" data-tk="media">
                     <span class="mpp-tk-ico-badge">${ICONS.images}</span>
-                    <span>1. Add image / audio / video here<span class="mpp-tk-sub">Search, upload &amp; attach inline figures</span></span>
+                    <span>1. Add image / audio / video / doc<span class="mpp-tk-sub">Search, upload or attach inline media &amp; PDFs</span></span>
                 </button>
                 <button type="button" class="mpp-tk-item" data-tk="edit">
                     <span class="mpp-tk-ico-badge">${ICONS.edit}</span>
-                    <span>${isEditing ? "2. Finish & Sync Text Editing" : "2. Enable text editing here also"}<span class="mpp-tk-sub">Change text, highlight, bold, italic, size</span></span>
+                    <span>${isEditing ? "2. Finish & Sync Text Editing" : "2. Enable text editing here also"}<span class="mpp-tk-sub">Edit text, paste URLs, highlight, bold, size</span></span>
                 </button>
                 <button type="button" class="mpp-tk-item" data-tk="hl">
                     <span class="mpp-tk-ico-badge">${ICONS.hl}</span>
@@ -9049,7 +9272,7 @@ STRICT OUTPUT FORMAT RULES:
     }
 
     // ========================================================================
-    // 9. PORTAL SUBJECT CARD LONG-PRESS -> "SELECT VERSION" MANAGER
+    // 9. PORTAL SUBJECT CARD LONG-PRESS -> "SELECT VERSION" MANAGER (PORTAL ONLY)
     // ========================================================================
     const KNOWN_SUBJECTS = [
         "anatomy", "physiology", "biochemistry", "pathology", "pharmacology", "microbiology", "forensic", "fmt",

@@ -144,7 +144,7 @@ function injectShellDOM() {
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <a href="index.html" class="flex items-center gap-3 group cursor-pointer no-underline">
-                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="${APP_LOGO_URL}" alt="MBBS Profs Prep">
+                    <img class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg object-cover ring-2 ring-offset-2 ring-accent-yellow transition-transform group-hover:scale-105" src="${APP_LOGO_URL}" referrerpolicy="no-referrer" alt="MBBS Profs Prep">
                     <div class="leading-tight">
                         <h1 class="font-bold text-base md:text-lg tracking-tight text-slate-900 dark:text-white m-0">MBBS <span class="text-brand-400">Profs Prep</span></h1>
                         <p class="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5 m-0">Central Portal</p>
@@ -545,7 +545,7 @@ export const userPanelApp = {
 function renderLoginHTML() {
     return `
         <div class="flex flex-col items-center justify-center min-h-[70vh]">
-            <img src="${APP_LOGO_URL}" class="w-16 h-16 rounded-2xl shadow-lg mb-5 object-cover" alt="Logo">
+            <img src="${APP_LOGO_URL}" referrerpolicy="no-referrer" class="w-16 h-16 rounded-2xl shadow-lg mb-5 object-cover" alt="Logo">
             <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-1">Welcome Back</h3>
             <p class="text-xs text-slate-500 mb-5">Log in to sync your progress &amp; bookmarks.</p>
             <div id="auth-error-msg" class="hidden w-full text-xs p-3 rounded-xl mb-4 text-center font-bold border"></div>
@@ -565,7 +565,7 @@ function renderLoginHTML() {
 function renderRegisterHTML() {
     return `
         <div class="flex flex-col items-center pb-4">
-            <img src="${APP_LOGO_URL}" class="w-14 h-14 rounded-2xl shadow-lg mb-3 object-cover mt-1" alt="Logo">
+            <img src="${APP_LOGO_URL}" referrerpolicy="no-referrer" class="w-14 h-14 rounded-2xl shadow-lg mb-3 object-cover mt-1" alt="Logo">
             <h3 class="text-xl font-black text-slate-900 dark:text-white mb-1">Create Global Profile</h3>
             <p class="text-xs text-slate-500 mb-4">Sync bookmarks &amp; progress across devices.</p>
             <div id="auth-error-msg" class="hidden w-full text-xs p-3 rounded-xl mb-3 text-center font-bold border"></div>

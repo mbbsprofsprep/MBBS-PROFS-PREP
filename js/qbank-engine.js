@@ -1356,7 +1356,7 @@ export function toggleDeckMode() {
 
     if (main) main.style.display = QB.isDeckMode ? "none" : "block";
     if (deck) deck.style.display = QB.isDeckMode ? "flex" : "none";
-    if (fab) fab.textContent = QB.isDeckMode ? "📋" : "🎴";
+   if (fab) fab.style.display = QB.isDeckMode ? "none" : "flex";
     if (eye) eye.style.display = QB.isDeckMode ? "none" : "flex";
     if (QB.isDeckMode) renderDeckCard();
 }

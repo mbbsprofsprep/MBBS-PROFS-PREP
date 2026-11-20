@@ -1,6 +1,6 @@
 // ============================================================================
-// js/core-firebase.js
-// Single Firebase v11 Instance: Auth, 3-Admin Guard, Reactive Store, Profile,
+// js/core-firebase.js (Phase 1 — Near-₹0 Blaze Cost Optimized)
+// Single Firebase v11 Instance: Auth, 3-Admin Guard, Session-Cached Store,
 // Cloud Bookmarks, 2-Device Session Guard & Lazy Admin Suite Loader
 // ============================================================================
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -33,19 +33,68 @@ export const PROFS_FIREBASE_CONFIG = {
     appId: "1:378639777472:web:9c2dcb689d97025f6ff725"
 };
 
-// STRICT 3-ADMIN LIST (Matches Firebase Realtime Database Rules)
+// STRICT ADMIN LIST (Must match database.rules.json)
 export const ADMIN_EMAILS = Object.freeze([
     "pankajmahto109@gmail.com",
     "educateindiainstitute@gmail.com",
     "pankajkumarmahto1009@gmail.com"
 ]);
 
-export const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
+export const APP_LOGO_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgFbo8CVZSf-ejwVGTTTGeu1B5bJj4JGloqdh70o21Tf_895kWYOvNmyE9cnAAR66r77ZFZZKTslF6QIp4F-bWxPsXjGsAWzwc75D6VnXqFMbi-4NgUazELmmMWeyX3ApASZncrHUFjni62u4spE3g19Pfcbsy-h5iUTfxTXWWTEYPgaD47kLMDA43e1SMQ/s678/1000126459.jpg";
+
 const fbApp = getApps().find(a => a.name === "[DEFAULT]") || initializeApp(PROFS_FIREBASE_CONFIG);
 export const auth = getAuth(fbApp);
 export const db = getDatabase(fbApp);
 
-// Centralized Reactive Application Store
+const SESSION_PREFIX = "mpp_sc_v2_";
+const DEFAULT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+// ============================================================================
+// SESSION STORAGE CACHE HELPERS (Eliminates redundant RTDB downloads across pages)
+// ============================================================================
+export function readSessionCache(key, ttlMs = DEFAULT_TTL_MS) {
+    try {
+        const raw = sessionStorage.getItem(SESSION_PREFIX + key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.ts !== "number") return null;
+        if (Date.now() - parsed.ts > ttlMs) {
+            sessionStorage.removeItem(SESSION_PREFIX + key);
+            return null;
+        }
+        return parsed.val;
+    } catch (_) {
+        return null;
+    }
+}
+
+export function writeSessionCache(key, val) {
+    try {
+        sessionStorage.setItem(SESSION_PREFIX + key, JSON.stringify({ ts: Date.now(), val }));
+    } catch (_) {}
+}
+
+export function invalidateSessionCache(keyPrefix = "") {
+    try {
+        const target = SESSION_PREFIX + keyPrefix;
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const k = sessionStorage.key(i);
+            if (k && k.startsWith(target)) sessionStorage.removeItem(k);
+        }
+    } catch (_) {}
+}
+
+export async function getSessionCached(key, ttlMs, fetcher) {
+    const hit = readSessionCache(key, ttlMs);
+    if (hit !== null) return hit;
+    const fresh = await fetcher();
+    writeSessionCache(key, fresh);
+    return fresh;
+}
+
+// ============================================================================
+// CENTRALIZED REACTIVE STORE
+// ============================================================================
 export const MPPStore = {
     authReady: false,
     user: null,
@@ -59,6 +108,12 @@ export const MPPStore = {
         showTeenPatti: true,
         showCrossExamPG: false,
         showAnswerCards: false
+    },
+    appConfig: {
+        bannerText: "",
+        bannerActive: false,
+        maintenanceMode: false,
+        pricing: null
     },
     page: {
         mode: "portal", // "portal" | "review" | "clinical"
@@ -76,6 +131,7 @@ export const MPPStore = {
         profile: new Set(),
         bookmarks: new Set(),
         flags: new Set(),
+        appConfig: new Set(),
         adminReady: new Set()
     }
 };
@@ -119,7 +175,32 @@ function clearUserListeners() {
     MPPStore._userUnsubs = [];
 }
 
-// 2-Device Session Guard (Applies to non-admins on all pages)
+function parseFeatureFlags(val = {}) {
+    const f = val.features || {};
+    return {
+        showNeuroRecall: Boolean(val.showNeuroRecall),
+        showTeenPatti: f.showTeenPatti !== undefined ? Boolean(f.showTeenPatti) : true,
+        showCrossExamPG: Boolean(f.showCrossExamPG),
+        showAnswerCards: Boolean(f.showAnswerCards)
+    };
+}
+
+function parseSubscription(raw) {
+    let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
+    if (raw && raw.validUntil) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const exp = new Date(raw.validUntil); exp.setHours(0, 0, 0, 0);
+        const diff = Math.ceil((exp - today) / 86400000);
+        if (diff >= 0 && raw.status === "active") {
+            sub = { isVIP: true, daysLeft: diff, validUntil: raw.validUntil, expired: false };
+        } else {
+            sub = { isVIP: false, daysLeft: diff, validUntil: raw.validUntil, expired: true };
+        }
+    }
+    return sub;
+}
+
+// 2-Device Session Guard (Only persistent listener kept for students: ~80 bytes)
 async function startSessionGuard(user) {
     if (isUserAdmin(user)) return;
     try {
@@ -135,6 +216,7 @@ async function startSessionGuard(user) {
 
             if (keys.length > 0 && !sessions[token]) {
                 localStorage.removeItem("my_session_token");
+                invalidateSessionCache();
                 signOut(auth).then(() => {
                     document.body.innerHTML = `
                         <div class="fixed inset-0 z-[50000] bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
@@ -160,18 +242,54 @@ async function startSessionGuard(user) {
     }
 }
 
-// Global Feature Flags Listener (Read-only for everyone)
-onValue(ref(db, "settings/global"), (snap) => {
-    const val = snap.val() || {};
-    const f = val.features || {};
-    MPPStore.featureFlags = {
-        showNeuroRecall: Boolean(val.showNeuroRecall),
-        showTeenPatti: f.showTeenPatti !== undefined ? Boolean(f.showTeenPatti) : true,
-        showCrossExamPG: Boolean(f.showCrossExamPG),
-        showAnswerCards: Boolean(f.showAnswerCards)
-    };
+// One-Time Session-Cached Load for Global Flags & App Config (Zero persistent socket)
+async function loadGlobalMeta(forceLive = false) {
+    if (forceLive) {
+        MPPStore._userUnsubs.push(
+            onValue(ref(db, "settings/global"), (snap) => {
+                MPPStore.featureFlags = parseFeatureFlags(snap.val() || {});
+                writeSessionCache("global_flags", MPPStore.featureFlags);
+                emit("flags", MPPStore.featureFlags);
+            }),
+            onValue(ref(db, "portal_config/app"), (snap) => {
+                const v = snap.val() || {};
+                MPPStore.appConfig = {
+                    bannerText: String(v.bannerText || ""),
+                    bannerActive: Boolean(v.bannerActive),
+                    maintenanceMode: Boolean(v.maintenanceMode),
+                    pricing: v.pricing || null
+                };
+                writeSessionCache("app_config", MPPStore.appConfig);
+                emit("appConfig", MPPStore.appConfig);
+            })
+        );
+        return;
+    }
+
+    const [flags, appCfg] = await Promise.all([
+        getSessionCached("global_flags", DEFAULT_TTL_MS, async () => {
+            const snap = await get(ref(db, "settings/global")).catch(() => null);
+            return parseFeatureFlags(snap?.val() || {});
+        }),
+        getSessionCached("app_config", DEFAULT_TTL_MS, async () => {
+            const snap = await get(ref(db, "portal_config/app")).catch(() => null);
+            const v = snap?.val() || {};
+            return {
+                bannerText: String(v.bannerText || ""),
+                bannerActive: Boolean(v.bannerActive),
+                maintenanceMode: Boolean(v.maintenanceMode),
+                pricing: v.pricing || null
+            };
+        })
+    ]);
+
+    MPPStore.featureFlags = flags;
+    MPPStore.appConfig = appCfg;
     emit("flags", MPPStore.featureFlags);
-});
+    emit("appConfig", MPPStore.appConfig);
+}
+
+loadGlobalMeta(false);
 
 // Single Unified Auth Listener
 onAuthStateChanged(auth, async (user) => {
@@ -189,76 +307,79 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    startSessionGuard(user);
+    const forceRefreshSub = new URLSearchParams(window.location.search).has("refreshSub");
+    if (forceRefreshSub) invalidateSessionCache(`sub_${user.uid}`);
 
-    // 1. User Profile
-    MPPStore._userUnsubs.push(
-        onValue(ref(db, `users/${user.uid}/profile`), (snap) => {
-            MPPStore.profile = snap.val() || {};
-            emit("profile", MPPStore.profile);
-        })
-    );
-
-    // 2. Cloud Bookmarks
-    MPPStore._userUnsubs.push(
-        onValue(ref(db, `users/${user.uid}/bookmarks`), (snap) => {
-            MPPStore.bookmarks = snap.exists() ? snap.val() : {};
-            emit("bookmarks", MPPStore.bookmarks);
-        })
-    );
-
-    // 3. Role & Subscription + Lazy-load Admin Suite ONLY for the 3 Admins
     if (MPPStore.isAdmin) {
+        // Admins keep live listeners for instant authoring feedback
+        loadGlobalMeta(true);
         MPPStore.userStatus = { isVIP: true, daysLeft: 999, validUntil: "Lifetime Access", expired: false };
         MPPStore.accessLevel = "premium";
+
+        const [profSnap, bmkSnap] = await Promise.all([
+            get(ref(db, `users/${user.uid}/profile`)).catch(() => null),
+            get(ref(db, `users/${user.uid}/bookmarks`)).catch(() => null)
+        ]);
+        MPPStore.profile = profSnap?.val() || {};
+        MPPStore.bookmarks = bmkSnap?.exists() ? bmkSnap.val() : {};
+        emit("profile", MPPStore.profile);
+        emit("bookmarks", MPPStore.bookmarks);
         emit("auth", MPPStore);
 
         if (!MPPStore.adminModule) {
             try {
                 const mod = await import("./admin-suite.js");
                 MPPStore.adminModule = mod;
-                if (typeof mod.initAdminSuite === "function") {
-                    mod.initAdminSuite();
-                }
+                if (typeof mod.initAdminSuite === "function") mod.initAdminSuite();
                 emit("adminReady", mod);
             } catch (e) {
-                console.warn("[core-firebase] admin-suite.js will load once created:", e.message);
+                console.warn("[core-firebase] admin-suite load warning:", e.message);
             }
         }
-    } else {
-        MPPStore._userUnsubs.push(
-            onValue(ref(db, `users/${user.uid}/subscription`), (snap) => {
-                let sub = { isVIP: false, daysLeft: 0, validUntil: null, expired: false };
-                if (snap.exists()) {
-                    const d = snap.val();
-                    const today = new Date(); today.setHours(0, 0, 0, 0);
-                    const exp = new Date(d.validUntil); exp.setHours(0, 0, 0, 0);
-                    const diff = Math.ceil((exp - today) / 86400000);
-                    if (diff >= 0 && d.status === "active") {
-                        sub = { isVIP: true, daysLeft: diff, validUntil: d.validUntil, expired: false };
-                    } else {
-                        sub = { isVIP: false, daysLeft: diff, validUntil: d.validUntil, expired: true };
-                    }
-                }
-                MPPStore.userStatus = sub;
-                MPPStore.accessLevel = sub.isVIP ? "premium" : "free";
-                emit("auth", MPPStore);
-            })
-        );
+        return;
     }
+
+    // Non-admin students: 1-time session-cached gets + tiny 2-device session listener
+    startSessionGuard(user);
+
+    const [profile, bookmarks, subRaw] = await Promise.all([
+        getSessionCached(`prof_${user.uid}`, DEFAULT_TTL_MS, async () => {
+            const s = await get(ref(db, `users/${user.uid}/profile`)).catch(() => null);
+            return s?.val() || {};
+        }),
+        getSessionCached(`bmk_${user.uid}`, DEFAULT_TTL_MS, async () => {
+            const s = await get(ref(db, `users/${user.uid}/bookmarks`)).catch(() => null);
+            return s?.exists() ? s.val() : {};
+        }),
+        getSessionCached(`sub_${user.uid}`, 10 * 60 * 1000, async () => {
+            const s = await get(ref(db, `users/${user.uid}/subscription`)).catch(() => null);
+            return s?.exists() ? s.val() : null;
+        })
+    ]);
+
+    MPPStore.profile = profile;
+    MPPStore.bookmarks = bookmarks;
+    MPPStore.userStatus = parseSubscription(subRaw);
+    MPPStore.accessLevel = MPPStore.userStatus.isVIP ? "premium" : "free";
+
+    emit("profile", MPPStore.profile);
+    emit("bookmarks", MPPStore.bookmarks);
+    emit("auth", MPPStore);
 });
 
 // ============================================================================
-// AUTH, PROFILE & BOOKMARK ACTIONS
+// AUTH, PROFILE & BOOKMARK ACTIONS (Optimistically update cache & store)
 // ============================================================================
 export async function loginWithEmail(email, password) {
+    invalidateSessionCache();
     return signInWithEmailAndPassword(auth, email.trim(), password);
 }
 
 export async function signUpWithEmail({ fullName, email, password, joinYear, college, country, city, phone }) {
+    invalidateSessionCache();
     const uc = await createUserWithEmailAndPassword(auth, email.trim(), password);
     await updateProfile(uc.user, { displayName: fullName.trim() });
-    await set(ref(db, `users/${uc.user.uid}/profile`), {
+    const profileObj = {
         fullName: fullName.trim(),
         email: email.trim(),
         joinYear,
@@ -267,7 +388,9 @@ export async function signUpWithEmail({ fullName, email, password, joinYear, col
         city: (city || "").trim() || "Not provided",
         phone: (phone || "").trim() || "Not provided",
         createdAt: new Date().toISOString()
-    });
+    };
+    await set(ref(db, `users/${uc.user.uid}/profile`), profileObj);
+    writeSessionCache(`prof_${uc.user.uid}`, profileObj);
     return uc.user;
 }
 
@@ -277,27 +400,38 @@ export async function sendResetEmail(email) {
 
 export async function logoutUser() {
     localStorage.removeItem("my_session_token");
+    invalidateSessionCache();
     await signOut(auth);
     window.location.reload();
 }
 
 export async function updateUserProfile({ fullName, joinYear, college, city, phone }) {
     if (!MPPStore.user) throw new Error("Not signed in.");
-    await update(ref(db, `users/${MPPStore.user.uid}/profile`), {
-        fullName, joinYear, college, city, phone
-    });
+    const patch = { fullName, joinYear, college, city, phone };
+    await update(ref(db, `users/${MPPStore.user.uid}/profile`), patch);
     if (MPPStore.user.displayName !== fullName) {
         await updateProfile(MPPStore.user, { displayName: fullName });
     }
+    MPPStore.profile = { ...MPPStore.profile, ...patch };
+    writeSessionCache(`prof_${MPPStore.user.uid}`, MPPStore.profile);
+    emit("profile", MPPStore.profile);
 }
 
 export async function saveOrRemoveBookmark(uniqueId, bookmarkData, isCurrentlySaved) {
     if (!MPPStore.user) throw new Error("Sign in required.");
-    const dbRef = ref(db, `users/${MPPStore.user.uid}/bookmarks/${uniqueId}`);
+    const uid = MPPStore.user.uid;
+    const dbRef = ref(db, `users/${uid}/bookmarks/${uniqueId}`);
+
     if (isCurrentlySaved) {
         await remove(dbRef);
+        const next = { ...MPPStore.bookmarks };
+        delete next[uniqueId];
+        MPPStore.bookmarks = next;
+        writeSessionCache(`bmk_${uid}`, next);
+        emit("bookmarks", next);
         return false;
     }
+
     const payload = {
         ...bookmarkData,
         collegeCode: MPPStore.page.collegeCode || "deoghar",
@@ -308,26 +442,41 @@ export async function saveOrRemoveBookmark(uniqueId, bookmarkData, isCurrentlySa
         timestamp: new Date().toISOString()
     };
     await set(dbRef, payload);
+    const next = { ...MPPStore.bookmarks, [uniqueId]: payload };
+    MPPStore.bookmarks = next;
+    writeSessionCache(`bmk_${uid}`, next);
+    emit("bookmarks", next);
     return true;
 }
 
 export async function deleteBookmarkByKey(keyOrQid) {
     if (!MPPStore.user) return;
+    const uid = MPPStore.user.uid;
     let targetKey = keyOrQid;
     if (!MPPStore.bookmarks[keyOrQid]) {
         const found = Object.keys(MPPStore.bookmarks).find(k => MPPStore.bookmarks[k]?.q === keyOrQid);
         if (found) targetKey = found;
     }
-    await remove(ref(db, `users/${MPPStore.user.uid}/bookmarks/${targetKey}`));
+    await remove(ref(db, `users/${uid}/bookmarks/${targetKey}`));
+    const next = { ...MPPStore.bookmarks };
+    delete next[targetKey];
+    MPPStore.bookmarks = next;
+    writeSessionCache(`bmk_${uid}`, next);
+    emit("bookmarks", next);
 }
 
 export async function updateBookmarkSRS(key, step, nextReviewDate) {
     if (!MPPStore.user) return;
-    await update(ref(db, `users/${MPPStore.user.uid}/bookmarks/${key}`), {
+    const uid = MPPStore.user.uid;
+    await update(ref(db, `users/${uid}/bookmarks/${key}`), {
         current_step: step,
         next_review_date: nextReviewDate
     });
+    if (MPPStore.bookmarks[key]) {
+        MPPStore.bookmarks[key] = { ...MPPStore.bookmarks[key], current_step: step, next_review_date: nextReviewDate };
+        writeSessionCache(`bmk_${uid}`, MPPStore.bookmarks);
+        emit("bookmarks", MPPStore.bookmarks);
+    }
 }
 
-// Re-export modular RTDB helpers so all other files use the exact same SDK version
 export { ref, get, set, update, remove, onValue };

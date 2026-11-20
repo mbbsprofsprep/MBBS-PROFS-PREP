@@ -1039,3 +1039,131 @@ export async function syncLoadedPageToFirebase(qnaData = [], curriculumData = []
     });
     return { ...res, matchedFile: "Currently Loaded Page", college };
 }
+// ============================================================================
+// 6. COMPACT / FLATTEN DELTA OVERRIDES PERMANENTLY INTO MAIN QUESTION BANK
+// ============================================================================
+export async function getPendingOverrideCount(custom = {}) {
+    requireAdmin();
+    const { isClinical, college, rawSub } = getVaultKeys(custom);
+    if (isClinical) return 0;
+    const snap = await get(ref(db, `question_edits/${college}/${rawSub}/overrides`)).catch(() => null);
+    if (!snap || !snap.exists()) return 0;
+    return Object.keys(snap.val() || {}).length;
+}
+
+export async function flattenOverridesIntoMainBank(currentQna = [], currentCurriculum = [], custom = {}) {
+    requireAdmin();
+    const { isClinical, college, rawSub, subjectKey } = getVaultKeys(custom);
+    if (isClinical) {
+        throw new Error("Clinical cases save directly to clinical_data — no overrides to compact.");
+    }
+
+    const ovRef = ref(db, `question_edits/${college}/${rawSub}/overrides`);
+    const ovSnap = await get(ovRef);
+    if (!ovSnap.exists()) {
+        return { mergedQuestions: 0, updatedBanks: [], remainingOverrides: 0 };
+    }
+
+    const overrides = ovSnap.val() || {};
+    const ovKeys = Object.keys(overrides);
+    if (!ovKeys.length) {
+        return { mergedQuestions: 0, updatedBanks: [], remainingOverrides: 0 };
+    }
+
+    // Discover all sibling versions of this subject in Firebase (e.g. PATHOLOGY + PATHOLOGY_ED8)
+    const metaSnap = await get(ref(db, `bank_meta/${college}`)).catch(() => null);
+    const metaObj = metaSnap?.val() || {};
+    const targetBankKeys = new Set([subjectKey]);
+    Object.keys(metaObj).forEach(k => {
+        const up = k.toUpperCase();
+        if (up === rawSub || up.startsWith(`${rawSub}_`)) {
+            targetBankKeys.add(up);
+        }
+    });
+
+    const appliedOverrideKeys = new Set();
+    const updatedBanks = [];
+    let totalMergedQuestions = 0;
+
+    for (const bankKey of targetBankKeys) {
+        let bankPayload = null;
+        const bankSnap = await get(ref(db, `question_banks/${college}/${bankKey}`)).catch(() => null);
+
+        if (bankSnap && bankSnap.exists()) {
+            bankPayload = sanitizeBankPayload(bankSnap.val(), college);
+        } else if (bankKey === subjectKey && Array.isArray(currentQna) && currentQna.length) {
+            bankPayload = sanitizeBankPayload({
+                collegeName: MPPStore.page.collegeName,
+                curriculumData: currentCurriculum,
+                qnaData: currentQna
+            }, college);
+        }
+
+        if (!bankPayload || !bankPayload.qnaData.length) continue;
+
+        let bankChangedCount = 0;
+        const ansFallbackUpdates = {};
+
+        const mergedQna = bankPayload.qnaData.map(item => {
+            const upQ = String(item.q || "").trim().toUpperCase();
+            const ov = overrides[upQ];
+            if (!ov) return item;
+
+            appliedOverrideKeys.add(upQ);
+            bankChangedCount++;
+
+            const updated = { ...item };
+            if (ov.stem !== undefined && ov.stem !== "") updated.stem = String(ov.stem);
+            if (ov.ans_key !== undefined) updated.ans_key = String(ov.ans_key).trim().toUpperCase();
+            if (Array.isArray(ov.options) && ov.options.length) {
+                updated.options = ov.options.map(o => String(o ?? ""));
+            }
+
+            // Guarantee explanation is preserved in answers/ before clearing override
+            if (ov.explanation) {
+                ansFallbackUpdates[`answers/${college}/${bankKey}/${item.q}`] = {
+                    text: String(ov.explanation),
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: MPPStore.user.email
+                };
+            }
+            return updated;
+        });
+
+        if (bankChangedCount > 0) {
+            if (Object.keys(ansFallbackUpdates).length) {
+                ansFallbackUpdates[`bank_meta/${college}/${bankKey}/answersVersion`] = Date.now();
+                await update(ref(db), ansFallbackUpdates);
+            }
+            await uploadFullBank(college, bankKey, {
+                collegeName: bankPayload.collegeName,
+                curriculumData: bankPayload.curriculumData,
+                qnaData: mergedQna
+            });
+            updatedBanks.push(`${college}/${bankKey} (${bankChangedCount} Qs)`);
+            totalMergedQuestions += bankChangedCount;
+        }
+    }
+
+    // Remove only the overrides that were successfully merged into the main bank(s)
+    const cleanupUpdates = {};
+    const now = Date.now();
+    appliedOverrideKeys.forEach(upKey => {
+        cleanupUpdates[`question_edits/${college}/${rawSub}/overrides/${upKey}`] = null;
+    });
+    targetBankKeys.forEach(bankKey => {
+        cleanupUpdates[`bank_meta/${college}/${bankKey}/editsVersion`] = now;
+    });
+
+    if (Object.keys(cleanupUpdates).length) {
+        await update(ref(db), cleanupUpdates);
+    }
+
+    invalidateSessionCache(`meta_${college}_${subjectKey}`);
+
+    return {
+        mergedQuestions: totalMergedQuestions,
+        updatedBanks,
+        remainingOverrides: ovKeys.length - appliedOverrideKeys.size
+    };
+}

@@ -1,6 +1,13 @@
 // ============================================================================
-// js/admin-suite.js
-// Complete Admin-Only Control Suite (Lazy-loaded strictly for the 3 Admins)
+// js/admin-suite.js (Complete Updated Version)
+// Strictly Lazy-Loaded for the 3 Admins Only:
+// - Live Preview Visual Toolkit (Highlight, Bold, Italic, Font Size, Text Edit)
+// - 3-Tab Media Hub: Google Search (Serper.dev) + Wikimedia + GitHub Assets
+// - Universal Add/Edit/Delete Question Modal (Review + Clinical)
+// - Sync GitHub JSON -> Firebase & Sync Loaded Page -> Firebase
+// - AI Vision Exam Scanner + JS Snippet Injector + Bulk JSON + 777 Export
+// - Anki Importer + SortableJS Reordering + Bulk Delete
+// - Dynamic Subject Version Manager + Teen Patti Cross-Linker & MedPYQ Bridge
 // ============================================================================
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
@@ -20,7 +27,9 @@ import {
     toggleGlobalFeatureFlag,
     clearLocalBankCache,
     exportFirebaseFirstBank,
-    sanitizeBankPayload
+    sanitizeBankPayload,
+    syncGitHubJsonToFirebase,
+    syncLoadedPageToFirebase
 } from "./data-adapter.js";
 import {
     getGitHubAssetConfig,
@@ -28,13 +37,16 @@ import {
     testGitHubConnection,
     uploadFileToGitHub,
     mirrorImageUrlToGitHub,
-    searchWikimediaMedia
+    searchWikimediaMedia,
+    getGoogleSearchConfig,
+    saveGoogleSearchConfig,
+    searchGoogleSerperMedia
 } from "./admin-github-uploader.js";
 
 let suiteMounted = false;
 let sortableLoading = false;
 const previewUndoMap = new Map();
-let toolkitCtx = null;      // { textareaId, previewId, selectedText, anchorText }
+let toolkitCtx = null; // { textareaId, previewId, selectedText, anchorText }
 let searchResults = [];
 let queuedMediaUrls = new Set();
 let versionModalState = null;
@@ -42,12 +54,11 @@ let lastSnippetBackup = null;
 let crossLinkAnchorQid = null;
 let bulkSelectedQids = new Set();
 
-// Optional Secondary Firebase App for MedPYQ Cross-Exam Bridge (No localStorage passwords!)
 let medpyqAuth = null;
 let medpyqDb = null;
 
 function getQB() { return window.QBankEngine?.state || null; }
-function requireAdmin() { if (!isUserAdmin()) throw new Error("Admin access required."); }
+function requireAdmin() { if (!isUserAdmin()) throw new Error("Admin access strictly required."); }
 
 // ============================================================================
 // 1. INITIALIZATION (Called automatically by core-firebase.js for 3 Admins)
@@ -71,7 +82,7 @@ export function initAdminSuite() {
 }
 
 // ============================================================================
-// 2. ADMIN CSS & MODALS INJECTION
+// 2. ADMIN CSS, TOOLBAR & MODALS
 // ============================================================================
 function injectAdminCSS() {
     if (document.getElementById("mpp-admin-suite-css")) return;
@@ -97,7 +108,7 @@ function injectAdminCSS() {
         .mpp-media-badge {
             position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
             background: rgba(15,23,42,0.85); color: #fff; font-size: 10px; font-weight: 900;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; align-items: center; justify-content: center; z-index: 2;
         }
         .mpp-media-card.selected .mpp-media-badge { background: #0ea5e9; }
     </style>`);
@@ -139,42 +150,57 @@ function injectAdminModals() {
             <button type="button" class="mpp-tk-btn" style="color:#f87171;" onclick="window.MPPAdmin.hideToolkit()">✕</button>
         </div>
 
-        <!-- 2. UNIFIED 3-TAB MEDIA PICKER (SEARCH + GITHUB ASSETS UPLOAD + PASTE URL) -->
+        <!-- 2. UNIFIED 3-TAB MEDIA HUB (GOOGLE SEARCH / WIKIMEDIA + GITHUB ASSETS + PASTE URL) -->
         <div id="mpp-media-picker-modal" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[43000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh] text-left">
                 <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                        <h3 class="text-base font-black text-slate-900 dark:text-white m-0">🖼️ Media Hub (Search / GitHub Assets / URL)</h3>
+                        <h3 class="text-base font-black text-slate-900 dark:text-white m-0">🖼️ Media Hub (Google Search / GitHub Assets / URL)</h3>
                         <p id="mpp-media-anchor-info" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 mt-0.5 m-0"></p>
                     </div>
                     <button type="button" onclick="document.getElementById('mpp-media-picker-modal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 text-xl font-bold bg-transparent border-none cursor-pointer">&times;</button>
                 </div>
 
                 <div class="flex gap-1.5 mb-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    <button type="button" data-mtab="search" onclick="window.MPPAdmin.switchMediaTab('search')" class="mpp-mtab-btn flex-1 py-2 rounded-lg text-xs font-extrabold bg-white dark:bg-slate-900 text-sky-600 shadow-sm border-none cursor-pointer">🔍 Search Online</button>
+                    <button type="button" data-mtab="search" onclick="window.MPPAdmin.switchMediaTab('search')" class="mpp-mtab-btn flex-1 py-2 rounded-lg text-xs font-extrabold bg-white dark:bg-slate-900 text-sky-600 shadow-sm border-none cursor-pointer">🔍 Search Google</button>
                     <button type="button" data-mtab="upload" onclick="window.MPPAdmin.switchMediaTab('upload')" class="mpp-mtab-btn flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 bg-transparent border-none cursor-pointer">📤 Upload to GitHub</button>
                     <button type="button" data-mtab="url" onclick="window.MPPAdmin.switchMediaTab('url')" class="mpp-mtab-btn flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 bg-transparent border-none cursor-pointer">🔗 Paste URLs</button>
                 </div>
 
-                <!-- TAB 1: WIKIMEDIA SEARCH -->
+                <!-- TAB 1: GOOGLE IMAGES / VIDEOS (SERPER) + WIKIMEDIA -->
                 <div id="mpp-mtab-search" class="space-y-2.5">
-                    <div class="flex flex-wrap gap-2">
-                        <input type="text" id="mpp-media-query" placeholder="e.g. Wessely ring, hypopyon, heart murmur..." onkeydown="if(event.key==='Enter') window.MPPAdmin.searchOnlineMedia()" class="flex-1 min-w-[160px] px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white outline-none">
-                        <select id="mpp-media-type" class="px-2.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
-                            <option value="image" selected>Images</option><option value="audio">Audio</option><option value="video">Video</option>
+                    <div class="flex flex-wrap gap-1.5">
+                        <input type="text" id="mpp-media-query" placeholder="e.g. Wessely ring, hypopyon, fungal corneal ulcer..." onkeydown="if(event.key==='Enter') window.MPPAdmin.searchOnlineMedia()" class="flex-1 min-w-[150px] px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white outline-none">
+                        <select id="mpp-media-provider" class="px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
+                            <option value="google" selected>🌐 Google</option>
+                            <option value="wikimedia">📚 Wikimedia</option>
                         </select>
-                        <select id="mpp-media-limit" class="px-2.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
+                        <select id="mpp-media-type" class="px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
+                            <option value="image" selected>Images</option><option value="video">Videos</option><option value="audio">Audio</option>
+                        </select>
+                        <select id="mpp-media-limit" class="px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
                             <option value="10" selected>10</option><option value="15">15</option><option value="20">20</option>
                         </select>
-                        <button type="button" onclick="window.MPPAdmin.searchOnlineMedia()" class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-extrabold border-none cursor-pointer">🔍 Search</button>
+                        <button type="button" onclick="window.MPPAdmin.searchOnlineMedia()" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-extrabold border-none cursor-pointer">🔍 Search</button>
                     </div>
                     <div id="mpp-media-results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 overflow-y-auto min-h-[160px] max-h-[34vh] p-1 custom-scrollbar">
-                        <div class="col-span-full text-center py-8 text-xs text-slate-400 font-semibold">Search medical media above and tap items to multi-select.</div>
+                        <div class="col-span-full text-center py-8 text-xs text-slate-400 font-semibold">Search Google Images/Videos above and tap items to multi-select.</div>
                     </div>
-                    <label class="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
-                        <input type="checkbox" id="mpp-mirror-to-gh" class="w-3.5 h-3.5 accent-sky-500">
-                        <span>Copy selected search images permanently into my GitHub Assets folder (prevents broken links)</span>
-                    </label>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label class="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="mpp-mirror-to-gh" class="w-3.5 h-3.5 accent-sky-500">
+                            <span>Mirror selected images to GitHub Assets</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(document.getElementById('mpp-media-query').value || ''), '_blank')" class="text-[10px] font-extrabold text-slate-500 hover:text-sky-500 bg-transparent border-none cursor-pointer">↗️ Google Tab</button>
+                            <button type="button" onclick="window.MPPAdmin.toggleSearchKeysBox()" class="text-[10px] font-extrabold text-sky-600 dark:text-sky-400 bg-transparent border-none cursor-pointer">🔑 Search Keys</button>
+                        </div>
+                    </div>
+                    <div id="mpp-search-keys-box" class="hidden p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2 text-[11px]">
+                        <div class="font-bold text-slate-600 dark:text-slate-300">Paste free <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" class="text-sky-500 underline">serper.dev</a> API key(s) (1 per line — 2,500 free Google searches/key):</div>
+                        <textarea id="mpp-serper-keys-input" rows="2" placeholder="serper_api_key_1&#10;serper_api_key_2" class="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono dark:text-white"></textarea>
+                        <button type="button" onclick="window.MPPAdmin.saveSearchSettings()" class="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white text-[10px] font-extrabold border-none cursor-pointer">💾 Save Google Search Keys</button>
+                    </div>
                 </div>
 
                 <!-- TAB 2: GITHUB ASSETS UPLOAD -->
@@ -302,7 +328,7 @@ function injectAdminModals() {
             </div>
         </div>
 
-        <!-- 4. ADMIN CONTROL HUB & CLOUD VAULT MODAL (Flags + AI Scanner + Snippet + JSON) -->
+        <!-- 4. ADMIN CONTROL HUB & CLOUD VAULT MODAL -->
         <div id="mpp-control-hub-modal" onclick="if(event.target===this) this.classList.add('hidden')" class="hidden fixed inset-0 z-[36000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh] text-left">
                 <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -363,6 +389,19 @@ function injectAdminModals() {
                         <div id="mpp-ai-scan-status" class="hidden text-[11px] font-bold text-sky-600 dark:text-sky-400"></div>
                         <textarea id="mpp-snippet-textarea" rows="5" placeholder='{ q: "DGT115", type: "Theory", stem: "<b>[LAQ]</b> ...", ans_key: "", chapter: "General", examBatch: "2024 Batch" },' class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-700 font-mono text-[11px] dark:text-emerald-300 outline-none resize-y"></textarea>
                         <button type="button" onclick="window.MPPAdmin.injectSnippetToFirebase(this)" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase border-none cursor-pointer shadow">🚀 Inject &amp; Append Snippet to Firebase</button>
+                    </div>
+
+                    <!-- Sync Current Subject / GitHub JSON -> Firebase -->
+                    <div class="p-3.5 rounded-xl bg-sky-50/80 dark:bg-slate-800/80 border border-sky-200 dark:border-sky-800/60 space-y-2">
+                        <div class="text-xs font-black text-sky-900 dark:text-sky-300 uppercase">☁️ Sync Subject to Firebase Cloud Vault</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="window.MPPAdmin.syncFromGitHubToFirebase(this)" class="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs border-none cursor-pointer shadow-sm">
+                                🐙 Sync GitHub JSON → Firebase
+                            </button>
+                            <button type="button" onclick="window.MPPAdmin.syncCurrentPageToFirebase(this)" class="py-2.5 px-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs border-none cursor-pointer shadow-sm">
+                                ⚡ Sync Loaded Page → Firebase
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Bulk JSON Upload + Export + Cache -->
@@ -782,14 +821,14 @@ window.MPPAdmin = {
         this.hideToolkit();
     },
 
-    // --- 3-Tab Media Picker (Search + GitHub Upload + URLs) ---
+    // --- 3-Tab Media Hub (Google Search / Wikimedia + GitHub Upload + URLs) ---
     openMediaPickerFor(textareaId, previewId = "", defaultTab = "search") {
         const sel = window.getSelection()?.toString()?.trim() || "";
         toolkitCtx = { textareaId, previewId, selectedText: sel, anchorText: sel };
         this.openMediaPicker(defaultTab);
     },
 
-    openMediaPicker(defaultTab = "search") {
+    async openMediaPicker(defaultTab = "search") {
         if (!toolkitCtx) return;
         this.hideToolkit();
         queuedMediaUrls.clear();
@@ -804,9 +843,16 @@ window.MPPAdmin = {
         document.getElementById("mpp-media-custom-urls").value = "";
         document.getElementById("mpp-gh-upload-log").innerHTML = "";
         document.getElementById("mpp-media-selected-count").textContent = "Selected: 0";
+        document.getElementById("mpp-media-results-grid").innerHTML = `<div class="col-span-full text-center py-8 text-xs text-slate-400 font-semibold">Search Google Images/Videos above and tap items to multi-select.</div>`;
         document.getElementById("mpp-media-picker-modal").classList.remove("hidden");
 
-        this.switchMediaTab(defaultTab);
+        try {
+            const sCfg = await getGoogleSearchConfig();
+            const provEl = document.getElementById("mpp-media-provider");
+            if (provEl && sCfg.provider) provEl.value = sCfg.provider;
+        } catch (_) {}
+
+        await this.switchMediaTab(defaultTab);
         if (defaultTab === "search" && anchor.length >= 3) this.searchOnlineMedia();
     },
 
@@ -829,6 +875,28 @@ window.MPPAdmin = {
             document.getElementById("mpp-gh-urlmode").value = cfg.urlMode || "raw";
             document.getElementById("mpp-gh-token").value = cfg.token || "";
         }
+    },
+
+    async toggleSearchKeysBox() {
+        const box = document.getElementById("mpp-search-keys-box");
+        if (!box) return;
+        const opening = box.classList.contains("hidden");
+        box.classList.toggle("hidden");
+        if (opening) {
+            const cfg = await getGoogleSearchConfig();
+            document.getElementById("mpp-serper-keys-input").value = (cfg.serperKeys || []).join("\n");
+        }
+    },
+
+    async saveSearchSettings() {
+        try {
+            const res = await saveGoogleSearchConfig({
+                provider: document.getElementById("mpp-media-provider")?.value || "google",
+                rawSerperKeys: document.getElementById("mpp-serper-keys-input")?.value || ""
+            });
+            document.getElementById("mpp-search-keys-box")?.classList.add("hidden");
+            alert(`✅ Saved ${res.serperKeys.length} Google Search (Serper) key(s) securely.`);
+        } catch (err) { alert(err.message); }
     },
 
     async saveGitHubSettings() {
@@ -858,24 +926,30 @@ window.MPPAdmin = {
 
     async searchOnlineMedia() {
         const q = document.getElementById("mpp-media-query")?.value?.trim();
+        const provider = document.getElementById("mpp-media-provider")?.value || "google";
         const mediaType = document.getElementById("mpp-media-type")?.value || "image";
         const limit = Number(document.getElementById("mpp-media-limit")?.value || 10);
         const grid = document.getElementById("mpp-media-results-grid");
         if (!q || !grid) return;
 
         if (!document.getElementById("mpp-media-label").value.trim()) document.getElementById("mpp-media-label").value = q;
-        grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs font-bold text-sky-500 animate-pulse">Searching Wikimedia Commons for "${escapeHtml(q)}"...</div>`;
+        const engineLabel = provider === "google" ? "Google Search" : "Wikimedia Commons";
+        grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs font-bold text-sky-500 animate-pulse">Searching ${engineLabel} for "${escapeHtml(q)}"...</div>`;
 
         try {
-            searchResults = await searchWikimediaMedia(q, { limit, mediaType });
+            searchResults = provider === "google"
+                ? await searchGoogleSerperMedia(q, { limit, mediaType })
+                : await searchWikimediaMedia(q, { limit, mediaType });
+
             if (!searchResults.length) {
-                grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-amber-500 font-bold">No results found. Try broader medical keywords or switch to Upload / Paste URL.</div>`;
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-amber-500 font-bold">No results found on ${engineLabel}. Try another keyword or switch provider.</div>`;
                 return;
             }
+
             grid.innerHTML = searchResults.map((m, idx) => {
                 const isSel = queuedMediaUrls.has(m.full);
-                const preview = mediaType === "image"
-                    ? `<img src="${escapeHtml(m.thumb)}" alt="${escapeHtml(m.title)}" loading="lazy" class="w-full h-24 object-cover">`
+                const preview = m.thumb
+                    ? `<div class="relative"><img src="${escapeHtml(m.thumb)}" referrerpolicy="no-referrer" alt="${escapeHtml(m.title)}" loading="lazy" class="w-full h-24 object-cover">${m.isVideo ? `<span class="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-black px-1.5 py-0.5 rounded">▶ VIDEO</span>` : ""}</div>`
                     : `<div class="w-full h-24 flex items-center justify-center text-3xl bg-slate-100 dark:bg-slate-800">${mediaType === "audio" ? "🔊" : "🎬"}</div>`;
                 return `<div onclick="window.MPPAdmin.toggleSearchPick(${idx}, this)" class="mpp-media-card ${isSel ? "selected" : ""}">
                     <span class="mpp-media-badge">${idx + 1}</span>${preview}
@@ -883,7 +957,7 @@ window.MPPAdmin = {
                 </div>`;
             }).join("");
         } catch (err) {
-            grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-red-500 font-bold">${escapeHtml(err.message)}</div>`;
+            grid.innerHTML = `<div class="col-span-full text-center py-6 px-3 text-xs text-red-500 font-bold">${escapeHtml(err.message)}</div>`;
         }
     },
 
@@ -935,13 +1009,20 @@ window.MPPAdmin = {
             try {
                 const mirrored = [];
                 for (const u of urls) {
-                    if (/raw\.githubusercontent\.com|cdn\.jsdelivr\.net|github\.io/i.test(u)) { mirrored.push(u); continue; }
-                    const m = await mirrorImageUrlToGitHub(u, label);
-                    mirrored.push(m.url);
+                    if (/raw\.githubusercontent\.com|cdn\.jsdelivr\.net|github\.io|youtu\.?be|vimeo\.com/i.test(u)) {
+                        mirrored.push(u);
+                        continue;
+                    }
+                    const hit = searchResults.find(r => r.full === u);
+                    if (hit?.isVideo) { mirrored.push(u); continue; }
+                    try {
+                        const m = await mirrorImageUrlToGitHub(u, label, hit?.thumb || "");
+                        mirrored.push(m.url);
+                    } catch (_) {
+                        mirrored.push(u); // Fallback to original Google image URL if source blocks CORS
+                    }
                 }
                 urls = mirrored;
-            } catch (err) {
-                alert("Mirror to GitHub failed (using original URLs): " + err.message);
             } finally {
                 btn.disabled = false; btn.textContent = orig;
             }
@@ -954,7 +1035,9 @@ window.MPPAdmin = {
                 : `![${label}${urls.length > 1 ? ` ${i + 1}` : ""}](${u})`).join("\n") + "\n"
             : ` [[gallery:${label}|${urls.join("|")}]]`;
 
-        const next = anchorText ? (replaceInMarkdown(ta.value, anchorText, m => `${m}${insertion}`) || `${ta.value.trimEnd()}${insertion}`) : `${ta.value.trimEnd()}${insertion}`;
+        const next = anchorText
+            ? (replaceInMarkdown(ta.value, anchorText, m => `${m}${insertion}`) || `${ta.value.trimEnd()}${insertion}`)
+            : `${ta.value.trimEnd()}${insertion}`;
         applyMarkdownEdit(textareaId, previewId, next);
         document.getElementById("mpp-media-picker-modal").classList.add("hidden");
     },
@@ -1170,7 +1253,7 @@ window.MPPAdmin = {
         if (res.bank) window.QBankEngine?.reload();
     },
 
-    // --- Control Hub, AI Scanner, Snippet Injector & Bulk JSON ---
+    // --- Control Hub, GitHub Sync, AI Scanner, Snippet Injector & Bulk JSON ---
     async openControlHub() {
         requireAdmin();
         const { college, subjectKey } = getVaultKeys();
@@ -1307,6 +1390,37 @@ window.MPPAdmin = {
         document.getElementById("mpp-undo-snippet-btn").classList.add("hidden");
         alert("✅ Restored!");
         window.QBankEngine?.reload();
+    },
+
+    async syncFromGitHubToFirebase(btn) {
+        requireAdmin();
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = "⏳ Fetching GitHub JSON...";
+        try {
+            const res = await syncGitHubJsonToFirebase();
+            alert(`✅ Synced ${res.count} questions from GitHub (${res.matchedFile}) → Firebase (${res.college}/${res.normSubKey})!`);
+            window.QBankEngine?.reload();
+        } catch (err) {
+            alert("❌ GitHub Sync Failed: " + err.message);
+        } finally {
+            btn.disabled = false; btn.textContent = orig;
+        }
+    },
+
+    async syncCurrentPageToFirebase(btn) {
+        requireAdmin();
+        const qb = getQB();
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = "⏳ Syncing Page...";
+        try {
+            const res = await syncLoadedPageToFirebase(qb?.qnaData || [], qb?.curriculumData || []);
+            alert(`✅ Synced ${res.count} questions (${res.matchedFile}) → Firebase (${res.college}/${res.normSubKey})!`);
+            window.QBankEngine?.reload();
+        } catch (err) {
+            alert("❌ Sync Failed: " + err.message);
+        } finally {
+            btn.disabled = false; btn.textContent = orig;
+        }
     },
 
     async handleBulkJsonFiles(files) {

@@ -7750,3 +7750,899 @@ STRICT OUTPUT FORMAT RULES:
         enableLongPressOnTeenPattiCards();
     }, 500);
 })();
+/* ============================================================================
+   ADD-ON MODULE FOR OLD app-shell.js
+   Rich Text Editor Toolbar + 3-Tab Media Hub (Serper / Wikimedia / GitHub WebP)
+   + Highlight & [[gallery:...]] Carousel Renderer
+   Paste at the VERY BOTTOM of your old app-shell.js (No HTML edits needed)
+   ============================================================================ */
+(function () {
+    if (window.__MPP_RICH_MEDIA_ADDON_LOADED__) return;
+    window.__MPP_RICH_MEDIA_ADDON_LOADED__ = true;
+
+    const CFG_KEY = "mpp_old_mediahub_cfg_v1";
+    const ADMIN_EMAILS = [
+        "pankajmahto109@gmail.com",
+        "educateindiainstitute@gmail.com",
+        "pankajkumarmahto1009@gmail.com"
+    ];
+
+    // ------------------------------------------------------------------------
+    // 1. INJECT SCOPED CSS (Light + Dark Mode + Android Touch Friendly)
+    // ------------------------------------------------------------------------
+    const style = document.createElement("style");
+    style.id = "mpp-rich-addon-css";
+    style.textContent = `
+        /* Highlight Marks (Visible to Students & Admins) */
+        mark.mpp-hl { padding: 0.08em 0.32em; border-radius: 4px; font-weight: 600; color: #0f172a; }
+        mark.mpp-hl-yellow { background: #fef08a; }
+        mark.mpp-hl-green  { background: #bbf7d0; }
+        mark.mpp-hl-pink   { background: #fbcfe8; }
+        mark.mpp-hl-blue   { background: #bae6fd; }
+        mark.mpp-hl-orange { background: #fed7aa; }
+        .dark mark.mpp-hl-yellow { background: rgba(250, 204, 21, 0.32); color: #fef9c3; }
+        .dark mark.mpp-hl-green  { background: rgba(34, 197, 94, 0.30);  color: #dcfce7; }
+        .dark mark.mpp-hl-pink   { background: rgba(236, 72, 153, 0.30); color: #fce7f3; }
+        .dark mark.mpp-hl-blue   { background: rgba(56, 189, 248, 0.30); color: #e0f2fe; }
+        .dark mark.mpp-hl-orange { background: rgba(249, 115, 22, 0.32); color: #ffedd5; }
+
+        /* [[gallery:...]] Carousel Widget */
+        .mpp-gal-box { margin: 12px 0; border-radius: 12px; border: 1px solid #cbd5e1; background: #f8fafc; overflow: hidden; }
+        .dark .mpp-gal-box { border-color: #334155; background: #0f172a; }
+        .mpp-gal-stage { position: relative; background: #020617; min-height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .mpp-gal-stage img { max-height: 360px; max-width: 100%; object-fit: contain; cursor: zoom-in; display: block; margin: 0 auto; }
+        .mpp-gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 999px; border: none; background: rgba(15,23,42,0.75); color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .mpp-gal-prev { left: 8px; }
+        .mpp-gal-next { right: 8px; }
+        .mpp-gal-cap { padding: 8px 12px; font-size: 12px; font-weight: 600; color: #334155; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #e2e8f0; }
+        .dark .mpp-gal-cap { color: #cbd5e1; border-color: #1e293b; }
+        .mpp-gal-thumbs { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: #f1f5f9; }
+        .dark .mpp-gal-thumbs { background: #1e293b; }
+        .mpp-gal-thumbs img { width: 52px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer; opacity: 0.6; border: 2px solid transparent; flex-shrink: 0; }
+        .mpp-gal-thumbs img.active { opacity: 1; border-color: #0284c7; }
+
+        /* Admin Rich Formatting Toolbar */
+        .mpp-rt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; margin-bottom: 6px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; font-family: system-ui, sans-serif; }
+        .dark .mpp-rt-bar { border-color: #334155; background: #1e293b; }
+        .mpp-rt-btn { display: inline-flex; align-items: center; justify-content: center; gap: 3px; padding: 4px 8px; border-radius: 7px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1.2; transition: background 0.15s; }
+        .dark .mpp-rt-btn { border-color: #475569; background: #0f172a; color: #e2e8f0; }
+        .mpp-rt-btn:hover { background: #e0f2fe; border-color: #0284c7; }
+        .dark .mpp-rt-btn:hover { background: #0c4a6e; border-color: #38bdf8; }
+        .mpp-rt-btn.primary { background: #0284c7; border-color: #0284c7; color: #fff; }
+        .mpp-rt-btn.primary:hover { background: #0369a1; }
+        .mpp-rt-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+        .mpp-rt-sep { width: 1px; height: 18px; background: #cbd5e1; margin: 0 2px; }
+        .dark .mpp-rt-sep { background: #475569; }
+        .mpp-rt-swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.2); }
+        .mpp-rt-preview { display: none; padding: 12px; margin-bottom: 6px; border-radius: 10px; border: 1px solid #94a3b8; background: #fff; color: #0f172a; max-height: 320px; overflow-y: auto; font-size: 13px; line-height: 1.6; }
+        .dark .mpp-rt-preview { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+        .mpp-rt-preview img { max-width: 100%; border-radius: 8px; margin: 6px 0; }
+        .mpp-rt-preview table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+        .mpp-rt-preview th, .mpp-rt-preview td { border: 1px solid #cbd5e1; padding: 5px 8px; }
+        .dark .mpp-rt-preview th, .dark .mpp-rt-preview td { border-color: #334155; }
+
+        /* Media Hub Modal */
+        #mpp-mh-backdrop { position: fixed; inset: 0; z-index: 99990; background: rgba(2, 6, 23, 0.78); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 12px; font-family: system-ui, sans-serif; }
+        #mpp-mh-card { width: 100%; max-width: 920px; max-height: 90vh; background: #fff; color: #0f172a; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.45); }
+        .dark #mpp-mh-card { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        .mpp-mh-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+        .dark .mpp-mh-head { border-color: #1e293b; }
+        .mpp-mh-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .dark .mpp-mh-tabs { background: #1e293b; border-color: #334155; }
+        .mpp-mh-tab { padding: 7px 12px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .dark .mpp-mh-tab { background: #0f172a; border-color: #475569; color: #cbd5e1; }
+        .mpp-mh-tab.active { background: #0284c7; border-color: #0284c7; color: #fff; }
+        .mpp-mh-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+        .mpp-mh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-top: 12px; }
+        .mpp-mh-item { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
+        .dark .mpp-mh-item { border-color: #334155; background: #1e293b; }
+        .mpp-mh-thumb { height: 118px; background: #020617; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .mpp-mh-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+        .mpp-mh-dim { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.75); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
+        .mpp-mh-meta { padding: 7px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+        .mpp-mh-title { font-size: 11px; font-weight: 600; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .mpp-mh-actions { display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap; }
+        .mpp-mh-btn { flex: 1; padding: 5px 6px; border-radius: 6px; border: none; font-size: 10px; font-weight: 800; cursor: pointer; text-align: center; }
+        .mpp-mh-btn.ins { background: #0284c7; color: #fff; }
+        .mpp-mh-btn.gh  { background: #059669; color: #fff; }
+        .mpp-mh-btn.gal { background: #7c3aed; color: #fff; }
+        .mpp-mh-basket { padding: 10px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+        .dark .mpp-mh-basket { background: #1e293b; border-color: #334155; }
+        .mpp-mh-input { padding: 8px 11px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 13px; }
+        .dark .mpp-mh-input { background: #020617; border-color: #475569; color: #f1f5f9; }
+        .mpp-mh-drop { border: 2px dashed #38bdf8; border-radius: 12px; padding: 24px 14px; text-align: center; cursor: pointer; background: rgba(14,165,233,0.06); }
+        #mpp-mh-lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.94); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+    `;
+    document.head.appendChild(style);
+
+    // ------------------------------------------------------------------------
+    // 2. HELPERS: CONFIG, ESCAPE, TOAST, LIGHTBOX & TEXTAREA INSERTION
+    // ------------------------------------------------------------------------
+    function esc(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function loadCfg() {
+        try {
+            return Object.assign({
+                serperKey: "",
+                ghOwner: "",
+                ghRepo: "",
+                ghBranch: "main",
+                ghFolder: "assets/media",
+                ghToken: "",
+                urlMode: "jsdelivr" // "jsdelivr" | "raw"
+            }, JSON.parse(localStorage.getItem(CFG_KEY) || "{}"));
+        } catch (_) {
+            return { serperKey: "", ghOwner: "", ghRepo: "", ghBranch: "main", ghFolder: "assets/media", ghToken: "", urlMode: "jsdelivr" };
+        }
+    }
+
+    function saveCfg(patch) {
+        const next = Object.assign(loadCfg(), patch);
+        localStorage.setItem(CFG_KEY, JSON.stringify(next));
+        return next;
+    }
+
+    function toast(msg, bg = "#0f172a") {
+        const el = document.createElement("div");
+        el.textContent = msg;
+        el.style.cssText = `position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999999;background:${bg};color:#fff;padding:9px 16px;border-radius:10px;font:700 12px system-ui,sans-serif;box-shadow:0 10px 25px rgba(0,0,0,0.35);max-width:90vw;text-align:center;`;
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .25s"; setTimeout(() => el.remove(), 260); }, 2600);
+    }
+
+    function openLightbox(url, caption) {
+        document.getElementById("mpp-mh-lightbox")?.remove();
+        const box = document.createElement("div");
+        box.id = "mpp-mh-lightbox";
+        box.innerHTML = `
+            <button type="button" style="position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;border:none;background:rgba(255,255,255,0.18);color:#fff;font-size:22px;cursor:pointer;">&times;</button>
+            <img src="${esc(url)}" style="max-width:95vw;max-height:82vh;object-fit:contain;border-radius:10px;" />
+            ${caption ? `<div style="margin-top:10px;color:#e2e8f0;font:600 13px system-ui;text-align:center;max-width:680px;">${esc(caption)}</div>` : ""}
+        `;
+        box.addEventListener("click", (e) => { if (e.target === box || e.target.tagName === "BUTTON") box.remove(); });
+        document.body.appendChild(box);
+    }
+
+    function insertAtCursor(ta, before, after = "", placeholder = "") {
+        if (!ta) return;
+        ta.focus();
+        const start = ta.selectionStart ?? ta.value.length;
+        const end = ta.selectionEnd ?? ta.value.length;
+        const sel = ta.value.slice(start, end) || placeholder;
+        const replacement = before + sel + after;
+        ta.value = ta.value.slice(0, start) + replacement + ta.value.slice(end);
+        const caretStart = start + before.length;
+        const caretEnd = caretStart + sel.length;
+        ta.setSelectionRange(caretStart, caretEnd);
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        ta.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function isLikelyAdmin() {
+        if (window.isAdmin === true || window.MPP_isAdmin === true) return true;
+        const email = (
+            window.currentUser?.email ||
+            window.auth?.currentUser?.email ||
+            window.firebase?.auth?.()?.currentUser?.email ||
+            ""
+        ).toLowerCase().trim();
+        if (email && ADMIN_EMAILS.includes(email)) return true;
+
+        const adminEl = document.getElementById("admin-controls") || document.querySelector("[data-admin-only], .admin-only");
+        if (adminEl && !adminEl.classList.contains("hidden") && adminEl.offsetParent !== null) return true;
+        return false;
+    }
+
+    function isEligibleEditorTextarea(ta) {
+        if (!ta || ta.tagName !== "TEXTAREA") return false;
+        if (ta.dataset.mppRichAttached === "1" || ta.readOnly || ta.disabled) return false;
+        if (ta.closest("#mpp-mh-backdrop, #reportModal, #mpp-report-modal, #authModal, #profileModal, .no-rich-toolbar")) return false;
+
+        const sig = `${ta.id} ${ta.name} ${ta.className} ${ta.placeholder}`.toLowerCase();
+        if (/report|feedback|reason|search|filter|crosslink|cluster|json|anki/.test(sig)) return false;
+
+        // Match known admin answer/stem/explanation textareas in old pages, or any textarea when admin is logged in
+        if (/answer|explanation|stem|markdown|editor|content|notes|clinical|model/.test(sig)) return true;
+        return isLikelyAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. RICH RENDERER: ==HIGHLIGHTS== & [[gallery:...]] FOR STUDENTS & ADMINS
+    // ------------------------------------------------------------------------
+    function parseMiniMarkdownForPreview(text) {
+        let html = String(text || "");
+        if (window.marked && typeof window.marked.parse === "function") {
+            html = window.marked.parse(html);
+        } else {
+            html = esc(html)
+                .replace(/^###\s+(.+)$/gm, "<h4 style='font-weight:800;margin:8px 0 4px;'>$1</h4>")
+                .replace(/^##\s+(.+)$/gm, "<h3 style='font-weight:800;font-size:15px;margin:10px 0 4px;'>$1</h3>")
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\*(.+?)\*/g, "<em>$1</em>")
+                .replace(/~~(.+?)~~/g, "<del>$1</del>")
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+                .replace(/\n/g, "<br>");
+        }
+        return html;
+    }
+
+    function buildGalleryDOM(rawSpec) {
+        // Strip <a href="..."> auto-links that old marked.js may have injected inside [[gallery:...]]
+        const cleaned = rawSpec
+            .replace(/<a\b[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>/gi, "$1")
+            .replace(/<[^>]+>/g, "")
+            .trim();
+
+        const items = cleaned.split(";;").map(part => {
+            const [u, ...capParts] = part.split("|");
+            return { url: (u || "").trim(), caption: capParts.join("|").trim() };
+        }).filter(x => /^https?:\/\//i.test(x.url));
+
+        if (!items.length) return null;
+
+        let idx = 0;
+        const box = document.createElement("div");
+        box.className = "mpp-gal-box";
+        box.dataset.mppGalleryMounted = "1";
+
+        const render = () => {
+            const cur = items[idx];
+            box.innerHTML = `
+                <div class="mpp-gal-stage">
+                    ${items.length > 1 ? `<button type="button" class="mpp-gal-nav mpp-gal-prev" aria-label="Previous">&lsaquo;</button>` : ""}
+                    <img src="${esc(cur.url)}" alt="${esc(cur.caption || "Figure")}" loading="lazy" />
+                    ${items.length > 1 ? `<button type="button" class="mpp-gal-nav mpp-gal-next" aria-label="Next">&rsaquo;</button>` : ""}
+                </div>
+                <div class="mpp-gal-cap">
+                    <span>${esc(cur.caption || `Image ${idx + 1}`)}</span>
+                    <span style="opacity:.65;flex-shrink:0;">${idx + 1} / ${items.length}</span>
+                </div>
+                ${items.length > 1 ? `
+                    <div class="mpp-gal-thumbs">
+                        ${items.map((it, i) => `<img src="${esc(it.url)}" class="${i === idx ? "active" : ""}" data-gi="${i}" loading="lazy" />`).join("")}
+                    </div>
+                ` : ""}
+            `;
+            box.querySelector(".mpp-gal-stage img")?.addEventListener("click", () => openLightbox(cur.url, cur.caption));
+            box.querySelector(".mpp-gal-prev")?.addEventListener("click", () => { idx = (idx - 1 + items.length) % items.length; render(); });
+            box.querySelector(".mpp-gal-next")?.addEventListener("click", () => { idx = (idx + 1) % items.length; render(); });
+            box.querySelectorAll("[data-gi]").forEach(t => t.addEventListener("click", () => { idx = Number(t.dataset.gi); render(); }));
+        };
+
+        render();
+        return box;
+    }
+
+    function enhanceRenderedElement(root) {
+        if (!root || root.nodeType !== 1) return;
+        if (root.closest?.("#mpp-mh-backdrop, .mpp-rt-bar, script, style, textarea")) return;
+
+        // A. Upgrade [[gallery:...]] blocks
+        if (root.innerHTML && root.innerHTML.includes("[[gallery:")) {
+            const candidates = root.querySelectorAll("p, div, li, td, section, article");
+            const targets = candidates.length ? [...candidates, root] : [root];
+            targets.forEach(el => {
+                if (el.dataset.mppGalleryMounted || el.querySelector("textarea, input, .mpp-gal-box")) return;
+                if (!el.innerHTML.includes("[[gallery:")) return;
+                // Only process the innermost element containing the tag
+                if ([...el.children].some(ch => ch.innerHTML && ch.innerHTML.includes("[[gallery:"))) return;
+
+                const match = el.innerHTML.match(/\[\[gallery:([\s\S]*?)\]\]/);
+                if (!match) return;
+                const gal = buildGalleryDOM(match[1]);
+                if (!gal) return;
+
+                const remainder = el.innerHTML.replace(match[0], "").trim();
+                if (!remainder || remainder === "<br>") {
+                    el.innerHTML = "";
+                    el.appendChild(gal);
+                } else {
+                    el.innerHTML = remainder;
+                    el.appendChild(gal);
+                }
+            });
+        }
+
+        // B. Upgrade ==highlight== and ==color:highlight== safely via Text Nodes only
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                if (!node.nodeValue || !node.nodeValue.includes("==")) return NodeFilter.FILTER_REJECT;
+                const p = node.parentElement;
+                if (!p) return NodeFilter.FILTER_REJECT;
+                if (/^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|MARK)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+                if (p.closest(".katex, .mpp-rt-bar, #mpp-mh-backdrop")) return NodeFilter.FILTER_REJECT;
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        const textNodes = [];
+        let n;
+        while ((n = walker.nextNode())) textNodes.push(n);
+
+        const hlRegex = /==(yellow|green|pink|blue|orange)?:([^=\n][^=\n]*?)==|==([^=\n][^=\n]*?)==/gi;
+        textNodes.forEach(tn => {
+            const val = tn.nodeValue;
+            if (!hlRegex.test(val)) return;
+            hlRegex.lastIndex = 0;
+
+            const frag = document.createDocumentFragment();
+            let last = 0, m;
+            while ((m = hlRegex.exec(val)) !== null) {
+                if (m.index > last) frag.appendChild(document.createTextNode(val.slice(last, m.index)));
+                const color = (m[1] || "yellow").toLowerCase();
+                const content = m[2] !== undefined ? m[2] : m[3];
+                const mark = document.createElement("mark");
+                mark.className = `mpp-hl mpp-hl-${color}`;
+                mark.textContent = content;
+                frag.appendChild(mark);
+                last = m.index + m[0].length;
+            }
+            if (last < val.length) frag.appendChild(document.createTextNode(val.slice(last)));
+            tn.parentNode.replaceChild(frag, tn);
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. ADMIN TEXT EDITOR TOOLBAR (Auto-attaches above Admin Textareas)
+    // ------------------------------------------------------------------------
+    function attachToolbarToTextarea(ta) {
+        if (!isEligibleEditorTextarea(ta)) return;
+        ta.dataset.mppRichAttached = "1";
+
+        const bar = document.createElement("div");
+        bar.className = "mpp-rt-bar";
+        bar.innerHTML = `
+            <button type="button" class="mpp-rt-btn" data-act="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="mpp-rt-btn" data-act="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="mpp-rt-btn" data-act="underline" title="Underline"><u>U</u></button>
+            <button type="button" class="mpp-rt-btn" data-act="strike" title="Strikethrough"><s>S</s></button>
+            <span class="mpp-rt-sep"></span>
+            <button type="button" class="mpp-rt-btn" data-hl="yellow" title="Yellow Highlight (Ctrl+H)"><span class="mpp-rt-swatch" style="background:#fef08a;"></span></button>
+            <button type="button" class="mpp-rt-btn" data-hl="green" title="Green Highlight"><span class="mpp-rt-swatch" style="background:#bbf7d0;"></span></button>
+            <button type="button" class="mpp-rt-btn" data-hl="pink" title="Pink Highlight"><span class="mpp-rt-swatch" style="background:#fbcfe8;"></span></button>
+            <button type="button" class="mpp-rt-btn" data-hl="blue" title="Blue Highlight"><span class="mpp-rt-swatch" style="background:#bae6fd;"></span></button>
+            <button type="button" class="mpp-rt-btn" data-hl="orange" title="Orange Highlight"><span class="mpp-rt-swatch" style="background:#fed7aa;"></span></button>
+            <span class="mpp-rt-sep"></span>
+            <button type="button" class="mpp-rt-btn" data-color="#dc2626" title="Red Text" style="color:#dc2626;">A</button>
+            <button type="button" class="mpp-rt-btn" data-color="#2563eb" title="Blue Text" style="color:#2563eb;">A</button>
+            <button type="button" class="mpp-rt-btn" data-color="#059669" title="Green Text" style="color:#059669;">A</button>
+            <span class="mpp-rt-sep"></span>
+            <button type="button" class="mpp-rt-btn" data-act="h3" title="Heading">H3</button>
+            <button type="button" class="mpp-rt-btn" data-act="bullet" title="Bullet List">&bull; List</button>
+            <button type="button" class="mpp-rt-btn" data-act="callout" title="High-Yield Callout Box">💡 Box</button>
+            <button type="button" class="mpp-rt-btn" data-act="table" title="Insert 2-Column Table">⊞ Table</button>
+            <span class="mpp-rt-sep"></span>
+            <button type="button" class="mpp-rt-btn primary" data-act="media" title="Search & Upload Images / Galleries">🖼️ Media</button>
+            <button type="button" class="mpp-rt-btn" data-act="preview" title="Toggle Live Preview">👁️ Preview</button>
+        `;
+
+        const preview = document.createElement("div");
+        preview.className = "mpp-rt-preview";
+
+        ta.parentNode.insertBefore(bar, ta);
+        ta.parentNode.insertBefore(preview, ta);
+
+        const updatePreview = () => {
+            preview.innerHTML = parseMiniMarkdownForPreview(ta.value);
+            enhanceRenderedElement(preview);
+            if (typeof window.renderMathInElement === "function") {
+                try { window.renderMathInElement(preview, { throwOnError: false }); } catch (_) {}
+            }
+        };
+
+        bar.addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            e.preventDefault();
+
+            if (btn.dataset.hl) {
+                const c = btn.dataset.hl;
+                insertAtCursor(ta, c === "yellow" ? "==" : `==${c}:`, "==", "highlighted point");
+                return;
+            }
+            if (btn.dataset.color) {
+                insertAtCursor(ta, `<span style="color:${btn.dataset.color};font-weight:700;">`, "</span>", "colored text");
+                return;
+            }
+
+            switch (btn.dataset.act) {
+                case "bold":      insertAtCursor(ta, "**", "**", "bold text"); break;
+                case "italic":    insertAtCursor(ta, "*", "*", "italic text"); break;
+                case "underline": insertAtCursor(ta, "<u>", "</u>", "underlined text"); break;
+                case "strike":    insertAtCursor(ta, "~~", "~~", "struck text"); break;
+                case "h3":        insertAtCursor(ta, "\n### ", "\n", "Heading"); break;
+                case "bullet":    insertAtCursor(ta, "\n- ", "", "Key point"); break;
+                case "callout":   insertAtCursor(ta, "\n> **High-Yield Pearl:** ", "\n", "Important exam point"); break;
+                case "table":     insertAtCursor(ta, "\n| Feature | Condition A | Condition B |\n| :--- | :--- | :--- |\n| Key Point | Detail 1 | Detail 2 |\n", ""); break;
+                case "media":     openMediaHub(ta); break;
+                case "preview": {
+                    const showing = preview.style.display === "block";
+                    if (showing) {
+                        preview.style.display = "none";
+                        ta.style.display = "";
+                        btn.classList.remove("active");
+                    } else {
+                        updatePreview();
+                        preview.style.display = "block";
+                        ta.style.display = "none";
+                        btn.classList.add("active");
+                    }
+                    break;
+                }
+            }
+        });
+
+        // Keyboard shortcuts: Ctrl+B, Ctrl+I, Ctrl+H
+        ta.addEventListener("keydown", (e) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            const k = e.key.toLowerCase();
+            if (k === "b") { e.preventDefault(); insertAtCursor(ta, "**", "**", "bold"); }
+            else if (k === "i") { e.preventDefault(); insertAtCursor(ta, "*", "*", "italic"); }
+            else if (k === "h") { e.preventDefault(); insertAtCursor(ta, "==", "==", "highlight"); }
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. 3-TAB MEDIA HUB (Serper Google + Wikimedia + GitHub WebP Uploader)
+    // ------------------------------------------------------------------------
+    let activeTargetTextarea = null;
+    let galleryBasket = [];
+
+    function buildGitHubUrl(cfg, path) {
+        const cleanPath = path.replace(/^\/+/, "");
+        if (cfg.urlMode === "raw") {
+            return `https://raw.githubusercontent.com/${cfg.ghOwner}/${cfg.ghRepo}/${cfg.ghBranch}/${cleanPath}`;
+        }
+        return `https://cdn.jsdelivr.net/gh/${cfg.ghOwner}/${cfg.ghRepo}@${cfg.ghBranch}/${cleanPath}`;
+    }
+
+    async function compressBlobToWebP(blob, maxDim = 1400, quality = 0.82) {
+        const imgUrl = URL.createObjectURL(blob);
+        try {
+            const img = await new Promise((res, rej) => {
+                const el = new Image();
+                el.onload = () => res(el);
+                el.onerror = rej;
+                el.src = imgUrl;
+            });
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+            const webpBlob = await new Promise(res => canvas.toBlob(res, "image/webp", quality));
+            const finalBlob = webpBlob || blob;
+            const dataUrl = await new Promise((res, rej) => {
+                const fr = new FileReader();
+                fr.onload = () => res(fr.result);
+                fr.onerror = rej;
+                fr.readAsDataURL(finalBlob);
+            });
+            return {
+                base64: String(dataUrl).split(",")[1],
+                ext: webpBlob ? "webp" : "jpg",
+                sizeKB: Math.round(finalBlob.size / 1024),
+                dims: `${w}x${h}`
+            };
+        } finally {
+            URL.revokeObjectURL(imgUrl);
+        }
+    }
+
+    async function uploadBlobToGitHub(blob, baseName = "med_img") {
+        const cfg = loadCfg();
+        if (!cfg.ghToken || !cfg.ghOwner || !cfg.ghRepo) {
+            throw new Error("Configure GitHub Owner, Repo & Token in the ⚙️ Setup tab first.");
+        }
+        const comp = await compressBlobToWebP(blob);
+        const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 36) || "med";
+        const folder = (cfg.ghFolder || "assets/media").replace(/^\/+|\/+$/g, "");
+        const filePath = `${folder}/${safeName}_${Date.now()}.${comp.ext}`;
+
+        const resp = await fetch(`https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/contents/${filePath}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${cfg.ghToken}`,
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: `Upload ${filePath} via MBBS Profs Prep Media Hub`,
+                content: comp.base64,
+                branch: cfg.ghBranch || "main"
+            })
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.message || `GitHub upload failed (${resp.status})`);
+        }
+        return { url: buildGitHubUrl(cfg, filePath), sizeKB: comp.sizeKB, dims: comp.dims };
+    }
+
+    async function searchSerper(query) {
+        const cfg = loadCfg();
+        if (!cfg.serperKey) throw new Error("Add your Serper API key in the ⚙️ Setup tab (or use the free Wikimedia tab).");
+        const res = await fetch("https://google.serper.dev/images", {
+            method: "POST",
+            headers: { "X-API-KEY": cfg.serperKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ q: query, num: 20 })
+        });
+        if (!res.ok) throw new Error(`Serper search error (${res.status})`);
+        const data = await res.json();
+        return (data.images || []).map(x => ({
+            title: x.title || "Medical Image",
+            url: x.imageUrl,
+            thumb: x.thumbnailUrl || x.imageUrl,
+            dim: x.imageWidth && x.imageHeight ? `${x.imageWidth}x${x.imageHeight}` : ""
+        })).filter(x => x.url);
+    }
+
+    async function searchWikimedia(query) {
+        const endpoint = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(query)}&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=400&format=json&origin=*`;
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error("Wikimedia request failed.");
+        const data = await res.json();
+        const pages = Object.values(data?.query?.pages || {});
+        return pages.map(p => {
+            const info = p.imageinfo?.[0];
+            if (!info || !/^image\/(jpeg|png|webp|gif|svg)/i.test(info.mime || "")) return null;
+            return {
+                title: (p.title || "").replace(/^File:/i, "").replace(/\.[^.]+$/, ""),
+                url: info.url,
+                thumb: info.thumburl || info.url,
+                dim: info.width && info.height ? `${info.width}x${info.height}` : ""
+            };
+        }).filter(Boolean);
+    }
+
+    async function listGitHubAssets() {
+        const cfg = loadCfg();
+        if (!cfg.ghOwner || !cfg.ghRepo) throw new Error("Set GitHub Owner & Repo in ⚙️ Setup first.");
+        const folder = (cfg.ghFolder || "assets/media").replace(/^\/+|\/+$/g, "");
+        const headers = { "Accept": "application/vnd.github+json" };
+        if (cfg.ghToken) headers["Authorization"] = `Bearer ${cfg.ghToken}`;
+        const res = await fetch(`https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/contents/${folder}?ref=${encodeURIComponent(cfg.ghBranch || "main")}`, { headers });
+        if (!res.ok) throw new Error(`Could not list folder "${folder}" (${res.status}).`);
+        const arr = await res.json();
+        if (!Array.isArray(arr)) return [];
+        return arr
+            .filter(f => f.type === "file" && /\.(webp|png|jpe?g|gif|svg)$/i.test(f.name))
+            .reverse()
+            .slice(0, 40)
+            .map(f => ({
+                title: f.name,
+                url: buildGitHubUrl(cfg, f.path),
+                thumb: buildGitHubUrl(cfg, f.path),
+                dim: `${Math.round((f.size || 0) / 1024)} KB`
+            }));
+    }
+
+    function openMediaHub(targetTextarea = null) {
+        activeTargetTextarea = targetTextarea;
+        galleryBasket = [];
+        document.getElementById("mpp-mh-backdrop")?.remove();
+
+        let currentTab = "wiki"; // Defaults to free Wikimedia so it works out of the box; switchable to Google/Upload/Setup
+        if (loadCfg().serperKey) currentTab = "serper";
+
+        const backdrop = document.createElement("div");
+        backdrop.id = "mpp-mh-backdrop";
+        backdrop.innerHTML = `
+            <div id="mpp-mh-card">
+                <div class="mpp-mh-head">
+                    <div>
+                        <div style="font-size:16px;font-weight:800;">🖼️ Medical Media Hub</div>
+                        <div style="font-size:11px;opacity:.7;">Search Google / Wikimedia or upload compressed WebP to GitHub CDN</div>
+                    </div>
+                    <button type="button" id="mpp-mh-close" style="border:none;background:transparent;color:inherit;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+                </div>
+                <div class="mpp-mh-tabs">
+                    <button type="button" class="mpp-mh-tab" data-tab="serper">🌐 Google Images</button>
+                    <button type="button" class="mpp-mh-tab" data-tab="wiki">📚 Wikimedia (Free)</button>
+                    <button type="button" class="mpp-mh-tab" data-tab="upload">☁️ Upload / Repo</button>
+                    <button type="button" class="mpp-mh-tab" data-tab="setup">⚙️ Setup</button>
+                </div>
+                <div class="mpp-mh-body" id="mpp-mh-body"></div>
+                <div class="mpp-mh-basket" id="mpp-mh-basket"></div>
+            </div>
+        `;
+        document.body.appendChild(backdrop);
+
+        const bodyEl = backdrop.querySelector("#mpp-mh-body");
+        const basketEl = backdrop.querySelector("#mpp-mh-basket");
+
+        const closeHub = () => backdrop.remove();
+        backdrop.querySelector("#mpp-mh-close").addEventListener("click", closeHub);
+        backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeHub(); });
+
+        const insertMarkdown = (md) => {
+            if (activeTargetTextarea) {
+                insertAtCursor(activeTargetTextarea, `\n${md}\n`, "");
+                toast("Inserted into editor!", "#059669");
+                closeHub();
+            } else {
+                navigator.clipboard?.writeText(md);
+                toast("Copied Markdown to clipboard!", "#0284c7");
+            }
+        };
+
+        const renderBasket = () => {
+            if (!galleryBasket.length) {
+                basketEl.innerHTML = `<span style="font-size:11px;opacity:.7;">Tip: Click <b>+ Gallery</b> on 2+ images to insert a swipeable carousel.</span>`;
+                return;
+            }
+            basketEl.innerHTML = `
+                <div style="font-size:12px;font-weight:700;">🎞️ Gallery Basket: ${galleryBasket.length} image(s)</div>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" id="mh-clear-gal" class="mpp-rt-btn">Clear</button>
+                    <button type="button" id="mh-ins-gal" class="mpp-rt-btn primary">Insert Carousel [[gallery:...]]</button>
+                </div>
+            `;
+            basketEl.querySelector("#mh-clear-gal").addEventListener("click", () => { galleryBasket = []; renderBasket(); });
+            basketEl.querySelector("#mh-ins-gal").addEventListener("click", () => {
+                const spec = galleryBasket.map(x => `${x.url}|${(x.caption || "").replace(/[|;]/g, " ").slice(0, 60)}`).join(";;");
+                insertMarkdown(`[[gallery:${spec}]]`);
+            });
+        };
+
+        const renderGridResults = (container, items, allowClone = false) => {
+            if (!items.length) {
+                container.innerHTML = `<div style="text-align:center;padding:30px;opacity:.65;font-size:13px;">No images found. Try a broader medical keyword.</div>`;
+                return;
+            }
+            container.innerHTML = `<div class="mpp-mh-grid">${items.map((it, i) => `
+                <div class="mpp-mh-item">
+                    <div class="mpp-mh-thumb">
+                        <img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy" data-lb="${i}" />
+                        ${it.dim ? `<span class="mpp-mh-dim">${esc(it.dim)}</span>` : ""}
+                    </div>
+                    <div class="mpp-mh-meta">
+                        <div class="mpp-mh-title" title="${esc(it.title)}">${esc(it.title)}</div>
+                        <div class="mpp-mh-actions">
+                            <button type="button" class="mpp-mh-btn ins" data-ins="${i}">Insert</button>
+                            ${allowClone ? `<button type="button" class="mpp-mh-btn gh" data-clone="${i}" title="Save WebP to your GitHub">☁️ Save</button>` : ""}
+                            <button type="button" class="mpp-mh-btn gal" data-gal="${i}">+ Gal</button>
+                        </div>
+                    </div>
+                </div>
+            `).join("")}</div>`;
+
+            container.querySelectorAll("[data-lb]").forEach(el => {
+                el.addEventListener("click", () => { const it = items[Number(el.dataset.lb)]; openLightbox(it.url, it.title); });
+            });
+            container.querySelectorAll("[data-ins]").forEach(el => {
+                el.addEventListener("click", () => {
+                    const it = items[Number(el.dataset.ins)];
+                    insertMarkdown(`![${it.title.replace(/[\[\]]/g, "").slice(0, 70)}](${it.url})`);
+                });
+            });
+            container.querySelectorAll("[data-gal]").forEach(el => {
+                el.addEventListener("click", () => {
+                    const it = items[Number(el.dataset.gal)];
+                    galleryBasket.push({ url: it.url, caption: it.title });
+                    renderBasket();
+                    toast(`Added to Gallery (${galleryBasket.length})`, "#7c3aed");
+                });
+            });
+            container.querySelectorAll("[data-clone]").forEach(el => {
+                el.addEventListener("click", async () => {
+                    const it = items[Number(el.dataset.clone)];
+                    el.disabled = true; el.textContent = "...";
+                    try {
+                        const r = await fetch(it.url);
+                        if (!r.ok) throw new Error("Blocked by remote server");
+                        const blob = await r.blob();
+                        const up = await uploadBlobToGitHub(blob, it.title);
+                        insertMarkdown(`![${it.title.replace(/[\[\]]/g, "").slice(0, 70)}](${up.url})`);
+                    } catch (err) {
+                        toast(`Clone blocked (${err.message}). Use Insert directly instead.`, "#d97706");
+                        el.disabled = false; el.textContent = "☁️ Save";
+                    }
+                });
+            });
+        };
+
+        const renderTab = () => {
+            backdrop.querySelectorAll(".mpp-mh-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === currentTab));
+
+            if (currentTab === "serper" || currentTab === "wiki") {
+                const isSerper = currentTab === "serper";
+                bodyEl.innerHTML = `
+                    <form id="mh-search-form" style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input id="mh-q" class="mpp-mh-input" style="flex:1;min-width:200px;" placeholder="${isSerper ? "Search Google Images (e.g. tetralogy of fallot chest xray)" : "Search Wikimedia Medical Diagrams (e.g. nephron diagram, ECG STEMI)"}" required />
+                        <button type="submit" class="mpp-rt-btn primary" style="padding:8px 16px;font-size:13px;">Search</button>
+                    </form>
+                    <div id="mh-results" style="margin-top:10px;font-size:12px;opacity:.75;">Enter a medical topic above to search high-yield diagrams &amp; clinical images.</div>
+                `;
+                bodyEl.querySelector("#mh-search-form").addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const q = bodyEl.querySelector("#mh-q").value.trim();
+                    const resBox = bodyEl.querySelector("#mh-results");
+                    resBox.innerHTML = `<div style="text-align:center;padding:24px;font-weight:700;">Searching...</div>`;
+                    try {
+                        const items = isSerper ? await searchSerper(q) : await searchWikimedia(q);
+                        renderGridResults(resBox, items, true);
+                    } catch (err) {
+                        resBox.innerHTML = `<div style="padding:14px;border-radius:10px;background:rgba(220,38,38,0.12);color:#dc2626;font-weight:700;">${esc(err.message)}</div>`;
+                    }
+                });
+                setTimeout(() => bodyEl.querySelector("#mh-q")?.focus(), 40);
+                return;
+            }
+
+            if (currentTab === "upload") {
+                bodyEl.innerHTML = `
+                    <div id="mh-drop" class="mpp-mh-drop">
+                        <div style="font-size:26px;margin-bottom:4px;">📤</div>
+                        <div style="font-weight:800;font-size:14px;">Click to Upload, Drag &amp; Drop, or Press Ctrl+V to Paste Screenshot</div>
+                        <div style="font-size:11px;opacity:.7;margin-top:4px;">Auto-compresses to fast WebP (max 1400px) &amp; uploads to GitHub jsDelivr CDN</div>
+                        <input id="mh-file-input" type="file" accept="image/*" multiple style="display:none;" />
+                    </div>
+                    <div id="mh-up-status" style="margin-top:10px;font-size:12px;font-weight:700;"></div>
+                    <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:12px;font-weight:800;">Recent Repo Images</span>
+                        <button type="button" id="mh-load-repo" class="mpp-rt-btn">🔄 Load Repo Folder</button>
+                    </div>
+                    <div id="mh-repo-grid"></div>
+                `;
+
+                const fileInput = bodyEl.querySelector("#mh-file-input");
+                const drop = bodyEl.querySelector("#mh-drop");
+                const statusEl = bodyEl.querySelector("#mh-up-status");
+
+                const handleFiles = async (fileList) => {
+                    const files = [...fileList].filter(f => f.type.startsWith("image/"));
+                    if (!files.length) return;
+                    statusEl.textContent = `Compressing & uploading ${files.length} image(s)...`;
+                    try {
+                        const uploaded = [];
+                        for (const f of files) {
+                            const res = await uploadBlobToGitHub(f, f.name.replace(/\.[^.]+$/, ""));
+                            uploaded.push({ url: res.url, caption: f.name.replace(/\.[^.]+$/, ""), meta: `${res.dims}, ${res.sizeKB} KB` });
+                        }
+                        if (uploaded.length === 1) {
+                            statusEl.textContent = `Uploaded (${uploaded[0].meta})!`;
+                            insertMarkdown(`![${uploaded[0].caption}](${uploaded[0].url})`);
+                        } else {
+                            uploaded.forEach(u => galleryBasket.push({ url: u.url, caption: u.caption }));
+                            renderBasket();
+                            statusEl.textContent = `Uploaded ${uploaded.length} WebP images to Gallery Basket! Click "Insert Carousel" below.`;
+                        }
+                    } catch (err) {
+                        statusEl.innerHTML = `<span style="color:#dc2626;">${esc(err.message)}</span>`;
+                    }
+                };
+
+                drop.addEventListener("click", () => fileInput.click());
+                fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
+                drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.style.borderColor = "#059669"; });
+                drop.addEventListener("dragleave", () => { drop.style.borderColor = "#38bdf8"; });
+                drop.addEventListener("drop", (e) => { e.preventDefault(); drop.style.borderColor = "#38bdf8"; handleFiles(e.dataTransfer.files); });
+
+                const onPaste = (e) => {
+                    if (!document.getElementById("mpp-mh-backdrop")) {
+                        document.removeEventListener("paste", onPaste);
+                        return;
+                    }
+                    const imgs = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith("image/")).map(i => i.getAsFile()).filter(Boolean);
+                    if (imgs.length) handleFiles(imgs);
+                };
+                document.addEventListener("paste", onPaste);
+
+                bodyEl.querySelector("#mh-load-repo").addEventListener("click", async () => {
+                    const box = bodyEl.querySelector("#mh-repo-grid");
+                    box.innerHTML = `<div style="padding:18px;text-align:center;font-size:12px;">Loading repository assets...</div>`;
+                    try {
+                        const items = await listGitHubAssets();
+                        renderGridResults(box, items, false);
+                    } catch (err) {
+                        box.innerHTML = `<div style="padding:12px;color:#dc2626;font-size:12px;font-weight:700;">${esc(err.message)}</div>`;
+                    }
+                });
+                return;
+            }
+
+            // Setup Tab
+            const cfg = loadCfg();
+            bodyEl.innerHTML = `
+                <form id="mh-cfg-form" style="display:grid;gap:10px;max-width:540px;">
+                    <div style="font-size:12px;opacity:.75;">Saved locally in your admin browser. Wikimedia search works without any keys.</div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Serper.dev API Key (for Google Images tab)</label>
+                        <input name="serperKey" type="password" value="${esc(cfg.serperKey)}" class="mpp-mh-input" style="width:100%;" placeholder="Optional Serper API key" />
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Username / Owner</label>
+                            <input name="ghOwner" value="${esc(cfg.ghOwner)}" class="mpp-mh-input" style="width:100%;" placeholder="e.g. yourusername" />
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Repo Name</label>
+                            <input name="ghRepo" value="${esc(cfg.ghRepo)}" class="mpp-mh-input" style="width:100%;" placeholder="e.g. mbbs-profs-prep" />
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Branch</label>
+                            <input name="ghBranch" value="${esc(cfg.ghBranch)}" class="mpp-mh-input" style="width:100%;" />
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Upload Folder</label>
+                            <input name="ghFolder" value="${esc(cfg.ghFolder)}" class="mpp-mh-input" style="width:100%;" />
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Image URL Mode</label>
+                            <select name="urlMode" class="mpp-mh-input" style="width:100%;">
+                                <option value="jsdelivr" ${cfg.urlMode === "jsdelivr" ? "selected" : ""}>jsDelivr CDN (Fast)</option>
+                                <option value="raw" ${cfg.urlMode === "raw" ? "selected" : ""}>GitHub Raw</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Personal Access Token (PAT with repo contents write)</label>
+                        <input name="ghToken" type="password" value="${esc(cfg.ghToken)}" class="mpp-mh-input" style="width:100%;" placeholder="ghp_... or github_pat_..." />
+                    </div>
+                    <button type="submit" class="mpp-rt-btn primary" style="padding:10px 16px;font-size:13px;justify-self:start;">💾 Save Settings</button>
+                </form>
+            `;
+            bodyEl.querySelector("#mh-cfg-form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                saveCfg(Object.fromEntries(fd.entries()));
+                toast("Media Hub settings saved!", "#059669");
+            });
+        };
+
+        backdrop.querySelectorAll(".mpp-mh-tab").forEach(btn => {
+            btn.addEventListener("click", () => { currentTab = btn.dataset.tab; renderTab(); });
+        });
+
+        renderTab();
+        renderBasket();
+    }
+
+    // ------------------------------------------------------------------------
+    // 6. AUTO-SCANNER (Attaches Toolbars + Enhances Highlights/Galleries)
+    // ------------------------------------------------------------------------
+    let scanTimer = null;
+    function scanPage() {
+        document.querySelectorAll("textarea").forEach(attachToolbarToTextarea);
+        enhanceRenderedElement(document.body);
+    }
+
+    function scheduleScan() {
+        clearTimeout(scanTimer);
+        scanTimer = setTimeout(scanPage, 160);
+    }
+
+    const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+            if (m.addedNodes && m.addedNodes.length) {
+                scheduleScan();
+                break;
+            }
+        }
+    });
+
+    function boot() {
+        scanPage();
+        observer.observe(document.body, { childList: true, subtree: true });
+        // Also attach on first focus of any dynamically revealed admin textarea
+        document.addEventListener("focusin", (e) => {
+            if (e.target && e.target.tagName === "TEXTAREA") attachToolbarToTextarea(e.target);
+        });
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+    else boot();
+
+    // Expose manual trigger if needed
+    window.MPPMediaHub = { open: openMediaHub, enhance: enhanceRenderedElement };
+})();

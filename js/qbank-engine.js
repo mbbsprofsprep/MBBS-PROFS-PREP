@@ -6,6 +6,7 @@
 // ============================================================================
 import {
     db,
+    APP_LOGO_URL,
     MPPStore,
     isUserAdmin,
     getUniqueQuestionId,

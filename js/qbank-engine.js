@@ -855,14 +855,14 @@ function renderDeckCard() {
 
     container.innerHTML = `
         <div class="deck-card glass-card w-full h-full flex flex-col question-card" data-qid="${safeQ}">
-            <div class="mb-4 flex justify-between items-center gap-2 flex-wrap shrink-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold border border-brand-200 dark:border-brand-800">${idDisplay}</span>
+            <div class="mb-3 flex justify-between items-center gap-1.5 flex-nowrap shrink-0">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="px-2.5 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-full text-[11px] font-extrabold border border-brand-200 dark:border-brand-800 whitespace-nowrap">${idDisplay}</span>
                     ${tpPillHtml}
                 </div>
-                <div class="flex gap-2">
-                    <button type="button" id="bmk-deck-${safeQ}" onclick="window.QBankEngine.toggleBookmark('${safeQ}')" class="px-3 py-1.5 rounded-lg ${bmkCls} text-xs font-bold border cursor-pointer">${saved ? "⭐ Saved" : "🔖 Save"}</button>
-                    <button type="button" onclick="window.QBankEngine.askAI('${safeQ}')" class="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-bold border border-green-500/20 cursor-pointer">Ask AI</button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" id="bmk-deck-${safeQ}" onclick="window.QBankEngine.toggleBookmark('${safeQ}')" class="px-2.5 py-1 rounded-lg ${bmkCls} text-[11px] font-bold border cursor-pointer whitespace-nowrap">${saved ? "⭐ Saved" : "🔖 Save"}</button>
+                    <button type="button" onclick="window.QBankEngine.askAI('${safeQ}')" class="px-2.5 py-1 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-[11px] font-bold border border-green-500/20 cursor-pointer whitespace-nowrap">Ask AI</button>
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">

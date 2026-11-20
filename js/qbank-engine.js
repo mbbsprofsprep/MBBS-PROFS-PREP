@@ -1243,37 +1243,38 @@ function injectQBankStyles() {
 function injectDeckAndResumeDOM() {
     if (!document.getElementById("universal-deck-layer")) {
         document.body.insertAdjacentHTML("beforeend", `
-        <div id="universal-deck-layer">
-            <div class="px-3 py-2.5 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 shadow-sm z-10 shrink-0">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <button type="button" onclick="window.userPanelApp.toggle()" class="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="Account">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+       <div id="universal-deck-layer">
+            <div class="px-4 py-3 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 shadow-sm z-10 shrink-0">
+                <div class="flex items-center gap-2.5 md:gap-3 min-w-0">
+                    <button type="button" onclick="window.userPanelApp.toggle()" class="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="My Account">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                     <a href="index.html" class="shrink-0" title="Home">
-                        <img src="${APP_LOGO_URL}" referrerpolicy="no-referrer" class="w-7 h-7 rounded-lg object-cover ring-1 ring-accent-yellow" alt="Logo">
+                        <img src="${APP_LOGO_URL}" referrerpolicy="no-referrer" class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-lg object-cover ring-2 ring-offset-2 ring-accent-yellow" alt="MBBS Profs Prep">
                     </a>
-                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('filter')" class="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="Filters">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('filter')" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 bg-transparent border-none cursor-pointer shrink-0" title="Filters">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                     </button>
                     <div class="min-w-0">
-                        <div class="font-bold text-sm text-brand-600 dark:text-brand-400 leading-tight truncate">Review Mode</div>
+                        <h1 class="font-bold text-base md:text-lg text-brand-600 dark:text-brand-400 leading-tight truncate m-0">Review Mode</h1>
                         <div id="deck-subtitle" class="text-[10px] text-slate-500 font-semibold truncate">Loading...</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="button" id="deck-header-saved-btn" onclick="window.QBankEngine.toggleSavedFilter()" class="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer" title="Saved Only">
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" id="deck-header-saved-btn" onclick="window.QBankEngine.toggleSavedFilter()" class="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer" title="Show Saved Bookmarks Only">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                        <span class="hidden sm:inline">Saved</span>
                     </button>
-                    <button type="button" onclick="window.QBankEngine.toggleDeckMode()" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer" title="Switch to Table View">📋</button>
-                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('nav')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer">
-                        <span id="deck-counter">0/0</span><span>☰</span>
+                    <button type="button" onclick="window.QBankEngine.toggleDeckDrawer('nav')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                        <span id="deck-counter">0/0</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
             </div>
 
-            <div id="deck-card-container" class="flex-1 p-3 sm:p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg"></div>
+            <div id="deck-card-container" class="flex-1 p-4 overflow-hidden relative bg-slate-50 dark:bg-dark-bg"></div>
 
-            <div class="px-4 pt-3 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0" style="padding-bottom: max(14px, env(safe-area-inset-bottom));">
+            <div class="px-4 pt-4 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-slate-800 flex gap-3 z-10 shrink-0" style="padding-bottom: calc(92px + env(safe-area-inset-bottom));">
                 <button type="button" onclick="window.QBankEngine.deckPrev()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 border-none cursor-pointer">Previous</button>
                 <button type="button" onclick="window.QBankEngine.deckNext()" class="flex-1 py-3 rounded-xl bg-brand-500 text-white font-bold shadow-lg border-none cursor-pointer">Next</button>
             </div>

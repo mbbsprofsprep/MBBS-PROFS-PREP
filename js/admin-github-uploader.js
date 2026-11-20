@@ -252,11 +252,22 @@ export function uploadFileToGitHub(rawFile, { college, subject, onProgress } = {
 }
 
 // Re-hosts an external image (e.g. from Wikimedia Search) permanently into GitHub Assets
-export async function mirrorImageUrlToGitHub(imageUrl, labelHint = "medical-image", onProgress = null) {
+export async function mirrorImageUrlToGitHub(imageUrl, labelHint = "medical-image", fallbackThumbUrl = "", onProgress = null) {
     requireAdmin();
-    const res = await fetch(imageUrl);
-    if (!res.ok) throw new Error(`Could not fetch external image (${res.status}).`);
-    const blob = await res.blob();
+    const candidates = [imageUrl, fallbackThumbUrl].filter(Boolean);
+    let blob = null;
+
+    for (const url of candidates) {
+        try {
+            const res = await fetch(url);
+            if (res.ok) {
+                const b = await res.blob();
+                if (b.type.startsWith("image/") && b.size > 200) { blob = b; break; }
+            }
+        } catch (_) {}
+    }
+    if (!blob) throw new Error("Source site blocked cross-origin mirroring.");
+
     const ext = (blob.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "") || "jpg";
     const safeHint = sanitizeSlug(labelHint, "image").slice(0, 40);
     const file = new File([blob], `${safeHint}.${ext}`, { type: blob.type || "image/jpeg" });
@@ -305,4 +316,96 @@ export async function searchWikimediaMedia(query, { limit = 10, mediaType = "ima
         })
         .filter(Boolean)
         .slice(0, safeLimit);
+}
+// ============================================================================
+// 5. GOOGLE IMAGES & VIDEOS SEARCH VIA SERPER.DEV (Multi-Key Rotation)
+// Stored strictly in 3-Admin-Only node: admin_private/search_config
+// ============================================================================
+export async function getGoogleSearchConfig() {
+    requireAdmin();
+    const snap = await get(ref(db, "admin_private/search_config")).catch(() => null);
+    if (snap && snap.exists()) {
+        const val = snap.val();
+        return {
+            provider: val.provider || "google",
+            serperKeys: Array.isArray(val.serperKeys) ? val.serperKeys : []
+        };
+    }
+    return { provider: "google", serperKeys: [] };
+}
+
+export async function saveGoogleSearchConfig({ provider, rawSerperKeys }) {
+    requireAdmin();
+    const serperKeys = String(rawSerperKeys || "")
+        .split(/[\n,]+/)
+        .map(k => k.trim())
+        .filter(k => k.length > 10);
+    const payload = {
+        provider: provider === "wikimedia" ? "wikimedia" : "google",
+        serperKeys,
+        updatedAt: Date.now(),
+        updatedBy: MPPStore.user?.email || "admin"
+    };
+    await set(ref(db, "admin_private/search_config"), payload);
+    return payload;
+}
+
+export async function searchGoogleSerperMedia(query, { limit = 10, mediaType = "image" } = {}) {
+    requireAdmin();
+    const q = String(query || "").trim();
+    if (!q) return [];
+
+    const cfg = await getGoogleSearchConfig();
+    if (!cfg.serperKeys.length) {
+        throw new Error("No Google Search (Serper) API key saved yet. Click '🔑 Search Keys' below to add a free key from serper.dev (2,500 free searches).");
+    }
+
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 10), 25);
+    const isVideoOrAudio = mediaType === "video" || mediaType === "audio";
+    const endpoint = isVideoOrAudio ? "https://google.serper.dev/videos" : "https://google.serper.dev/images";
+    const finalQuery = mediaType === "audio" ? `${q} sound audio` : q;
+
+    let lastErr = null;
+    for (let i = 0; i < cfg.serperKeys.length; i++) {
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "X-API-KEY": cfg.serperKeys[i],
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ q: finalQuery, num: safeLimit })
+            });
+
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                const msg = errBody.message || `Serper HTTP ${res.status}`;
+                if ([400, 401, 403, 429].includes(res.status) && i < cfg.serperKeys.length - 1) continue;
+                throw new Error(`Key #${i + 1}: ${msg}`);
+            }
+
+            const data = await res.json();
+            if (isVideoOrAudio) {
+                return (data.videos || []).slice(0, safeLimit).map(v => ({
+                    title: String(v.title || "Video"),
+                    source: String(v.channel || v.source || ""),
+                    thumb: v.imageUrl || "",
+                    full: v.link || "",
+                    isVideo: true
+                })).filter(x => x.full);
+            }
+
+            return (data.images || []).slice(0, safeLimit).map(img => ({
+                title: String(img.title || "Image"),
+                source: String(img.source || ""),
+                thumb: img.thumbnailUrl || img.imageUrl || "",
+                full: img.imageUrl || img.thumbnailUrl || "",
+                isVideo: false
+            })).filter(x => x.full);
+        } catch (err) {
+            lastErr = err;
+            if (i === cfg.serperKeys.length - 1) break;
+        }
+    }
+    throw lastErr || new Error("All Google Search (Serper) keys failed.");
 }

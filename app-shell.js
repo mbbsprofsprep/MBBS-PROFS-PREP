@@ -7751,115 +7751,299 @@ STRICT OUTPUT FORMAT RULES:
     }, 500);
 })();
 /* ============================================================================
-   ADD-ON MODULE FOR OLD app-shell.js
-   Rich Text Editor Toolbar + 3-Tab Media Hub (Serper / Wikimedia / GitHub WebP)
-   + Highlight & [[gallery:...]] Carousel Renderer
-   Paste at the VERY BOTTOM of your old app-shell.js (No HTML edits needed)
+   MBBS PROFS PREP — EXTENSIVE VISUAL TOOLKIT, INLINE MEDIA & VERSION MANAGER
+   Drop-in Add-On for OLD app-shell.js (No HTML edits required)
+   Features:
+     1. Long-press / Right-click inside LIVE STUDENT PREVIEW -> Toolkit popup
+     2. Add Image / Audio / Video Here -> Multi-select search (Wikimedia, Serper,
+        GitHub WebP Upload, Audio/Video URL) -> Inline "See images (N)" pill
+        with expandable swipeable viewer (2/3) + lightbox + edit/remove
+     3. Enable Text Editing Here -> Direct WYSIWYG editing inside Live Preview
+        (Change text, 5 Highlights, Bold, Italic, Underline, Strike, Colors,
+        Font Size, Headings, Lists, Callouts, Undo/Redo) + auto-sync to Markdown
+        Editor & PUBLISH ANSWER capture guard
+     4. Portal Subject Card Long-Press -> "Select Version" popup + Add/Edit/Delete
+        versions synced to Firebase RTDB + automatic ?version= loader
    ============================================================================ */
 (function () {
-    if (window.__MPP_RICH_MEDIA_ADDON_LOADED__) return;
-    window.__MPP_RICH_MEDIA_ADDON_LOADED__ = true;
+    if (window.__MPP_EXTENSIVE_TOOLKIT_V2__) return;
+    window.__MPP_EXTENSIVE_TOOLKIT_V2__ = true;
 
-    const CFG_KEY = "mpp_old_mediahub_cfg_v1";
+    const CFG_KEY = "mpp_toolkit_media_cfg_v2";
+    const VER_CACHE_KEY = "mpp_subject_versions_cache_v2";
+    const RTDB_BASE = "https://mbbs-profs-prep48c-default-rtdb.firebaseio.com";
     const ADMIN_EMAILS = [
         "pankajmahto109@gmail.com",
         "educateindiainstitute@gmail.com",
         "pankajkumarmahto1009@gmail.com"
     ];
 
-    // ------------------------------------------------------------------------
-    // 1. INJECT SCOPED CSS (Light + Dark Mode + Android Touch Friendly)
-    // ------------------------------------------------------------------------
-    const style = document.createElement("style");
-    style.id = "mpp-rich-addon-css";
-    style.textContent = `
-        /* Highlight Marks (Visible to Students & Admins) */
-        mark.mpp-hl { padding: 0.08em 0.32em; border-radius: 4px; font-weight: 600; color: #0f172a; }
+    let _cachedAuthInfo = { email: "", token: "", checkedAt: 0 };
+    let _subjectVersionsMap = {};
+
+    // ========================================================================
+    // 1. INJECT SCOPED STYLES (Light + Dark + Android Touch Safe)
+    // ========================================================================
+    const css = document.createElement("style");
+    css.id = "mpp-toolkit-v2-css";
+    css.textContent = `
+        /* Highlights (Student + Admin) */
+        mark.mpp-hl, mark[data-mpp-hl] { padding: 0.08em 0.3em; border-radius: 4px; color: #0f172a; }
         mark.mpp-hl-yellow { background: #fef08a; }
         mark.mpp-hl-green  { background: #bbf7d0; }
         mark.mpp-hl-pink   { background: #fbcfe8; }
         mark.mpp-hl-blue   { background: #bae6fd; }
         mark.mpp-hl-orange { background: #fed7aa; }
-        .dark mark.mpp-hl-yellow { background: rgba(250, 204, 21, 0.32); color: #fef9c3; }
+        .dark mark.mpp-hl-yellow { background: rgba(250, 204, 21, 0.34); color: #fef9c3; }
         .dark mark.mpp-hl-green  { background: rgba(34, 197, 94, 0.30);  color: #dcfce7; }
         .dark mark.mpp-hl-pink   { background: rgba(236, 72, 153, 0.30); color: #fce7f3; }
         .dark mark.mpp-hl-blue   { background: rgba(56, 189, 248, 0.30); color: #e0f2fe; }
-        .dark mark.mpp-hl-orange { background: rgba(249, 115, 22, 0.32); color: #ffedd5; }
+        .dark mark.mpp-hl-orange { background: rgba(249, 115, 22, 0.34); color: #ffedd5; }
 
-        /* [[gallery:...]] Carousel Widget */
-        .mpp-gal-box { margin: 12px 0; border-radius: 12px; border: 1px solid #cbd5e1; background: #f8fafc; overflow: hidden; }
-        .dark .mpp-gal-box { border-color: #334155; background: #0f172a; }
-        .mpp-gal-stage { position: relative; background: #020617; min-height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .mpp-gal-stage img { max-height: 360px; max-width: 100%; object-fit: contain; cursor: zoom-in; display: block; margin: 0 auto; }
-        .mpp-gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 999px; border: none; background: rgba(15,23,42,0.75); color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .mpp-gal-prev { left: 8px; }
-        .mpp-gal-next { right: 8px; }
-        .mpp-gal-cap { padding: 8px 12px; font-size: 12px; font-weight: 600; color: #334155; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #e2e8f0; }
-        .dark .mpp-gal-cap { color: #cbd5e1; border-color: #1e293b; }
-        .mpp-gal-thumbs { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: #f1f5f9; }
-        .dark .mpp-gal-thumbs { background: #1e293b; }
-        .mpp-gal-thumbs img { width: 52px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer; opacity: 0.6; border: 2px solid transparent; flex-shrink: 0; }
-        .mpp-gal-thumbs img.active { opacity: 1; border-color: #0284c7; }
+        /* Inline "See images (3)" / Audio / Video Pill */
+        .mpp-media-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 2px 9px; margin: 0 3px; border-radius: 999px;
+            border: 1px solid #38bdf8; background: #e0f2fe; color: #0369a1;
+            font: 700 12px/1.35 system-ui, -apple-system, sans-serif;
+            cursor: pointer; vertical-align: baseline; user-select: none;
+            transition: transform .12s ease, background .15s ease;
+        }
+        .mpp-media-pill:hover { background: #bae6fd; }
+        .mpp-media-pill:active { transform: scale(0.96); }
+        .mpp-media-pill.open { background: #0284c7; color: #fff; border-color: #0284c7; }
+        .dark .mpp-media-pill { background: rgba(14,165,233,0.18); border-color: rgba(56,189,248,0.55); color: #7dd3fc; }
+        .dark .mpp-media-pill.open { background: #0284c7; color: #fff; }
+        .mpp-media-pill.kind-audio { border-color: #a78bfa; background: #ede9fe; color: #6d28d9; }
+        .dark .mpp-media-pill.kind-audio { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+        .mpp-media-pill.kind-video { border-color: #f87171; background: #fee2e2; color: #b91c1c; }
+        .dark .mpp-media-pill.kind-video { background: rgba(239,68,68,0.2); color: #fca5a5; }
 
-        /* Admin Rich Formatting Toolbar */
-        .mpp-rt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; margin-bottom: 6px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; font-family: system-ui, sans-serif; }
-        .dark .mpp-rt-bar { border-color: #334155; background: #1e293b; }
-        .mpp-rt-btn { display: inline-flex; align-items: center; justify-content: center; gap: 3px; padding: 4px 8px; border-radius: 7px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1.2; transition: background 0.15s; }
-        .dark .mpp-rt-btn { border-color: #475569; background: #0f172a; color: #e2e8f0; }
-        .mpp-rt-btn:hover { background: #e0f2fe; border-color: #0284c7; }
-        .dark .mpp-rt-btn:hover { background: #0c4a6e; border-color: #38bdf8; }
-        .mpp-rt-btn.primary { background: #0284c7; border-color: #0284c7; color: #fff; }
-        .mpp-rt-btn.primary:hover { background: #0369a1; }
-        .mpp-rt-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
-        .mpp-rt-sep { width: 1px; height: 18px; background: #cbd5e1; margin: 0 2px; }
-        .dark .mpp-rt-sep { background: #475569; }
-        .mpp-rt-swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.2); }
-        .mpp-rt-preview { display: none; padding: 12px; margin-bottom: 6px; border-radius: 10px; border: 1px solid #94a3b8; background: #fff; color: #0f172a; max-height: 320px; overflow-y: auto; font-size: 13px; line-height: 1.6; }
-        .dark .mpp-rt-preview { background: #0f172a; color: #e2e8f0; border-color: #475569; }
-        .mpp-rt-preview img { max-width: 100%; border-radius: 8px; margin: 6px 0; }
-        .mpp-rt-preview table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
-        .mpp-rt-preview th, .mpp-rt-preview td { border: 1px solid #cbd5e1; padding: 5px 8px; }
-        .dark .mpp-rt-preview th, .dark .mpp-rt-preview td { border-color: #334155; }
+        /* Expandable Inline Media Viewer (Matches Page 2: 3 images + dots 2/3) */
+        .mpp-media-drawer {
+            margin: 10px 0 12px; border-radius: 14px; border: 1px solid #cbd5e1;
+            background: #f8fafc; overflow: hidden; box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .dark .mpp-media-drawer { background: #0f172a; border-color: #334155; }
+        .mpp-md-bar {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            padding: 7px 12px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700;
+        }
+        .dark .mpp-md-bar { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        .mpp-md-stage {
+            position: relative; background: #020617; min-height: 210px;
+            display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px;
+        }
+        .mpp-md-stage img { max-height: 360px; max-width: 100%; object-fit: contain; border-radius: 6px; cursor: zoom-in; }
+        .mpp-md-stage video, .mpp-md-stage iframe { width: 100%; max-width: 560px; height: 280px; border-radius: 8px; border: 0; }
+        .mpp-md-stage audio { width: 92%; max-width: 440px; }
+        .mpp-md-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 34px; height: 34px; border-radius: 999px; border: none;
+            background: rgba(15,23,42,0.78); color: #fff; font-size: 18px; font-weight: 800;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .mpp-md-prev { left: 8px; }
+        .mpp-md-next { right: 8px; }
+        .mpp-md-foot {
+            padding: 8px 12px; display: flex; flex-direction: column; gap: 7px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .dark .mpp-md-foot { border-color: #1e293b; }
+        .mpp-md-dots-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .mpp-md-dots { display: flex; align-items: center; gap: 5px; }
+        .mpp-md-dot { width: 8px; height: 8px; border-radius: 999px; background: #cbd5e1; border: none; padding: 0; cursor: pointer; transition: all .15s; }
+        .dark .mpp-md-dot { background: #475569; }
+        .mpp-md-dot.active { width: 20px; background: #0284c7; }
+        .mpp-md-thumbs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+        .mpp-md-thumbs img { width: 54px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer; opacity: 0.58; border: 2px solid transparent; flex-shrink: 0; }
+        .mpp-md-thumbs img.active { opacity: 1; border-color: #0284c7; }
 
-        /* Media Hub Modal */
-        #mpp-mh-backdrop { position: fixed; inset: 0; z-index: 99990; background: rgba(2, 6, 23, 0.78); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 12px; font-family: system-ui, sans-serif; }
-        #mpp-mh-card { width: 100%; max-width: 920px; max-height: 90vh; background: #fff; color: #0f172a; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.45); }
-        .dark #mpp-mh-card { background: #0f172a; color: #f1f5f9; border-color: #334155; }
-        .mpp-mh-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
-        .dark .mpp-mh-head { border-color: #1e293b; }
-        .mpp-mh-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-        .dark .mpp-mh-tabs { background: #1e293b; border-color: #334155; }
-        .mpp-mh-tab { padding: 7px 12px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-size: 12px; font-weight: 700; cursor: pointer; }
-        .dark .mpp-mh-tab { background: #0f172a; border-color: #475569; color: #cbd5e1; }
-        .mpp-mh-tab.active { background: #0284c7; border-color: #0284c7; color: #fff; }
-        .mpp-mh-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
-        .mpp-mh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-top: 12px; }
-        .mpp-mh-item { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
-        .dark .mpp-mh-item { border-color: #334155; background: #1e293b; }
-        .mpp-mh-thumb { height: 118px; background: #020617; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-        .mpp-mh-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
-        .mpp-mh-dim { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.75); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
-        .mpp-mh-meta { padding: 7px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
-        .mpp-mh-title { font-size: 11px; font-weight: 600; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .mpp-mh-actions { display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap; }
-        .mpp-mh-btn { flex: 1; padding: 5px 6px; border-radius: 6px; border: none; font-size: 10px; font-weight: 800; cursor: pointer; text-align: center; }
-        .mpp-mh-btn.ins { background: #0284c7; color: #fff; }
-        .mpp-mh-btn.gh  { background: #059669; color: #fff; }
-        .mpp-mh-btn.gal { background: #7c3aed; color: #fff; }
-        .mpp-mh-basket { padding: 10px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-        .dark .mpp-mh-basket { background: #1e293b; border-color: #334155; }
-        .mpp-mh-input { padding: 8px 11px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 13px; }
-        .dark .mpp-mh-input { background: #020617; border-color: #475569; color: #f1f5f9; }
-        .mpp-mh-drop { border: 2px dashed #38bdf8; border-radius: 12px; padding: 24px 14px; text-align: center; cursor: pointer; background: rgba(14,165,233,0.06); }
-        #mpp-mh-lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.94); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+        /* Long-Press Floating Toolkit Popup (Matches Pages 1 & 3) */
+        #mpp-tk-popover {
+            position: fixed; z-index: 99980; width: 268px; max-width: 92vw;
+            background: #ffffff; color: #0f172a; border-radius: 14px;
+            border: 1px solid #cbd5e1; box-shadow: 0 20px 45px rgba(2,6,23,0.28);
+            overflow: hidden; font-family: system-ui, -apple-system, sans-serif;
+            animation: mppPopIn 0.14s ease-out;
+        }
+        .dark #mpp-tk-popover { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        @keyframes mppPopIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+        .mpp-tk-head {
+            padding: 9px 12px; background: linear-gradient(135deg, #0284c7, #4f46e5);
+            color: #fff; display: flex; align-items: center; justify-content: space-between;
+            font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+        }
+        .mpp-tk-list { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+        .mpp-tk-item {
+            width: 100%; text-align: left; padding: 9px 10px; border-radius: 9px;
+            border: 1px solid transparent; background: transparent; color: inherit;
+            display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 12.5px; font-weight: 700;
+        }
+        .mpp-tk-item:hover { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+        .dark .mpp-tk-item:hover { background: #1e293b; border-color: #38bdf8; color: #7dd3fc; }
+        .mpp-tk-sub { display: block; font-size: 10.5px; font-weight: 500; opacity: 0.7; margin-top: 1px; }
+
+        /* Visual WYSIWYG Editing Mode inside LIVE STUDENT PREVIEW */
+        .mpp-ve-active {
+            outline: 2.5px solid #0284c7 !important;
+            outline-offset: 4px;
+            border-radius: 12px;
+            background: rgba(14,165,233,0.03);
+        }
+        .mpp-ve-dock {
+            position: sticky; top: 64px; z-index: 9500; margin-bottom: 10px;
+            padding: 8px; border-radius: 12px; border: 1.5px solid #0284c7;
+            background: rgba(255,255,255,0.97); backdrop-filter: blur(8px);
+            box-shadow: 0 12px 30px rgba(2,132,199,0.2);
+            display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .dark .mpp-ve-dock { background: rgba(15,23,42,0.97); border-color: #38bdf8; }
+        .mpp-ve-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+            padding: 5px 8px; border-radius: 7px; border: 1px solid #cbd5e1;
+            background: #fff; color: #0f172a; font-size: 11.5px; font-weight: 700; cursor: pointer;
+        }
+        .dark .mpp-ve-btn { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+        .mpp-ve-btn:hover { border-color: #0284c7; background: #e0f2fe; }
+        .dark .mpp-ve-btn:hover { border-color: #38bdf8; background: #0c4a6e; }
+        .mpp-ve-btn.primary { background: #0284c7; border-color: #0284c7; color: #fff; }
+        .mpp-ve-btn.success { background: #059669; border-color: #059669; color: #fff; }
+        .mpp-ve-btn.danger  { background: #dc2626; border-color: #dc2626; color: #fff; }
+        .mpp-ve-select {
+            padding: 4px 6px; border-radius: 7px; border: 1px solid #cbd5e1;
+            background: #fff; color: #0f172a; font-size: 11px; font-weight: 700;
+        }
+        .dark .mpp-ve-select { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+        .mpp-ve-sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.22); }
+        .mpp-ve-sep { width: 1px; height: 18px; background: #cbd5e1; margin: 0 2px; }
+        .dark .mpp-ve-sep { background: #475569; }
+        .mpp-callout-box {
+            margin: 8px 0; padding: 10px 12px; border-radius: 10px;
+            border-left: 4px solid #f59e0b; background: #fffbeb; color: #78350f;
+            font-size: 13px;
+        }
+        .dark .mpp-callout-box { background: rgba(245,158,11,0.14); color: #fef3c7; }
+
+        /* Modals (Media Picker + Version Selector) */
+        .mpp-modal-bg {
+            position: fixed; inset: 0; z-index: 99985; background: rgba(2,6,23,0.76);
+            backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+            padding: 12px; font-family: system-ui, -apple-system, sans-serif;
+        }
+        .mpp-modal-box {
+            width: 100%; max-width: 900px; max-height: 90vh; background: #fff; color: #0f172a;
+            border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 25px 55px rgba(0,0,0,0.45);
+        }
+        .dark .mpp-modal-box { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+        .mpp-modal-box.narrow { max-width: 440px; }
+        .mpp-m-head {
+            padding: 13px 16px; border-bottom: 1px solid #e2e8f0;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .dark .mpp-m-head { border-color: #1e293b; }
+        .mpp-m-tabs {
+            display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 16px;
+            background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+        }
+        .dark .mpp-m-tabs { background: #1e293b; border-color: #334155; }
+        .mpp-m-tab {
+            padding: 6px 11px; border-radius: 8px; border: 1px solid #cbd5e1;
+            background: #fff; color: #334155; font-size: 12px; font-weight: 700; cursor: pointer;
+        }
+        .dark .mpp-m-tab { background: #0f172a; border-color: #475569; color: #cbd5e1; }
+        .mpp-m-tab.active { background: #0284c7; border-color: #0284c7; color: #fff; }
+        .mpp-m-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+        .mpp-m-foot {
+            padding: 10px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .dark .mpp-m-foot { background: #1e293b; border-color: #334155; }
+        .mpp-m-input {
+            padding: 8px 11px; border-radius: 9px; border: 1px solid #cbd5e1;
+            background: #fff; color: #0f172a; font-size: 13px; outline: none;
+        }
+        .dark .mpp-m-input { background: #020617; border-color: #475569; color: #f1f5f9; }
+        .mpp-m-input:focus { border-color: #0284c7; }
+
+        /* Multi-Select Image Grid (With #1, #2, #3 badges like Page 1) */
+        .mpp-img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+        .mpp-img-card {
+            position: relative; border: 2px solid #e2e8f0; border-radius: 11px; overflow: hidden;
+            background: #f8fafc; cursor: pointer; transition: border-color .15s, transform .12s;
+            display: flex; flex-direction: column;
+        }
+        .dark .mpp-img-card { border-color: #334155; background: #1e293b; }
+        .mpp-img-card.selected { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2,132,199,0.22); }
+        .mpp-img-wrap { height: 118px; background: #020617; position: relative; overflow: hidden; }
+        .mpp-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .mpp-img-num {
+            position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; border-radius: 999px;
+            background: rgba(15,23,42,0.72); color: #fff; border: 1.5px solid rgba(255,255,255,0.75);
+            font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+        }
+        .mpp-img-card.selected .mpp-img-num { background: #0284c7; border-color: #fff; }
+        .mpp-img-zoom {
+            position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 6px;
+            background: rgba(15,23,42,0.72); color: #fff; border: none; font-size: 12px; cursor: pointer;
+        }
+        .mpp-img-cap {
+            padding: 6px 8px; font-size: 11px; font-weight: 600; line-height: 1.25;
+            overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+
+        /* Version Selector Popup Rows (Matches Page 5) */
+        .mpp-ver-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            padding: 12px 13px; border-radius: 11px; border: 1px solid #e2e8f0;
+            background: #f8fafc; margin-bottom: 8px; transition: border-color .15s, background .15s;
+        }
+        .dark .mpp-ver-row { background: #1e293b; border-color: #334155; }
+        .mpp-ver-row:hover { border-color: #0284c7; background: #f0f9ff; }
+        .dark .mpp-ver-row:hover { border-color: #38bdf8; background: #0c4a6e; }
+        .mpp-ver-add-btn {
+            width: 100%; padding: 11px; border-radius: 11px; border: 1.5px dashed #0284c7;
+            background: rgba(2,132,199,0.06); color: #0284c7; font-size: 13px; font-weight: 800; cursor: pointer;
+        }
+        .dark .mpp-ver-add-btn { color: #38bdf8; border-color: #38bdf8; }
+
+        /* Lightbox */
+        #mpp-tk-lightbox {
+            position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px;
+        }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(css);
 
-    // ------------------------------------------------------------------------
-    // 2. HELPERS: CONFIG, ESCAPE, TOAST, LIGHTBOX & TEXTAREA INSERTION
-    // ------------------------------------------------------------------------
+    // ========================================================================
+    // 2. CORE UTILITIES (Auth/Token Detection from Firebase v11 IDB, Toast, Lightbox)
+    // ========================================================================
     function esc(s) {
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function toast(msg, bg = "#0f172a") {
+        const el = document.createElement("div");
+        el.textContent = msg;
+        el.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999999;background:${bg};color:#fff;padding:9px 16px;border-radius:10px;font:700 12.5px system-ui,sans-serif;box-shadow:0 10px 25px rgba(0,0,0,0.35);max-width:92vw;text-align:center;`;
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .25s"; setTimeout(() => el.remove(), 260); }, 2700);
+    }
+
+    function openLightbox(url, caption = "") {
+        document.getElementById("mpp-tk-lightbox")?.remove();
+        const lb = document.createElement("div");
+        lb.id = "mpp-tk-lightbox";
+        lb.innerHTML = `
+            <button type="button" style="position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:999px;border:none;background:rgba(255,255,255,0.18);color:#fff;font-size:24px;cursor:pointer;">&times;</button>
+            <img src="${esc(url)}" style="max-width:95vw;max-height:82vh;object-fit:contain;border-radius:10px;" />
+            ${caption ? `<div style="margin-top:10px;color:#e2e8f0;font:600 13px system-ui;text-align:center;max-width:720px;">${esc(caption)}</div>` : ""}
+        `;
+        lb.addEventListener("click", (e) => { if (e.target === lb || e.target.tagName === "BUTTON") lb.remove(); });
+        document.body.appendChild(lb);
     }
 
     function loadCfg() {
@@ -7871,7 +8055,7 @@ STRICT OUTPUT FORMAT RULES:
                 ghBranch: "main",
                 ghFolder: "assets/media",
                 ghToken: "",
-                urlMode: "jsdelivr" // "jsdelivr" | "raw"
+                urlMode: "jsdelivr"
             }, JSON.parse(localStorage.getItem(CFG_KEY) || "{}"));
         } catch (_) {
             return { serperKey: "", ghOwner: "", ghRepo: "", ghBranch: "main", ghFolder: "assets/media", ghToken: "", urlMode: "jsdelivr" };
@@ -7884,199 +8068,352 @@ STRICT OUTPUT FORMAT RULES:
         return next;
     }
 
-    function toast(msg, bg = "#0f172a") {
-        const el = document.createElement("div");
-        el.textContent = msg;
-        el.style.cssText = `position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999999;background:${bg};color:#fff;padding:9px 16px;border-radius:10px;font:700 12px system-ui,sans-serif;box-shadow:0 10px 25px rgba(0,0,0,0.35);max-width:90vw;text-align:center;`;
-        document.body.appendChild(el);
-        setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .25s"; setTimeout(() => el.remove(), 260); }, 2600);
+    // Reads active Firebase user email & ID token even when Firebase v11 is inside a private ES module
+    async function readFirebaseAuthFromIDB() {
+        if (Date.now() - _cachedAuthInfo.checkedAt < 25000 && _cachedAuthInfo.email) {
+            return _cachedAuthInfo;
+        }
+        try {
+            const u = window.auth?.currentUser || window.currentUser || window.firebase?.auth?.()?.currentUser;
+            if (u && u.email) {
+                const token = typeof u.getIdToken === "function" ? await u.getIdToken().catch(() => "") : "";
+                _cachedAuthInfo = { email: u.email.toLowerCase().trim(), token, checkedAt: Date.now() };
+                return _cachedAuthInfo;
+            }
+        } catch (_) {}
+
+        return new Promise((resolve) => {
+            if (!window.indexedDB) return resolve(_cachedAuthInfo);
+            const req = indexedDB.open("firebaseLocalStorageDb");
+            req.onerror = () => resolve(_cachedAuthInfo);
+            req.onsuccess = (e) => {
+                const idb = e.target.result;
+                if (!idb.objectStoreNames.contains("firebaseLocalStorage")) { idb.close(); return resolve(_cachedAuthInfo); }
+                const tx = idb.transaction("firebaseLocalStorage", "readonly");
+                const getAll = tx.objectStore("firebaseLocalStorage").getAll();
+                getAll.onsuccess = () => {
+                    const rows = getAll.result || [];
+                    for (const r of rows) {
+                        const val = r?.value;
+                        if (val && val.email) {
+                            _cachedAuthInfo = {
+                                email: String(val.email).toLowerCase().trim(),
+                                token: val.stsTokenManager?.accessToken || "",
+                                checkedAt: Date.now()
+                            };
+                            break;
+                        }
+                    }
+                    idb.close();
+                    resolve(_cachedAuthInfo);
+                };
+                getAll.onerror = () => { idb.close(); resolve(_cachedAuthInfo); };
+            };
+        });
     }
 
-    function openLightbox(url, caption) {
-        document.getElementById("mpp-mh-lightbox")?.remove();
-        const box = document.createElement("div");
-        box.id = "mpp-mh-lightbox";
-        box.innerHTML = `
-            <button type="button" style="position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;border:none;background:rgba(255,255,255,0.18);color:#fff;font-size:22px;cursor:pointer;">&times;</button>
-            <img src="${esc(url)}" style="max-width:95vw;max-height:82vh;object-fit:contain;border-radius:10px;" />
-            ${caption ? `<div style="margin-top:10px;color:#e2e8f0;font:600 13px system-ui;text-align:center;max-width:680px;">${esc(caption)}</div>` : ""}
-        `;
-        box.addEventListener("click", (e) => { if (e.target === box || e.target.tagName === "BUTTON") box.remove(); });
-        document.body.appendChild(box);
-    }
-
-    function insertAtCursor(ta, before, after = "", placeholder = "") {
-        if (!ta) return;
-        ta.focus();
-        const start = ta.selectionStart ?? ta.value.length;
-        const end = ta.selectionEnd ?? ta.value.length;
-        const sel = ta.value.slice(start, end) || placeholder;
-        const replacement = before + sel + after;
-        ta.value = ta.value.slice(0, start) + replacement + ta.value.slice(end);
-        const caretStart = start + before.length;
-        const caretEnd = caretStart + sel.length;
-        ta.setSelectionRange(caretStart, caretEnd);
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
-        ta.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    function isLikelyAdmin() {
+    function isAdminSync() {
         if (window.isAdmin === true || window.MPP_isAdmin === true) return true;
-        const email = (
-            window.currentUser?.email ||
-            window.auth?.currentUser?.email ||
-            window.firebase?.auth?.()?.currentUser?.email ||
-            ""
-        ).toLowerCase().trim();
+        if (_cachedAuthInfo.email && ADMIN_EMAILS.includes(_cachedAuthInfo.email)) return true;
+        const email = (window.currentUser?.email || window.auth?.currentUser?.email || "").toLowerCase().trim();
         if (email && ADMIN_EMAILS.includes(email)) return true;
-
-        const adminEl = document.getElementById("admin-controls") || document.querySelector("[data-admin-only], .admin-only");
-        if (adminEl && !adminEl.classList.contains("hidden") && adminEl.offsetParent !== null) return true;
+        // Presence of Markdown Editor / Publish Answer button or visible Admin Controls on page
+        const adminBar = document.getElementById("admin-controls");
+        if (adminBar && !adminBar.classList.contains("hidden") && adminBar.offsetParent !== null) return true;
         return false;
     }
 
-    function isEligibleEditorTextarea(ta) {
-        if (!ta || ta.tagName !== "TEXTAREA") return false;
-        if (ta.dataset.mppRichAttached === "1" || ta.readOnly || ta.disabled) return false;
-        if (ta.closest("#mpp-mh-backdrop, #reportModal, #mpp-report-modal, #authModal, #profileModal, .no-rich-toolbar")) return false;
+    // Prime admin cache immediately
+    readFirebaseAuthFromIDB();
 
-        const sig = `${ta.id} ${ta.name} ${ta.className} ${ta.placeholder}`.toLowerCase();
-        if (/report|feedback|reason|search|filter|crosslink|cluster|json|anki/.test(sig)) return false;
-
-        // Match known admin answer/stem/explanation textareas in old pages, or any textarea when admin is logged in
-        if (/answer|explanation|stem|markdown|editor|content|notes|clinical|model/.test(sig)) return true;
-        return isLikelyAdmin();
+    // ========================================================================
+    // 3. LOCATE PAIRED MARKDOWN EDITOR, PUBLISH BUTTON & LIVE STUDENT PREVIEW
+    // ========================================================================
+    function findPublishButtonIn(container) {
+        if (!container) return null;
+        return [...container.querySelectorAll("button")].find(b => /publish\s*answer|save\s*answer/i.test(b.textContent || "")) || null;
     }
 
-    // ------------------------------------------------------------------------
-    // 3. RICH RENDERER: ==HIGHLIGHTS== & [[gallery:...]] FOR STUDENTS & ADMINS
-    // ------------------------------------------------------------------------
-    function parseMiniMarkdownForPreview(text) {
-        let html = String(text || "");
-        if (window.marked && typeof window.marked.parse === "function") {
-            html = window.marked.parse(html);
-        } else {
-            html = esc(html)
-                .replace(/^###\s+(.+)$/gm, "<h4 style='font-weight:800;margin:8px 0 4px;'>$1</h4>")
-                .replace(/^##\s+(.+)$/gm, "<h3 style='font-weight:800;font-size:15px;margin:10px 0 4px;'>$1</h3>")
-                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-                .replace(/\*(.+?)\*/g, "<em>$1</em>")
-                .replace(/~~(.+?)~~/g, "<del>$1</del>")
-                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
-                .replace(/\n/g, "<br>");
+    function findEditorContext(startEl) {
+        let cur = startEl;
+        while (cur && cur !== document.body) {
+            const ta = cur.querySelector("textarea");
+            if (ta && !ta.closest(".mpp-modal-bg")) {
+                const pubBtn = findPublishButtonIn(cur);
+                if (pubBtn || /markdown|answer|explanation|editor|clinical/i.test(`${ta.id} ${ta.className} ${cur.textContent.slice(0, 260)}`)) {
+                    // Find the preview container inside this same panel (sibling / descendant that does NOT contain the textarea)
+                    let preview = cur.querySelector("#deck-ans-preview, #answer-preview, #live-preview, .live-preview, .prose, .markdown-body");
+                    if (!preview || preview.contains(ta)) {
+                        const candidates = [...cur.querySelectorAll("div, section, article")].filter(d => {
+                            if (d.contains(ta) || d.closest(".mpp-ve-dock, .mpp-media-drawer")) return false;
+                            if (d.offsetHeight < 40) return false;
+                            return d.contains(startEl) || d === startEl;
+                        });
+                        // Pick the outermost block that contains startEl without containing ta
+                        preview = candidates[0] || startEl.closest("div");
+                    }
+                    return { panel: cur, textarea: ta, preview, publishBtn: pubBtn };
+                }
+            }
+            cur = cur.parentElement;
         }
-        return html;
+        return null;
     }
 
-    function buildGalleryDOM(rawSpec) {
-        // Strip <a href="..."> auto-links that old marked.js may have injected inside [[gallery:...]]
-        const cleaned = rawSpec
+    // ========================================================================
+    // 4. INLINE [[media:...]] PILL & SWIPEABLE VIEWER (Students + Admins)
+    // ========================================================================
+    function parseMediaSpec(rawInside) {
+        const cleaned = String(rawInside || "")
             .replace(/<a\b[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>/gi, "$1")
             .replace(/<[^>]+>/g, "")
             .trim();
 
-        const items = cleaned.split(";;").map(part => {
-            const [u, ...capParts] = part.split("|");
-            return { url: (u || "").trim(), caption: capParts.join("|").trim() };
+        // Format: kind|label|url1^cap1;;url2^cap2  OR legacy [[gallery:url1|cap1;;url2|cap2]]
+        let kind = "images";
+        let label = "See images";
+        let listStr = cleaned;
+
+        const firstPipe = cleaned.indexOf("|");
+        const secondPipe = firstPipe > -1 ? cleaned.indexOf("|", firstPipe + 1) : -1;
+        if (firstPipe > -1 && /^(images?|audio|video)$/i.test(cleaned.slice(0, firstPipe).trim()) && secondPipe > -1) {
+            kind = cleaned.slice(0, firstPipe).trim().toLowerCase();
+            if (kind === "image") kind = "images";
+            label = cleaned.slice(firstPipe + 1, secondPipe).trim() || (kind === "audio" ? "Listen audio" : kind === "video" ? "Watch video" : "See images");
+            listStr = cleaned.slice(secondPipe + 1).trim();
+        }
+
+        const items = listStr.split(";;").map(chunk => {
+            const sep = chunk.includes("^") ? "^" : "|";
+            const [u, ...rest] = chunk.split(sep);
+            return { url: (u || "").trim(), caption: rest.join(sep).trim() };
         }).filter(x => /^https?:\/\//i.test(x.url));
 
-        if (!items.length) return null;
-
-        let idx = 0;
-        const box = document.createElement("div");
-        box.className = "mpp-gal-box";
-        box.dataset.mppGalleryMounted = "1";
-
-        const render = () => {
-            const cur = items[idx];
-            box.innerHTML = `
-                <div class="mpp-gal-stage">
-                    ${items.length > 1 ? `<button type="button" class="mpp-gal-nav mpp-gal-prev" aria-label="Previous">&lsaquo;</button>` : ""}
-                    <img src="${esc(cur.url)}" alt="${esc(cur.caption || "Figure")}" loading="lazy" />
-                    ${items.length > 1 ? `<button type="button" class="mpp-gal-nav mpp-gal-next" aria-label="Next">&rsaquo;</button>` : ""}
-                </div>
-                <div class="mpp-gal-cap">
-                    <span>${esc(cur.caption || `Image ${idx + 1}`)}</span>
-                    <span style="opacity:.65;flex-shrink:0;">${idx + 1} / ${items.length}</span>
-                </div>
-                ${items.length > 1 ? `
-                    <div class="mpp-gal-thumbs">
-                        ${items.map((it, i) => `<img src="${esc(it.url)}" class="${i === idx ? "active" : ""}" data-gi="${i}" loading="lazy" />`).join("")}
-                    </div>
-                ` : ""}
-            `;
-            box.querySelector(".mpp-gal-stage img")?.addEventListener("click", () => openLightbox(cur.url, cur.caption));
-            box.querySelector(".mpp-gal-prev")?.addEventListener("click", () => { idx = (idx - 1 + items.length) % items.length; render(); });
-            box.querySelector(".mpp-gal-next")?.addEventListener("click", () => { idx = (idx + 1) % items.length; render(); });
-            box.querySelectorAll("[data-gi]").forEach(t => t.addEventListener("click", () => { idx = Number(t.dataset.gi); render(); }));
-        };
-
-        render();
-        return box;
+        return { kind, label, items, rawTag: `[[media:${kind}|${label}|${items.map(i => `${i.url}${i.caption ? "^" + i.caption : ""}`).join(";;")}]]` };
     }
 
-    function enhanceRenderedElement(root) {
-        if (!root || root.nodeType !== 1) return;
-        if (root.closest?.("#mpp-mh-backdrop, .mpp-rt-bar, script, style, textarea")) return;
+    function toEmbedUrl(url) {
+        const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{6,})/);
+        if (yt) return { type: "iframe", src: `https://www.youtube.com/embed/${yt[1]}` };
+        const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+        if (gd) return { type: "iframe", src: `https://drive.google.com/file/d/${gd[1]}/preview` };
+        if (/\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(url)) return { type: "audio", src: url };
+        if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return { type: "video", src: url };
+        return { type: "image", src: url };
+    }
 
-        // A. Upgrade [[gallery:...]] blocks
-        if (root.innerHTML && root.innerHTML.includes("[[gallery:")) {
-            const candidates = root.querySelectorAll("p, div, li, td, section, article");
-            const targets = candidates.length ? [...candidates, root] : [root];
-            targets.forEach(el => {
-                if (el.dataset.mppGalleryMounted || el.querySelector("textarea, input, .mpp-gal-box")) return;
-                if (!el.innerHTML.includes("[[gallery:")) return;
-                // Only process the innermost element containing the tag
-                if ([...el.children].some(ch => ch.innerHTML && ch.innerHTML.includes("[[gallery:"))) return;
+    function createInlineMediaPill(spec, rawOriginalToken) {
+        const icon = spec.kind === "audio" ? "🎵" : (spec.kind === "video" ? "🎬" : "📷");
+        const count = spec.items.length;
 
-                const match = el.innerHTML.match(/\[\[gallery:([\s\S]*?)\]\]/);
-                if (!match) return;
-                const gal = buildGalleryDOM(match[1]);
-                if (!gal) return;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `mpp-media-pill kind-${spec.kind}`;
+        btn.contentEditable = "false";
+        btn.dataset.mppMediaRaw = rawOriginalToken || spec.rawTag;
+        btn.innerHTML = `<span>${icon}</span><span>${esc(spec.label)} (${count})</span>`;
 
-                const remainder = el.innerHTML.replace(match[0], "").trim();
-                if (!remainder || remainder === "<br>") {
-                    el.innerHTML = "";
-                    el.appendChild(gal);
+        let drawerEl = null;
+
+        const toggleDrawer = () => {
+            if (drawerEl && drawerEl.isConnected) {
+                drawerEl.remove();
+                drawerEl = null;
+                btn.classList.remove("open");
+                return;
+            }
+
+            btn.classList.add("open");
+            let idx = 0;
+            drawerEl = document.createElement("div");
+            drawerEl.className = "mpp-media-drawer";
+            drawerEl.contentEditable = "false";
+
+            const renderDrawer = () => {
+                const cur = spec.items[idx] || spec.items[0];
+                const media = toEmbedUrl(cur.url);
+                let stageHtml = "";
+                if (media.type === "iframe") {
+                    stageHtml = `<iframe src="${esc(media.src)}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+                } else if (media.type === "video") {
+                    stageHtml = `<video src="${esc(media.src)}" controls playsinline></video>`;
+                } else if (media.type === "audio") {
+                    stageHtml = `<audio src="${esc(media.src)}" controls></audio>`;
                 } else {
-                    el.innerHTML = remainder;
-                    el.appendChild(gal);
+                    stageHtml = `<img src="${esc(media.src)}" alt="${esc(cur.caption || "Medical figure")}" loading="lazy" />`;
                 }
+
+                const isAdmin = isAdminSync();
+                drawerEl.innerHTML = `
+                    <div class="mpp-md-bar">
+                        <span>${icon} ${esc(spec.label)} &bull; ${idx + 1} / ${count}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            ${media.type === "image" ? `<button type="button" data-act="full" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">⛶ Zoom</button>` : ""}
+                            ${isAdmin ? `<button type="button" data-act="edit" class="mpp-ve-btn" style="padding:3px 7px;font-size:11px;">✏️ Edit</button>` : ""}
+                            ${isAdmin ? `<button type="button" data-act="del" class="mpp-ve-btn danger" style="padding:3px 7px;font-size:11px;">🗑️</button>` : ""}
+                            <button type="button" data-act="close" style="border:none;background:transparent;color:inherit;font-size:18px;cursor:pointer;line-height:1;">&times;</button>
+                        </div>
+                    </div>
+                    <div class="mpp-md-stage">
+                        ${count > 1 ? `<button type="button" class="mpp-md-nav mpp-md-prev" aria-label="Previous">&lsaquo;</button>` : ""}
+                        ${stageHtml}
+                        ${count > 1 ? `<button type="button" class="mpp-md-nav mpp-md-next" aria-label="Next">&rsaquo;</button>` : ""}
+                    </div>
+                    <div class="mpp-md-foot">
+                        <div class="mpp-md-dots-row">
+                            <span style="font-size:12px;font-weight:600;opacity:.85;">${esc(cur.caption || `Item ${idx + 1}`)}</span>
+                            <div class="mpp-md-dots">
+                                ${spec.items.map((_, i) => `<button type="button" class="mpp-md-dot ${i === idx ? "active" : ""}" data-di="${i}" aria-label="Slide ${i + 1}"></button>`).join("")}
+                                <span style="font-size:11px;font-weight:800;margin-left:4px;opacity:.75;">(${idx + 1}/${count})</span>
+                            </div>
+                        </div>
+                        ${count > 1 && spec.kind === "images" ? `
+                            <div class="mpp-md-thumbs">
+                                ${spec.items.map((it, i) => `<img src="${esc(it.url)}" class="${i === idx ? "active" : ""}" data-di="${i}" loading="lazy" />`).join("")}
+                            </div>
+                        ` : ""}
+                    </div>
+                `;
+
+                drawerEl.querySelector('[data-act="close"]')?.addEventListener("click", toggleDrawer);
+                drawerEl.querySelector('[data-act="full"]')?.addEventListener("click", () => openLightbox(cur.url, cur.caption));
+                drawerEl.querySelector(".mpp-md-stage img")?.addEventListener("click", () => openLightbox(cur.url, cur.caption));
+                drawerEl.querySelector(".mpp-md-prev")?.addEventListener("click", () => { idx = (idx - 1 + count) % count; renderDrawer(); });
+                drawerEl.querySelector(".mpp-md-next")?.addEventListener("click", () => { idx = (idx + 1) % count; renderDrawer(); });
+                drawerEl.querySelectorAll("[data-di]").forEach(d => d.addEventListener("click", () => { idx = Number(d.dataset.di); renderDrawer(); }));
+
+                // Android touch swipe inside inline viewer
+                const st = drawerEl.querySelector(".mpp-md-stage");
+                let sx = 0;
+                st?.addEventListener("touchstart", (e) => { sx = e.touches[0]?.clientX || 0; }, { passive: true });
+                st?.addEventListener("touchend", (e) => {
+                    if (count <= 1) return;
+                    const dx = (e.changedTouches[0]?.clientX || 0) - sx;
+                    if (Math.abs(dx) > 40) {
+                        idx = dx < 0 ? (idx + 1) % count : (idx - 1 + count) % count;
+                        renderDrawer();
+                    }
+                }, { passive: true });
+
+                // Admin: Edit or Delete this pill directly from the textarea
+                drawerEl.querySelector('[data-act="del"]')?.addEventListener("click", () => {
+                    const ctx = findEditorContext(btn);
+                    if (ctx?.textarea) {
+                        ctx.textarea.value = ctx.textarea.value.replace(btn.dataset.mppMediaRaw, "").replace(/\s{2,}/g, " ");
+                        ctx.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                    }
+                    drawerEl?.remove();
+                    btn.remove();
+                    toast("Media removed (Click Publish Answer to save).", "#d97706");
+                });
+                drawerEl.querySelector('[data-act="edit"]')?.addEventListener("click", () => {
+                    const ctx = findEditorContext(btn);
+                    openMediaPickerModal({
+                        ctx,
+                        replaceToken: btn.dataset.mppMediaRaw,
+                        initialItems: spec.items.map(x => ({ ...x })),
+                        initialLabel: spec.label,
+                        initialKind: spec.kind
+                    });
+                });
+            };
+
+            renderDrawer();
+
+            // Insert viewer smoothly right after the parent paragraph / list item
+            const block = btn.closest("p, li, div, td") || btn.parentElement;
+            if (block && block.parentNode) {
+                block.parentNode.insertBefore(drawerEl, block.nextSibling);
+            } else {
+                btn.insertAdjacentElement("afterend", drawerEl);
+            }
+        };
+
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleDrawer();
+        });
+
+        return btn;
+    }
+
+    function enhanceDOM(root) {
+        if (!root || root.nodeType !== 1) return;
+        if (root.closest?.(".mpp-modal-bg, .mpp-ve-dock, #mpp-tk-popover, script, style, textarea")) return;
+
+        // A. Convert [[media:...]] and [[gallery:...]] into clickable inline "See images (N)" pills
+        if (root.innerHTML && (root.innerHTML.includes("[[media:") || root.innerHTML.includes("[[gallery:"))) {
+            const blocks = [...root.querySelectorAll("p, li, div, td, span")];
+            if (!blocks.length) blocks.push(root);
+
+            blocks.forEach(el => {
+                if (el.closest(".mpp-modal-bg, .mpp-ve-dock, .mpp-media-drawer, textarea")) return;
+                if (!el.innerHTML.includes("[[media:") && !el.innerHTML.includes("[[gallery:")) return;
+                // Process only innermost containers
+                if ([...el.children].some(ch => ch.innerHTML && (ch.innerHTML.includes("[[media:") || ch.innerHTML.includes("[[gallery:")))) return;
+
+                const tokenRe = /\[\[(media|gallery):([\s\S]*?)\]\]/g;
+                const html = el.innerHTML;
+                if (!tokenRe.test(html)) return;
+                tokenRe.lastIndex = 0;
+
+                const frag = document.createDocumentFragment();
+                let last = 0, m;
+                while ((m = tokenRe.exec(html)) !== null) {
+                    if (m.index > last) {
+                        const span = document.createElement("span");
+                        span.innerHTML = html.slice(last, m.index);
+                        while (span.firstChild) frag.appendChild(span.firstChild);
+                    }
+                    const spec = parseMediaSpec(m[2]);
+                    if (spec.items.length) {
+                        frag.appendChild(createInlineMediaPill(spec, spec.rawTag));
+                    } else {
+                        frag.appendChild(document.createTextNode(m[0]));
+                    }
+                    last = m.index + m[0].length;
+                }
+                if (last < html.length) {
+                    const span = document.createElement("span");
+                    span.innerHTML = html.slice(last);
+                    while (span.firstChild) frag.appendChild(span.firstChild);
+                }
+                el.innerHTML = "";
+                el.appendChild(frag);
             });
         }
 
-        // B. Upgrade ==highlight== and ==color:highlight== safely via Text Nodes only
+        // B. Convert ==highlight== and ==color:highlight== in text nodes
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
             acceptNode(node) {
                 if (!node.nodeValue || !node.nodeValue.includes("==")) return NodeFilter.FILTER_REJECT;
                 const p = node.parentElement;
-                if (!p) return NodeFilter.FILTER_REJECT;
-                if (/^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|MARK)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
-                if (p.closest(".katex, .mpp-rt-bar, #mpp-mh-backdrop")) return NodeFilter.FILTER_REJECT;
+                if (!p || /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|MARK)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+                if (p.closest(".katex, .mpp-ve-dock, .mpp-modal-bg, .mpp-media-pill")) return NodeFilter.FILTER_REJECT;
                 return NodeFilter.FILTER_ACCEPT;
             }
         });
+        const nodes = [];
+        let cur;
+        while ((cur = walker.nextNode())) nodes.push(cur);
 
-        const textNodes = [];
-        let n;
-        while ((n = walker.nextNode())) textNodes.push(n);
-
-        const hlRegex = /==(yellow|green|pink|blue|orange)?:([^=\n][^=\n]*?)==|==([^=\n][^=\n]*?)==/gi;
-        textNodes.forEach(tn => {
+        const hlRe = /==(yellow|green|pink|blue|orange):([^=\n]+?)==|==([^=\n]+?)==/gi;
+        nodes.forEach(tn => {
             const val = tn.nodeValue;
-            if (!hlRegex.test(val)) return;
-            hlRegex.lastIndex = 0;
-
+            if (!hlRe.test(val)) return;
+            hlRe.lastIndex = 0;
             const frag = document.createDocumentFragment();
             let last = 0, m;
-            while ((m = hlRegex.exec(val)) !== null) {
+            while ((m = hlRe.exec(val)) !== null) {
                 if (m.index > last) frag.appendChild(document.createTextNode(val.slice(last, m.index)));
                 const color = (m[1] || "yellow").toLowerCase();
-                const content = m[2] !== undefined ? m[2] : m[3];
-                const mark = document.createElement("mark");
-                mark.className = `mpp-hl mpp-hl-${color}`;
-                mark.textContent = content;
-                frag.appendChild(mark);
+                const txt = m[2] !== undefined ? m[2] : m[3];
+                const mk = document.createElement("mark");
+                mk.className = `mpp-hl mpp-hl-${color}`;
+                mk.dataset.mppHl = color;
+                mk.textContent = txt;
+                frag.appendChild(mk);
                 last = m.index + m[0].length;
             }
             if (last < val.length) frag.appendChild(document.createTextNode(val.slice(last)));
@@ -8084,565 +8421,1268 @@ STRICT OUTPUT FORMAT RULES:
         });
     }
 
-    // ------------------------------------------------------------------------
-    // 4. ADMIN TEXT EDITOR TOOLBAR (Auto-attaches above Admin Textareas)
-    // ------------------------------------------------------------------------
-    function attachToolbarToTextarea(ta) {
-        if (!isEligibleEditorTextarea(ta)) return;
-        ta.dataset.mppRichAttached = "1";
+    // ========================================================================
+    // 5. SMART MARKDOWN INSERTION AT LONG-PRESSED PHRASE + HTML->MD SERIALIZER
+    // ========================================================================
+    function insertTokenNearPhrase(textarea, anchorText, token) {
+        if (!textarea) return false;
+        const md = textarea.value || "";
+        const cleanAnchor = String(anchorText || "").replace(/\s+/g, " ").trim();
 
-        const bar = document.createElement("div");
-        bar.className = "mpp-rt-bar";
-        bar.innerHTML = `
-            <button type="button" class="mpp-rt-btn" data-act="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-            <button type="button" class="mpp-rt-btn" data-act="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-            <button type="button" class="mpp-rt-btn" data-act="underline" title="Underline"><u>U</u></button>
-            <button type="button" class="mpp-rt-btn" data-act="strike" title="Strikethrough"><s>S</s></button>
-            <span class="mpp-rt-sep"></span>
-            <button type="button" class="mpp-rt-btn" data-hl="yellow" title="Yellow Highlight (Ctrl+H)"><span class="mpp-rt-swatch" style="background:#fef08a;"></span></button>
-            <button type="button" class="mpp-rt-btn" data-hl="green" title="Green Highlight"><span class="mpp-rt-swatch" style="background:#bbf7d0;"></span></button>
-            <button type="button" class="mpp-rt-btn" data-hl="pink" title="Pink Highlight"><span class="mpp-rt-swatch" style="background:#fbcfe8;"></span></button>
-            <button type="button" class="mpp-rt-btn" data-hl="blue" title="Blue Highlight"><span class="mpp-rt-swatch" style="background:#bae6fd;"></span></button>
-            <button type="button" class="mpp-rt-btn" data-hl="orange" title="Orange Highlight"><span class="mpp-rt-swatch" style="background:#fed7aa;"></span></button>
-            <span class="mpp-rt-sep"></span>
-            <button type="button" class="mpp-rt-btn" data-color="#dc2626" title="Red Text" style="color:#dc2626;">A</button>
-            <button type="button" class="mpp-rt-btn" data-color="#2563eb" title="Blue Text" style="color:#2563eb;">A</button>
-            <button type="button" class="mpp-rt-btn" data-color="#059669" title="Green Text" style="color:#059669;">A</button>
-            <span class="mpp-rt-sep"></span>
-            <button type="button" class="mpp-rt-btn" data-act="h3" title="Heading">H3</button>
-            <button type="button" class="mpp-rt-btn" data-act="bullet" title="Bullet List">&bull; List</button>
-            <button type="button" class="mpp-rt-btn" data-act="callout" title="High-Yield Callout Box">💡 Box</button>
-            <button type="button" class="mpp-rt-btn" data-act="table" title="Insert 2-Column Table">⊞ Table</button>
-            <span class="mpp-rt-sep"></span>
-            <button type="button" class="mpp-rt-btn primary" data-act="media" title="Search & Upload Images / Galleries">🖼️ Media</button>
-            <button type="button" class="mpp-rt-btn" data-act="preview" title="Toggle Live Preview">👁️ Preview</button>
+        if (cleanAnchor.length >= 6) {
+            // Try matching trailing 40, 28, or 16 chars allowing Markdown formatting chars (*, _, `, =) in between
+            const lens = [42, 28, 18, 12];
+            for (const len of lens) {
+                const sub = cleanAnchor.slice(-len).trim();
+                if (sub.length < 5) continue;
+                const tokens = sub.split(/\s+/).filter(Boolean).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+                const pattern = tokens.join("[\\s*_`=~<>\\/a-zA-Z0-9#\"';:-]{0,18}?");
+                try {
+                    const re = new RegExp(pattern, "i");
+                    const m = md.match(re);
+                    if (m && m.index !== undefined) {
+                        const insertAt = m.index + m[0].length;
+                        textarea.value = md.slice(0, insertAt) + " " + token + md.slice(insertAt);
+                        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                        return true;
+                    }
+                } catch (_) {}
+            }
+        }
+
+        // Fallback: append at cursor or end
+        const pos = textarea.selectionEnd ?? md.length;
+        textarea.value = md.slice(0, pos) + (pos > 0 ? " " : "") + token + md.slice(pos);
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+    }
+
+    function domToMarkdown(rootEl) {
+        function walk(node, listDepth = 0) {
+            if (!node) return "";
+            if (node.nodeType === 3) return node.nodeValue || "";
+            if (node.nodeType !== 1) return "";
+
+            const el = node;
+            if (el.classList?.contains("mpp-media-drawer") || el.classList?.contains("mpp-ve-dock")) return "";
+            if (el.classList?.contains("mpp-media-pill")) {
+                return ` ${el.dataset.mppMediaRaw || ""} `;
+            }
+
+            const tag = el.tagName.toLowerCase();
+            if (tag === "br") return "\n";
+            if (tag === "hr") return "\n---\n";
+            if (tag === "img") return `![${el.alt || "image"}](${el.src})`;
+
+            const inner = () => [...el.childNodes].map(c => walk(c, listDepth)).join("");
+
+            if (/^h[1-6]$/.test(tag)) {
+                const lvl = Number(tag[1]);
+                return `\n${"#".repeat(lvl)} ${inner().trim()}\n\n`;
+            }
+            if (tag === "strong" || tag === "b") {
+                const t = inner();
+                return t.trim() ? `**${t}**` : "";
+            }
+            if (tag === "em" || tag === "i") {
+                const t = inner();
+                return t.trim() ? `*${t}*` : "";
+            }
+            if (tag === "u") return `<u>${inner()}</u>`;
+            if (tag === "s" || tag === "strike" || tag === "del") return `~~${inner()}~~`;
+            if (tag === "sup") return `<sup>${inner()}</sup>`;
+            if (tag === "sub") return `<sub>${inner()}</sub>`;
+            if (tag === "mark") {
+                const c = el.dataset.mppHl || ([...el.classList].find(x => x.startsWith("mpp-hl-")) || "mpp-hl-yellow").replace("mpp-hl-", "");
+                const content = inner();
+                // Use clean ==syntax== if plain text, or keep <mark> if nested HTML exists
+                if (!/[<>]/.test(content) && !content.includes("\n")) {
+                    return c === "yellow" ? `==${content}==` : `==${c}:${content}==`;
+                }
+                return `<mark class="mpp-hl mpp-hl-${c}" data-mpp-hl="${c}">${content}</mark>`;
+            }
+            if (tag === "span" || tag === "font") {
+                const styleParts = [];
+                const col = el.style?.color || el.getAttribute("color");
+                const fs = el.style?.fontSize;
+                const bg = el.style?.backgroundColor;
+                if (col) styleParts.push(`color:${col}`);
+                if (fs) styleParts.push(`font-size:${fs}`);
+                if (bg && bg !== "transparent") styleParts.push(`background:${bg};padding:1px 4px;border-radius:4px`);
+                const content = inner();
+                if (!content) return "";
+                return styleParts.length ? `<span style="${styleParts.join(";")}">${content}</span>` : content;
+            }
+            if (tag === "a") {
+                return `[${inner().trim()}](${el.getAttribute("href") || ""})`;
+            }
+            if (tag === "ul") {
+                const indent = "  ".repeat(listDepth);
+                const lines = [...el.children].filter(c => c.tagName.toLowerCase() === "li").map(li => {
+                    return `${indent}- ${walk(li, listDepth + 1).trim()}`;
+                });
+                return `\n${lines.join("\n")}\n`;
+            }
+            if (tag === "ol") {
+                const indent = "  ".repeat(listDepth);
+                const lines = [...el.children].filter(c => c.tagName.toLowerCase() === "li").map((li, i) => {
+                    return `${indent}${i + 1}. ${walk(li, listDepth + 1).trim()}`;
+                });
+                return `\n${lines.join("\n")}\n`;
+            }
+            if (tag === "li") return inner();
+            if (tag === "blockquote") {
+                return "\n" + inner().trim().split("\n").map(l => `> ${l}`).join("\n") + "\n\n";
+            }
+            if (tag === "div" && el.classList.contains("mpp-callout-box")) {
+                return `\n<div class="mpp-callout-box">${inner().trim()}</div>\n\n`;
+            }
+            if (tag === "table") {
+                const rows = [...el.querySelectorAll("tr")];
+                if (!rows.length) return "";
+                const mdRows = rows.map(r => "| " + [...r.children].map(c => walk(c).replace(/\n+/g, " ").trim()).join(" | ") + " |");
+                if (mdRows.length >= 1) {
+                    const colCount = rows[0].children.length || 1;
+                    mdRows.splice(1, 0, "| " + Array(colCount).fill(":---").join(" | ") + " |");
+                }
+                return `\n${mdRows.join("\n")}\n\n`;
+            }
+            if (tag === "p" || tag === "div") {
+                const t = inner().trim();
+                return t ? `${t}\n\n` : "";
+            }
+            return inner();
+        }
+
+        return walk(rootEl)
+            .replace(/\n{3,}/g, "\n\n")
+            .replace(/[ \t]+\n/g, "\n")
+            .trim();
+    }
+
+    // ========================================================================
+    // 6. DIRECT VISUAL TEXT EDITING INSIDE LIVE STUDENT PREVIEW (Pages 3 & 4)
+    // ========================================================================
+    let _activeVisualEditor = null;
+
+    function stopVisualEditing(syncFirst = true) {
+        if (!_activeVisualEditor) return;
+        const { preview, textarea, dock, pubBtn, pubGuard } = _activeVisualEditor;
+        if (syncFirst && preview && textarea) {
+            const md = domToMarkdown(preview);
+            if (md) textarea.value = md;
+        }
+        if (preview) {
+            preview.contentEditable = "false";
+            preview.classList.remove("mpp-ve-active");
+        }
+        dock?.remove();
+        if (pubBtn && pubGuard) pubBtn.removeEventListener("click", pubGuard, true);
+        _activeVisualEditor = null;
+        if (syncFirst && textarea) {
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            toast("Visual edits synced to Markdown Editor! Tap Publish Answer to save.", "#059669");
+        }
+    }
+
+    function applyInlineSpanWrapper(previewEl, createWrapperFn) {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount || sel.isCollapsed) {
+            toast("Select some text in the preview first.", "#d97706");
+            return false;
+        }
+        const range = sel.getRangeAt(0);
+        if (!previewEl.contains(range.commonAncestorContainer)) return false;
+
+        const wrapper = createWrapperFn();
+        try {
+            range.surroundContents(wrapper);
+        } catch (_) {
+            const frag = range.extractContents();
+            wrapper.appendChild(frag);
+            range.insertNode(wrapper);
+        }
+        sel.removeAllRanges();
+        const nextR = document.createRange();
+        nextR.selectNodeContents(wrapper);
+        sel.addRange(nextR);
+        return true;
+    }
+
+    function enableVisualEditingInPreview(ctx) {
+        if (!ctx?.preview || !ctx?.textarea) {
+            toast("Could not locate Live Preview & Markdown Editor pair.", "#dc2626");
+            return;
+        }
+        if (_activeVisualEditor?.preview === ctx.preview) return;
+        if (_activeVisualEditor) stopVisualEditing(true);
+
+        const { preview, textarea, publishBtn } = ctx;
+        // Close any open media drawers while editing text
+        preview.querySelectorAll(".mpp-media-drawer").forEach(d => d.remove());
+        preview.querySelectorAll(".mpp-media-pill.open").forEach(p => p.classList.remove("open"));
+
+        preview.contentEditable = "true";
+        preview.classList.add("mpp-ve-active");
+
+        const dock = document.createElement("div");
+        dock.className = "mpp-ve-dock";
+        dock.innerHTML = `
+            <span style="font-size:11px;font-weight:800;color:#0284c7;margin-right:4px;">✏️ Visual Edit</span>
+            <button type="button" class="mpp-ve-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button type="button" class="mpp-ve-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button type="button" class="mpp-ve-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+            <button type="button" class="mpp-ve-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+            <span class="mpp-ve-sep"></span>
+            <button type="button" class="mpp-ve-btn" data-hl="yellow" title="Yellow Highlight"><span class="mpp-ve-sw" style="background:#fef08a;"></span></button>
+            <button type="button" class="mpp-ve-btn" data-hl="green" title="Green Highlight"><span class="mpp-ve-sw" style="background:#bbf7d0;"></span></button>
+            <button type="button" class="mpp-ve-btn" data-hl="pink" title="Pink Highlight"><span class="mpp-ve-sw" style="background:#fbcfe8;"></span></button>
+            <button type="button" class="mpp-ve-btn" data-hl="blue" title="Blue Highlight"><span class="mpp-ve-sw" style="background:#bae6fd;"></span></button>
+            <button type="button" class="mpp-ve-btn" data-hl="orange" title="Orange Highlight"><span class="mpp-ve-sw" style="background:#fed7aa;"></span></button>
+            <span class="mpp-ve-sep"></span>
+            <select class="mpp-ve-select" data-fontsize title="Font Size">
+                <option value="">Size</option>
+                <option value="12px">12px (Small)</option>
+                <option value="14px">14px (Normal)</option>
+                <option value="16px">16px (Medium)</option>
+                <option value="18px">18px (Large)</option>
+                <option value="22px">22px (XL)</option>
+            </select>
+            <select class="mpp-ve-select" data-textcolor title="Text Color">
+                <option value="">Color</option>
+                <option value="#dc2626">Red</option>
+                <option value="#2563eb">Blue</option>
+                <option value="#059669">Green</option>
+                <option value="#7c3aed">Purple</option>
+                <option value="#d97706">Orange</option>
+            </select>
+            <span class="mpp-ve-sep"></span>
+            <button type="button" class="mpp-ve-btn" data-block="H3" title="Heading">H3</button>
+            <button type="button" class="mpp-ve-btn" data-cmd="insertUnorderedList" title="Bullet List">&bull; List</button>
+            <button type="button" class="mpp-ve-btn" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+            <button type="button" class="mpp-ve-btn" data-act="callout" title="High-Yield Callout">💡</button>
+            <button type="button" class="mpp-ve-btn" data-cmd="removeFormat" title="Clear Format">🧹</button>
+            <button type="button" class="mpp-ve-btn" data-cmd="undo" title="Undo">↩️</button>
+            <button type="button" class="mpp-ve-btn" data-cmd="redo" title="Redo">↪️</button>
+            <span class="mpp-ve-sep"></span>
+            <button type="button" class="mpp-ve-btn primary" data-act="add-media">🖼️ + Media</button>
+            <button type="button" class="mpp-ve-btn success" data-act="done">✅ Done &amp; Sync</button>
         `;
 
-        const preview = document.createElement("div");
-        preview.className = "mpp-rt-preview";
+        preview.parentNode.insertBefore(dock, preview);
 
-        ta.parentNode.insertBefore(bar, ta);
-        ta.parentNode.insertBefore(preview, ta);
-
-        const updatePreview = () => {
-            preview.innerHTML = parseMiniMarkdownForPreview(ta.value);
-            enhanceRenderedElement(preview);
-            if (typeof window.renderMathInElement === "function") {
-                try { window.renderMathInElement(preview, { throwOnError: false }); } catch (_) {}
-            }
+        const syncQuietly = () => {
+            const md = domToMarkdown(preview);
+            if (md) textarea.value = md;
         };
 
-        bar.addEventListener("click", (e) => {
+        // Keep selection intact when tapping formatting buttons on mobile/desktop
+        dock.addEventListener("mousedown", (e) => {
+            if (e.target.tagName !== "SELECT") e.preventDefault();
+        });
+
+        dock.addEventListener("click", (e) => {
             const btn = e.target.closest("button");
             if (!btn) return;
-            e.preventDefault();
 
+            if (btn.dataset.cmd) {
+                document.execCommand(btn.dataset.cmd, false, null);
+                syncQuietly();
+                return;
+            }
+            if (btn.dataset.block) {
+                document.execCommand("formatBlock", false, btn.dataset.block);
+                syncQuietly();
+                return;
+            }
             if (btn.dataset.hl) {
                 const c = btn.dataset.hl;
-                insertAtCursor(ta, c === "yellow" ? "==" : `==${c}:`, "==", "highlighted point");
+                const ok = applyInlineSpanWrapper(preview, () => {
+                    const mk = document.createElement("mark");
+                    mk.className = `mpp-hl mpp-hl-${c}`;
+                    mk.dataset.mppHl = c;
+                    return mk;
+                });
+                if (ok) syncQuietly();
                 return;
             }
-            if (btn.dataset.color) {
-                insertAtCursor(ta, `<span style="color:${btn.dataset.color};font-weight:700;">`, "</span>", "colored text");
-                return;
-            }
-
-            switch (btn.dataset.act) {
-                case "bold":      insertAtCursor(ta, "**", "**", "bold text"); break;
-                case "italic":    insertAtCursor(ta, "*", "*", "italic text"); break;
-                case "underline": insertAtCursor(ta, "<u>", "</u>", "underlined text"); break;
-                case "strike":    insertAtCursor(ta, "~~", "~~", "struck text"); break;
-                case "h3":        insertAtCursor(ta, "\n### ", "\n", "Heading"); break;
-                case "bullet":    insertAtCursor(ta, "\n- ", "", "Key point"); break;
-                case "callout":   insertAtCursor(ta, "\n> **High-Yield Pearl:** ", "\n", "Important exam point"); break;
-                case "table":     insertAtCursor(ta, "\n| Feature | Condition A | Condition B |\n| :--- | :--- | :--- |\n| Key Point | Detail 1 | Detail 2 |\n", ""); break;
-                case "media":     openMediaHub(ta); break;
-                case "preview": {
-                    const showing = preview.style.display === "block";
-                    if (showing) {
-                        preview.style.display = "none";
-                        ta.style.display = "";
-                        btn.classList.remove("active");
-                    } else {
-                        updatePreview();
-                        preview.style.display = "block";
-                        ta.style.display = "none";
-                        btn.classList.add("active");
-                    }
-                    break;
+            if (btn.dataset.act === "callout") {
+                const box = document.createElement("div");
+                box.className = "mpp-callout-box";
+                box.innerHTML = "<strong>High-Yield Pearl:</strong> Type key exam point here...";
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount && preview.contains(sel.anchorNode)) {
+                    const r = sel.getRangeAt(0);
+                    r.collapse(false);
+                    r.insertNode(box);
+                } else {
+                    preview.appendChild(box);
                 }
+                syncQuietly();
+                return;
+            }
+            if (btn.dataset.act === "add-media") {
+                const sel = window.getSelection();
+                const savedRange = (sel && sel.rangeCount && preview.contains(sel.anchorNode)) ? sel.getRangeAt(0).cloneRange() : null;
+                openMediaPickerModal({
+                    ctx,
+                    onInsertCustom(spec) {
+                        const pill = createInlineMediaPill(spec, spec.rawTag);
+                        if (savedRange) {
+                            savedRange.collapse(false);
+                            savedRange.insertNode(document.createTextNode(" "));
+                            savedRange.insertNode(pill);
+                        } else {
+                            preview.appendChild(pill);
+                        }
+                        syncQuietly();
+                    }
+                });
+                return;
+            }
+            if (btn.dataset.act === "done") {
+                stopVisualEditing(true);
             }
         });
 
-        // Keyboard shortcuts: Ctrl+B, Ctrl+I, Ctrl+H
-        ta.addEventListener("keydown", (e) => {
-            if (!(e.ctrlKey || e.metaKey)) return;
-            const k = e.key.toLowerCase();
-            if (k === "b") { e.preventDefault(); insertAtCursor(ta, "**", "**", "bold"); }
-            else if (k === "i") { e.preventDefault(); insertAtCursor(ta, "*", "*", "italic"); }
-            else if (k === "h") { e.preventDefault(); insertAtCursor(ta, "==", "==", "highlight"); }
-        });
-    }
-
-    // ------------------------------------------------------------------------
-    // 5. 3-TAB MEDIA HUB (Serper Google + Wikimedia + GitHub WebP Uploader)
-    // ------------------------------------------------------------------------
-    let activeTargetTextarea = null;
-    let galleryBasket = [];
-
-    function buildGitHubUrl(cfg, path) {
-        const cleanPath = path.replace(/^\/+/, "");
-        if (cfg.urlMode === "raw") {
-            return `https://raw.githubusercontent.com/${cfg.ghOwner}/${cfg.ghRepo}/${cfg.ghBranch}/${cleanPath}`;
-        }
-        return `https://cdn.jsdelivr.net/gh/${cfg.ghOwner}/${cfg.ghRepo}@${cfg.ghBranch}/${cleanPath}`;
-    }
-
-    async function compressBlobToWebP(blob, maxDim = 1400, quality = 0.82) {
-        const imgUrl = URL.createObjectURL(blob);
-        try {
-            const img = await new Promise((res, rej) => {
-                const el = new Image();
-                el.onload = () => res(el);
-                el.onerror = rej;
-                el.src = imgUrl;
+        dock.querySelector("[data-fontsize]")?.addEventListener("change", (e) => {
+            const sz = e.target.value;
+            e.target.value = "";
+            if (!sz) return;
+            const ok = applyInlineSpanWrapper(preview, () => {
+                const sp = document.createElement("span");
+                sp.style.fontSize = sz;
+                return sp;
             });
+            if (ok) syncQuietly();
+        });
+
+        dock.querySelector("[data-textcolor]")?.addEventListener("change", (e) => {
+            const col = e.target.value;
+            e.target.value = "";
+            if (!col) return;
+            const ok = applyInlineSpanWrapper(preview, () => {
+                const sp = document.createElement("span");
+                sp.style.color = col;
+                sp.style.fontWeight = "700";
+                return sp;
+            });
+            if (ok) syncQuietly();
+        });
+
+        // Debounced quiet sync on typing
+        let t = null;
+        preview.addEventListener("input", () => {
+            if (_activeVisualEditor?.preview !== preview) return;
+            clearTimeout(t);
+            t = setTimeout(syncQuietly, 350);
+        });
+
+        // Capture-phase guard on PUBLISH ANSWER so edits NEVER get lost even if admin forgets "Done & Sync"
+        const pubGuard = () => {
+            if (_activeVisualEditor?.preview === preview) {
+                syncQuietly();
+                stopVisualEditing(false);
+            }
+        };
+        if (publishBtn) publishBtn.addEventListener("click", pubGuard, true);
+
+        _activeVisualEditor = { preview, textarea, dock, pubBtn: publishBtn, pubGuard };
+        preview.focus();
+        toast("Direct editing enabled! Tap text to edit or select words to highlight/style.", "#0284c7");
+    }
+
+    // ========================================================================
+    // 7. MEDIA SEARCH & MULTI-SELECT PICKER MODAL (Pages 1 & 2)
+    // ========================================================================
+    async function compressToWebP(blob, maxDim = 1400, quality = 0.82) {
+        const u = URL.createObjectURL(blob);
+        try {
+            const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
             let w = img.naturalWidth, h = img.naturalHeight;
             if (w > maxDim || h > maxDim) {
-                const ratio = Math.min(maxDim / w, maxDim / h);
-                w = Math.round(w * ratio);
-                h = Math.round(h * ratio);
+                const r = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * r); h = Math.round(h * r);
             }
-            const canvas = document.createElement("canvas");
-            canvas.width = w; canvas.height = h;
-            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-
-            const webpBlob = await new Promise(res => canvas.toBlob(res, "image/webp", quality));
-            const finalBlob = webpBlob || blob;
-            const dataUrl = await new Promise((res, rej) => {
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            c.getContext("2d").drawImage(img, 0, 0, w, h);
+            const webp = await new Promise(res => c.toBlob(res, "image/webp", quality));
+            const outBlob = webp || blob;
+            const b64 = await new Promise((res, rej) => {
                 const fr = new FileReader();
-                fr.onload = () => res(fr.result);
+                fr.onload = () => res(String(fr.result).split(",")[1]);
                 fr.onerror = rej;
-                fr.readAsDataURL(finalBlob);
+                fr.readAsDataURL(outBlob);
             });
-            return {
-                base64: String(dataUrl).split(",")[1],
-                ext: webpBlob ? "webp" : "jpg",
-                sizeKB: Math.round(finalBlob.size / 1024),
-                dims: `${w}x${h}`
-            };
-        } finally {
-            URL.revokeObjectURL(imgUrl);
-        }
+            return { b64, ext: webp ? "webp" : "jpg", kb: Math.round(outBlob.size / 1024) };
+        } finally { URL.revokeObjectURL(u); }
     }
 
-    async function uploadBlobToGitHub(blob, baseName = "med_img") {
+    async function uploadBlobToGitHub(blob, name = "med") {
         const cfg = loadCfg();
         if (!cfg.ghToken || !cfg.ghOwner || !cfg.ghRepo) {
-            throw new Error("Configure GitHub Owner, Repo & Token in the ⚙️ Setup tab first.");
+            throw new Error("Configure GitHub Repo & Token in the ⚙️ Keys tab first.");
         }
-        const comp = await compressBlobToWebP(blob);
-        const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 36) || "med";
+        const comp = await compressToWebP(blob);
+        const safe = name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 32) || "med";
         const folder = (cfg.ghFolder || "assets/media").replace(/^\/+|\/+$/g, "");
-        const filePath = `${folder}/${safeName}_${Date.now()}.${comp.ext}`;
-
-        const resp = await fetch(`https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/contents/${filePath}`, {
+        const path = `${folder}/${safe}_${Date.now()}.${comp.ext}`;
+        const r = await fetch(`https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/contents/${path}`, {
             method: "PUT",
             headers: {
                 "Authorization": `Bearer ${cfg.ghToken}`,
                 "Accept": "application/vnd.github+json",
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                message: `Upload ${filePath} via MBBS Profs Prep Media Hub`,
-                content: comp.base64,
-                branch: cfg.ghBranch || "main"
-            })
+            body: JSON.stringify({ message: `Upload ${path}`, content: comp.b64, branch: cfg.ghBranch || "main" })
         });
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.message || `GitHub upload failed (${resp.status})`);
-        }
-        return { url: buildGitHubUrl(cfg, filePath), sizeKB: comp.sizeKB, dims: comp.dims };
+        if (!r.ok) throw new Error(`GitHub upload failed (${r.status})`);
+        const url = cfg.urlMode === "raw"
+            ? `https://raw.githubusercontent.com/${cfg.ghOwner}/${cfg.ghRepo}/${cfg.ghBranch}/${path}`
+            : `https://cdn.jsdelivr.net/gh/${cfg.ghOwner}/${cfg.ghRepo}@${cfg.ghBranch}/${path}`;
+        return { url, kb: comp.kb };
     }
 
-    async function searchSerper(query) {
-        const cfg = loadCfg();
-        if (!cfg.serperKey) throw new Error("Add your Serper API key in the ⚙️ Setup tab (or use the free Wikimedia tab).");
-        const res = await fetch("https://google.serper.dev/images", {
-            method: "POST",
-            headers: { "X-API-KEY": cfg.serperKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ q: query, num: 20 })
-        });
-        if (!res.ok) throw new Error(`Serper search error (${res.status})`);
+    async function searchWikimedia(query, limit = 10) {
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=${limit}&gsrsearch=${encodeURIComponent(query)}&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=400&format=json&origin=*`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Wikimedia search failed.");
         const data = await res.json();
-        return (data.images || []).map(x => ({
-            title: x.title || "Medical Image",
-            url: x.imageUrl,
-            thumb: x.thumbnailUrl || x.imageUrl,
-            dim: x.imageWidth && x.imageHeight ? `${x.imageWidth}x${x.imageHeight}` : ""
-        })).filter(x => x.url);
-    }
-
-    async function searchWikimedia(query) {
-        const endpoint = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(query)}&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=400&format=json&origin=*`;
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error("Wikimedia request failed.");
-        const data = await res.json();
-        const pages = Object.values(data?.query?.pages || {});
-        return pages.map(p => {
+        return Object.values(data?.query?.pages || []).map(p => {
             const info = p.imageinfo?.[0];
             if (!info || !/^image\/(jpeg|png|webp|gif|svg)/i.test(info.mime || "")) return null;
             return {
-                title: (p.title || "").replace(/^File:/i, "").replace(/\.[^.]+$/, ""),
                 url: info.url,
                 thumb: info.thumburl || info.url,
-                dim: info.width && info.height ? `${info.width}x${info.height}` : ""
+                caption: (p.title || "").replace(/^File:/i, "").replace(/\.[^.]+$/, "").replace(/_/g, " ")
             };
         }).filter(Boolean);
     }
 
-    async function listGitHubAssets() {
+    async function searchSerper(query, limit = 10) {
         const cfg = loadCfg();
-        if (!cfg.ghOwner || !cfg.ghRepo) throw new Error("Set GitHub Owner & Repo in ⚙️ Setup first.");
-        const folder = (cfg.ghFolder || "assets/media").replace(/^\/+|\/+$/g, "");
-        const headers = { "Accept": "application/vnd.github+json" };
-        if (cfg.ghToken) headers["Authorization"] = `Bearer ${cfg.ghToken}`;
-        const res = await fetch(`https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/contents/${folder}?ref=${encodeURIComponent(cfg.ghBranch || "main")}`, { headers });
-        if (!res.ok) throw new Error(`Could not list folder "${folder}" (${res.status}).`);
-        const arr = await res.json();
-        if (!Array.isArray(arr)) return [];
-        return arr
-            .filter(f => f.type === "file" && /\.(webp|png|jpe?g|gif|svg)$/i.test(f.name))
-            .reverse()
-            .slice(0, 40)
-            .map(f => ({
-                title: f.name,
-                url: buildGitHubUrl(cfg, f.path),
-                thumb: buildGitHubUrl(cfg, f.path),
-                dim: `${Math.round((f.size || 0) / 1024)} KB`
-            }));
+        if (!cfg.serperKey) throw new Error("Add your Serper API key in ⚙️ Keys (or switch to Free Wikimedia).");
+        const res = await fetch("https://google.serper.dev/images", {
+            method: "POST",
+            headers: { "X-API-KEY": cfg.serperKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ q: query, num: limit })
+        });
+        if (!res.ok) throw new Error(`Serper API error (${res.status})`);
+        const data = await res.json();
+        return (data.images || []).map(x => ({
+            url: x.imageUrl,
+            thumb: x.thumbnailUrl || x.imageUrl,
+            caption: x.title || query
+        })).filter(x => x.url);
     }
 
-    function openMediaHub(targetTextarea = null) {
-        activeTargetTextarea = targetTextarea;
-        galleryBasket = [];
-        document.getElementById("mpp-mh-backdrop")?.remove();
+    function openMediaPickerModal({ ctx, anchorText = "", suggestedQuery = "", replaceToken = null, initialItems = [], initialLabel = "", initialKind = "images", onInsertCustom = null } = {}) {
+        document.getElementById("mpp-media-picker-bg")?.remove();
 
-        let currentTab = "wiki"; // Defaults to free Wikimedia so it works out of the box; switchable to Google/Upload/Setup
-        if (loadCfg().serperKey) currentTab = "serper";
+        const selected = [...initialItems]; // [{ url, caption }]
+        let mediaKind = initialKind || "images";
+        let currentTab = loadCfg().serperKey ? "serper" : "wiki";
+        let lastResults = [];
+        let resultCount = 10;
 
-        const backdrop = document.createElement("div");
-        backdrop.id = "mpp-mh-backdrop";
-        backdrop.innerHTML = `
-            <div id="mpp-mh-card">
-                <div class="mpp-mh-head">
+        const bg = document.createElement("div");
+        bg.id = "mpp-media-picker-bg";
+        bg.className = "mpp-modal-bg";
+        bg.innerHTML = `
+            <div class="mpp-modal-box">
+                <div class="mpp-m-head">
                     <div>
-                        <div style="font-size:16px;font-weight:800;">🖼️ Medical Media Hub</div>
-                        <div style="font-size:11px;opacity:.7;">Search Google / Wikimedia or upload compressed WebP to GitHub CDN</div>
+                        <div style="font-size:15px;font-weight:800;">🎬 Add Image / Audio / Video Here</div>
+                        <div style="font-size:11px;opacity:.7;">Select multiple items — inserted as an inline clickable pill (e.g. <b>See images (3)</b>)</div>
                     </div>
-                    <button type="button" id="mpp-mh-close" style="border:none;background:transparent;color:inherit;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+                    <button type="button" id="mp-close" style="border:none;background:transparent;color:inherit;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
-                <div class="mpp-mh-tabs">
-                    <button type="button" class="mpp-mh-tab" data-tab="serper">🌐 Google Images</button>
-                    <button type="button" class="mpp-mh-tab" data-tab="wiki">📚 Wikimedia (Free)</button>
-                    <button type="button" class="mpp-mh-tab" data-tab="upload">☁️ Upload / Repo</button>
-                    <button type="button" class="mpp-mh-tab" data-tab="setup">⚙️ Setup</button>
+                <div class="mpp-m-tabs">
+                    <button type="button" class="mpp-m-tab" data-tab="wiki">📚 Wikimedia (Free)</button>
+                    <button type="button" class="mpp-m-tab" data-tab="serper">🌐 Google Images</button>
+                    <button type="button" class="mpp-m-tab" data-tab="upload">☁️ Upload WebP</button>
+                    <button type="button" class="mpp-m-tab" data-tab="av">🎵 Audio / 🎥 Video / URL</button>
+                    <button type="button" class="mpp-m-tab" data-tab="keys">⚙️ Keys</button>
                 </div>
-                <div class="mpp-mh-body" id="mpp-mh-body"></div>
-                <div class="mpp-mh-basket" id="mpp-mh-basket"></div>
+                <div class="mpp-m-body" id="mp-body"></div>
+                <div class="mpp-m-foot" id="mp-foot"></div>
             </div>
         `;
-        document.body.appendChild(backdrop);
+        document.body.appendChild(bg);
 
-        const bodyEl = backdrop.querySelector("#mpp-mh-body");
-        const basketEl = backdrop.querySelector("#mpp-mh-basket");
+        const bodyEl = bg.querySelector("#mp-body");
+        const footEl = bg.querySelector("#mp-foot");
+        const close = () => bg.remove();
 
-        const closeHub = () => backdrop.remove();
-        backdrop.querySelector("#mpp-mh-close").addEventListener("click", closeHub);
-        backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeHub(); });
+        bg.querySelector("#mp-close").addEventListener("click", close);
+        bg.addEventListener("click", (e) => { if (e.target === bg) close(); });
 
-        const insertMarkdown = (md) => {
-            if (activeTargetTextarea) {
-                insertAtCursor(activeTargetTextarea, `\n${md}\n`, "");
-                toast("Inserted into editor!", "#059669");
-                closeHub();
-            } else {
-                navigator.clipboard?.writeText(md);
-                toast("Copied Markdown to clipboard!", "#0284c7");
-            }
-        };
-
-        const renderBasket = () => {
-            if (!galleryBasket.length) {
-                basketEl.innerHTML = `<span style="font-size:11px;opacity:.7;">Tip: Click <b>+ Gallery</b> on 2+ images to insert a swipeable carousel.</span>`;
-                return;
-            }
-            basketEl.innerHTML = `
-                <div style="font-size:12px;font-weight:700;">🎞️ Gallery Basket: ${galleryBasket.length} image(s)</div>
-                <div style="display:flex;gap:6px;">
-                    <button type="button" id="mh-clear-gal" class="mpp-rt-btn">Clear</button>
-                    <button type="button" id="mh-ins-gal" class="mpp-rt-btn primary">Insert Carousel [[gallery:...]]</button>
+        const renderFooter = () => {
+            const totalAvail = lastResults.length || selected.length;
+            const defaultLbl = initialLabel || (mediaKind === "audio" ? "Listen audio" : mediaKind === "video" ? "Watch video" : "See images");
+            footEl.innerHTML = `
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:800;color:#0284c7;">Selected (${selected.length}${totalAvail ? "/" + totalAvail : ""})</span>
+                    <input id="mp-pill-label" class="mpp-m-input" style="padding:5px 9px;font-size:12px;width:155px;" value="${esc(defaultLbl)}" placeholder="Pill label..." />
+                    ${selected.length ? `<button type="button" id="mp-clear-sel" class="mpp-ve-btn">Clear</button>` : ""}
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button type="button" id="mp-commit-btn" class="mpp-ve-btn primary" style="padding:8px 14px;font-size:12.5px;" ${selected.length ? "" : "disabled"}>
+                        ✅ Add ${selected.length || ""} to Explanation
+                    </button>
                 </div>
             `;
-            basketEl.querySelector("#mh-clear-gal").addEventListener("click", () => { galleryBasket = []; renderBasket(); });
-            basketEl.querySelector("#mh-ins-gal").addEventListener("click", () => {
-                const spec = galleryBasket.map(x => `${x.url}|${(x.caption || "").replace(/[|;]/g, " ").slice(0, 60)}`).join(";;");
-                insertMarkdown(`[[gallery:${spec}]]`);
+            footEl.querySelector("#mp-clear-sel")?.addEventListener("click", () => {
+                selected.length = 0;
+                renderFooter();
+                renderSearchGrid();
+            });
+            footEl.querySelector("#mp-commit-btn")?.addEventListener("click", () => {
+                if (!selected.length) return;
+                const lbl = (footEl.querySelector("#mp-pill-label")?.value || defaultLbl).replace(/[|;^]/g, " ").trim();
+                const rawTag = `[[media:${mediaKind}|${lbl}|${selected.map(s => `${s.url}${s.caption ? "^" + s.caption.replace(/[|;^[\]]/g, " ").slice(0, 75) : ""}`).join(";;")}]]`;
+                const spec = { kind: mediaKind, label: lbl, items: [...selected], rawTag };
+
+                if (typeof onInsertCustom === "function") {
+                    onInsertCustom(spec);
+                } else if (ctx?.textarea) {
+                    if (replaceToken && ctx.textarea.value.includes(replaceToken)) {
+                        ctx.textarea.value = ctx.textarea.value.replace(replaceToken, rawTag);
+                        ctx.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                    } else {
+                        insertTokenNearPhrase(ctx.textarea, anchorText, rawTag);
+                    }
+                }
+                close();
+                toast(`Added "${lbl} (${selected.length})"! Tap Publish Answer to save.`, "#059669");
             });
         };
 
-        const renderGridResults = (container, items, allowClone = false) => {
-            if (!items.length) {
-                container.innerHTML = `<div style="text-align:center;padding:30px;opacity:.65;font-size:13px;">No images found. Try a broader medical keyword.</div>`;
-                return;
-            }
-            container.innerHTML = `<div class="mpp-mh-grid">${items.map((it, i) => `
-                <div class="mpp-mh-item">
-                    <div class="mpp-mh-thumb">
-                        <img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy" data-lb="${i}" />
-                        ${it.dim ? `<span class="mpp-mh-dim">${esc(it.dim)}</span>` : ""}
-                    </div>
-                    <div class="mpp-mh-meta">
-                        <div class="mpp-mh-title" title="${esc(it.title)}">${esc(it.title)}</div>
-                        <div class="mpp-mh-actions">
-                            <button type="button" class="mpp-mh-btn ins" data-ins="${i}">Insert</button>
-                            ${allowClone ? `<button type="button" class="mpp-mh-btn gh" data-clone="${i}" title="Save WebP to your GitHub">☁️ Save</button>` : ""}
-                            <button type="button" class="mpp-mh-btn gal" data-gal="${i}">+ Gal</button>
+        const renderSearchGrid = () => {
+            const gridHost = bodyEl.querySelector("#mp-grid-host");
+            if (!gridHost) return;
+            if (!lastResults.length) return;
+            gridHost.innerHTML = `<div class="mpp-img-grid">${lastResults.map((it, idx) => {
+                const selPos = selected.findIndex(s => s.url === it.url);
+                const isSel = selPos !== -1;
+                return `
+                    <div class="mpp-img-card ${isSel ? "selected" : ""}" data-ri="${idx}">
+                        <div class="mpp-img-wrap">
+                            <img src="${esc(it.thumb)}" alt="${esc(it.caption)}" loading="lazy" />
+                            <span class="mpp-img-num">${isSel ? `✓${selPos + 1}` : idx + 1}</span>
+                            <button type="button" class="mpp-img-zoom" data-zi="${idx}" title="Preview">🔍</button>
                         </div>
+                        <div class="mpp-img-cap">${esc(it.caption)}</div>
                     </div>
-                </div>
-            `).join("")}</div>`;
+                `;
+            }).join("")}</div>`;
 
-            container.querySelectorAll("[data-lb]").forEach(el => {
-                el.addEventListener("click", () => { const it = items[Number(el.dataset.lb)]; openLightbox(it.url, it.title); });
-            });
-            container.querySelectorAll("[data-ins]").forEach(el => {
-                el.addEventListener("click", () => {
-                    const it = items[Number(el.dataset.ins)];
-                    insertMarkdown(`![${it.title.replace(/[\[\]]/g, "").slice(0, 70)}](${it.url})`);
-                });
-            });
-            container.querySelectorAll("[data-gal]").forEach(el => {
-                el.addEventListener("click", () => {
-                    const it = items[Number(el.dataset.gal)];
-                    galleryBasket.push({ url: it.url, caption: it.title });
-                    renderBasket();
-                    toast(`Added to Gallery (${galleryBasket.length})`, "#7c3aed");
-                });
-            });
-            container.querySelectorAll("[data-clone]").forEach(el => {
-                el.addEventListener("click", async () => {
-                    const it = items[Number(el.dataset.clone)];
-                    el.disabled = true; el.textContent = "...";
-                    try {
-                        const r = await fetch(it.url);
-                        if (!r.ok) throw new Error("Blocked by remote server");
-                        const blob = await r.blob();
-                        const up = await uploadBlobToGitHub(blob, it.title);
-                        insertMarkdown(`![${it.title.replace(/[\[\]]/g, "").slice(0, 70)}](${up.url})`);
-                    } catch (err) {
-                        toast(`Clone blocked (${err.message}). Use Insert directly instead.`, "#d97706");
-                        el.disabled = false; el.textContent = "☁️ Save";
+            gridHost.querySelectorAll(".mpp-img-card").forEach(card => {
+                card.addEventListener("click", (e) => {
+                    if (e.target.closest("[data-zi]")) return;
+                    const item = lastResults[Number(card.dataset.ri)];
+                    const pos = selected.findIndex(s => s.url === item.url);
+                    if (pos !== -1) selected.splice(pos, 1);
+                    else {
+                        mediaKind = "images";
+                        selected.push({ url: item.url, caption: item.caption });
                     }
+                    renderSearchGrid();
+                    renderFooter();
+                });
+            });
+            gridHost.querySelectorAll("[data-zi]").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const item = lastResults[Number(btn.dataset.zi)];
+                    openLightbox(item.url, item.caption);
                 });
             });
         };
 
         const renderTab = () => {
-            backdrop.querySelectorAll(".mpp-mh-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === currentTab));
+            bg.querySelectorAll(".mpp-m-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === currentTab));
 
-            if (currentTab === "serper" || currentTab === "wiki") {
-                const isSerper = currentTab === "serper";
+            if (currentTab === "wiki" || currentTab === "serper") {
+                const isSerp = currentTab === "serper";
                 bodyEl.innerHTML = `
-                    <form id="mh-search-form" style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <input id="mh-q" class="mpp-mh-input" style="flex:1;min-width:200px;" placeholder="${isSerper ? "Search Google Images (e.g. tetralogy of fallot chest xray)" : "Search Wikimedia Medical Diagrams (e.g. nephron diagram, ECG STEMI)"}" required />
-                        <button type="submit" class="mpp-rt-btn primary" style="padding:8px 16px;font-size:13px;">Search</button>
+                    <form id="mp-search-form" style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input id="mp-q" class="mpp-m-input" style="flex:1;min-width:190px;" value="${esc(suggestedQuery)}" placeholder="${isSerp ? "e.g. Wessely ring corneal ulcer" : "e.g. Wessely ring, hypopyon, fungal keratitis"}" required />
+                        <select id="mp-cnt" class="mpp-m-input" style="width:95px;">
+                            <option value="10" ${resultCount === 10 ? "selected" : ""}>10 imgs</option>
+                            <option value="15" ${resultCount === 15 ? "selected" : ""}>15 imgs</option>
+                            <option value="20" ${resultCount === 20 ? "selected" : ""}>20 imgs</option>
+                        </select>
+                        <button type="submit" class="mpp-ve-btn primary" style="padding:8px 16px;font-size:13px;">Search</button>
                     </form>
-                    <div id="mh-results" style="margin-top:10px;font-size:12px;opacity:.75;">Enter a medical topic above to search high-yield diagrams &amp; clinical images.</div>
+                    <div id="mp-grid-host" style="margin-top:10px;font-size:12px;opacity:.75;">Type a clinical term and tap images to multi-select (e.g. image 4, 6, 10).</div>
                 `;
-                bodyEl.querySelector("#mh-search-form").addEventListener("submit", async (e) => {
+                bodyEl.querySelector("#mp-cnt").addEventListener("change", (e) => { resultCount = Number(e.target.value); });
+                bodyEl.querySelector("#mp-search-form").addEventListener("submit", async (e) => {
                     e.preventDefault();
-                    const q = bodyEl.querySelector("#mh-q").value.trim();
-                    const resBox = bodyEl.querySelector("#mh-results");
-                    resBox.innerHTML = `<div style="text-align:center;padding:24px;font-weight:700;">Searching...</div>`;
+                    const q = bodyEl.querySelector("#mp-q").value.trim();
+                    suggestedQuery = q;
+                    const host = bodyEl.querySelector("#mp-grid-host");
+                    host.innerHTML = `<div style="text-align:center;padding:24px;font-weight:700;">Searching ${resultCount} images for "${esc(q)}"...</div>`;
                     try {
-                        const items = isSerper ? await searchSerper(q) : await searchWikimedia(q);
-                        renderGridResults(resBox, items, true);
+                        lastResults = isSerp ? await searchSerper(q, resultCount) : await searchWikimedia(q, resultCount);
+                        if (!lastResults.length) {
+                            host.innerHTML = `<div style="text-align:center;padding:24px;opacity:.7;">No images found. Try a broader medical keyword.</div>`;
+                        } else {
+                            renderSearchGrid();
+                        }
+                        renderFooter();
                     } catch (err) {
-                        resBox.innerHTML = `<div style="padding:14px;border-radius:10px;background:rgba(220,38,38,0.12);color:#dc2626;font-weight:700;">${esc(err.message)}</div>`;
+                        host.innerHTML = `<div style="padding:12px;border-radius:10px;background:rgba(220,38,38,0.12);color:#dc2626;font-weight:700;">${esc(err.message)}</div>`;
                     }
                 });
-                setTimeout(() => bodyEl.querySelector("#mh-q")?.focus(), 40);
+                if (lastResults.length) renderSearchGrid();
+                setTimeout(() => bodyEl.querySelector("#mp-q")?.focus(), 40);
                 return;
             }
 
             if (currentTab === "upload") {
                 bodyEl.innerHTML = `
-                    <div id="mh-drop" class="mpp-mh-drop">
-                        <div style="font-size:26px;margin-bottom:4px;">📤</div>
-                        <div style="font-weight:800;font-size:14px;">Click to Upload, Drag &amp; Drop, or Press Ctrl+V to Paste Screenshot</div>
-                        <div style="font-size:11px;opacity:.7;margin-top:4px;">Auto-compresses to fast WebP (max 1400px) &amp; uploads to GitHub jsDelivr CDN</div>
-                        <input id="mh-file-input" type="file" accept="image/*" multiple style="display:none;" />
+                    <div id="mp-drop" style="border:2px dashed #38bdf8;border-radius:12px;padding:26px 14px;text-align:center;cursor:pointer;background:rgba(14,165,233,0.06);">
+                        <div style="font-size:26px;">📤</div>
+                        <div style="font-weight:800;font-size:14px;margin-top:4px;">Tap to Select Multiple Images or Press Ctrl+V to Paste</div>
+                        <div style="font-size:11px;opacity:.7;margin-top:4px;">Auto-compresses to WebP &amp; uploads to GitHub jsDelivr CDN</div>
+                        <input id="mp-files" type="file" accept="image/*" multiple style="display:none;" />
                     </div>
-                    <div id="mh-up-status" style="margin-top:10px;font-size:12px;font-weight:700;"></div>
-                    <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
-                        <span style="font-size:12px;font-weight:800;">Recent Repo Images</span>
-                        <button type="button" id="mh-load-repo" class="mpp-rt-btn">🔄 Load Repo Folder</button>
-                    </div>
-                    <div id="mh-repo-grid"></div>
+                    <div id="mp-up-log" style="margin-top:10px;font-size:12px;font-weight:700;"></div>
                 `;
-
-                const fileInput = bodyEl.querySelector("#mh-file-input");
-                const drop = bodyEl.querySelector("#mh-drop");
-                const statusEl = bodyEl.querySelector("#mh-up-status");
-
-                const handleFiles = async (fileList) => {
-                    const files = [...fileList].filter(f => f.type.startsWith("image/"));
-                    if (!files.length) return;
-                    statusEl.textContent = `Compressing & uploading ${files.length} image(s)...`;
+                const fi = bodyEl.querySelector("#mp-files");
+                const log = bodyEl.querySelector("#mp-up-log");
+                const runUpload = async (files) => {
+                    const imgs = [...files].filter(f => f.type.startsWith("image/"));
+                    if (!imgs.length) return;
+                    log.textContent = `Uploading ${imgs.length} image(s)...`;
                     try {
-                        const uploaded = [];
-                        for (const f of files) {
+                        for (const f of imgs) {
                             const res = await uploadBlobToGitHub(f, f.name.replace(/\.[^.]+$/, ""));
-                            uploaded.push({ url: res.url, caption: f.name.replace(/\.[^.]+$/, ""), meta: `${res.dims}, ${res.sizeKB} KB` });
+                            mediaKind = "images";
+                            selected.push({ url: res.url, caption: f.name.replace(/\.[^.]+$/, "") });
+                            renderFooter();
                         }
-                        if (uploaded.length === 1) {
-                            statusEl.textContent = `Uploaded (${uploaded[0].meta})!`;
-                            insertMarkdown(`![${uploaded[0].caption}](${uploaded[0].url})`);
-                        } else {
-                            uploaded.forEach(u => galleryBasket.push({ url: u.url, caption: u.caption }));
-                            renderBasket();
-                            statusEl.textContent = `Uploaded ${uploaded.length} WebP images to Gallery Basket! Click "Insert Carousel" below.`;
-                        }
+                        log.innerHTML = `<span style="color:#059669;">✓ Uploaded ${imgs.length} WebP image(s)! Click "Add to Explanation" below.</span>`;
                     } catch (err) {
-                        statusEl.innerHTML = `<span style="color:#dc2626;">${esc(err.message)}</span>`;
+                        log.innerHTML = `<span style="color:#dc2626;">${esc(err.message)}</span>`;
                     }
                 };
-
-                drop.addEventListener("click", () => fileInput.click());
-                fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
-                drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.style.borderColor = "#059669"; });
-                drop.addEventListener("dragleave", () => { drop.style.borderColor = "#38bdf8"; });
-                drop.addEventListener("drop", (e) => { e.preventDefault(); drop.style.borderColor = "#38bdf8"; handleFiles(e.dataTransfer.files); });
-
+                bodyEl.querySelector("#mp-drop").addEventListener("click", () => fi.click());
+                fi.addEventListener("change", (e) => runUpload(e.target.files));
                 const onPaste = (e) => {
-                    if (!document.getElementById("mpp-mh-backdrop")) {
-                        document.removeEventListener("paste", onPaste);
-                        return;
-                    }
-                    const imgs = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith("image/")).map(i => i.getAsFile()).filter(Boolean);
-                    if (imgs.length) handleFiles(imgs);
+                    if (!document.getElementById("mpp-media-picker-bg")) { document.removeEventListener("paste", onPaste); return; }
+                    const arr = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith("image/")).map(i => i.getAsFile()).filter(Boolean);
+                    if (arr.length) runUpload(arr);
                 };
                 document.addEventListener("paste", onPaste);
+                return;
+            }
 
-                bodyEl.querySelector("#mh-load-repo").addEventListener("click", async () => {
-                    const box = bodyEl.querySelector("#mh-repo-grid");
-                    box.innerHTML = `<div style="padding:18px;text-align:center;font-size:12px;">Loading repository assets...</div>`;
-                    try {
-                        const items = await listGitHubAssets();
-                        renderGridResults(box, items, false);
-                    } catch (err) {
-                        box.innerHTML = `<div style="padding:12px;color:#dc2626;font-size:12px;font-weight:700;">${esc(err.message)}</div>`;
-                    }
+            if (currentTab === "av") {
+                bodyEl.innerHTML = `
+                    <form id="mp-av-form" style="display:grid;gap:10px;max-width:560px;">
+                        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;">
+                            <select name="kind" class="mpp-m-input">
+                                <option value="images" ${mediaKind === "images" ? "selected" : ""}>📷 Image URL</option>
+                                <option value="video" ${mediaKind === "video" ? "selected" : ""}>🎥 Video / YouTube</option>
+                                <option value="audio" ${mediaKind === "audio" ? "selected" : ""}>🎵 Audio (MP3/WAV)</option>
+                            </select>
+                            <input name="url" type="url" required class="mpp-m-input" placeholder="https://... (Image, YouTube, Google Drive, MP3, MP4)" />
+                        </div>
+                        <input name="caption" class="mpp-m-input" placeholder="Caption (optional, e.g. Wessely ring slit-lamp view)" />
+                        <button type="submit" class="mpp-ve-btn primary" style="justify-self:start;padding:8px 14px;">+ Add to Selection List</button>
+                    </form>
+                    <div id="mp-sel-list" style="margin-top:14px;display:grid;gap:6px;"></div>
+                `;
+                const drawSel = () => {
+                    const box = bodyEl.querySelector("#mp-sel-list");
+                    box.innerHTML = selected.map((s, i) => `
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:12px;">
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><b>#${i + 1}</b> ${esc(s.caption || s.url)}</span>
+                            <button type="button" data-rm="${i}" class="mpp-ve-btn danger" style="padding:2px 7px;">&times;</button>
+                        </div>
+                    `).join("");
+                    box.querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", () => {
+                        selected.splice(Number(b.dataset.rm), 1);
+                        drawSel();
+                        renderFooter();
+                    }));
+                };
+                drawSel();
+                bodyEl.querySelector("#mp-av-form").addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.target);
+                    mediaKind = fd.get("kind");
+                    selected.push({ url: String(fd.get("url")).trim(), caption: String(fd.get("caption") || "").trim() });
+                    e.target.reset();
+                    drawSel();
+                    renderFooter();
                 });
                 return;
             }
 
-            // Setup Tab
+            // Keys Tab
             const cfg = loadCfg();
             bodyEl.innerHTML = `
-                <form id="mh-cfg-form" style="display:grid;gap:10px;max-width:540px;">
-                    <div style="font-size:12px;opacity:.75;">Saved locally in your admin browser. Wikimedia search works without any keys.</div>
+                <form id="mp-cfg-form" style="display:grid;gap:9px;max-width:520px;">
+                    <div style="font-size:12px;opacity:.75;">Wikimedia works free with no key. Add Serper for Google Images or GitHub for WebP uploads.</div>
                     <div>
-                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Serper.dev API Key (for Google Images tab)</label>
-                        <input name="serperKey" type="password" value="${esc(cfg.serperKey)}" class="mpp-mh-input" style="width:100%;" placeholder="Optional Serper API key" />
+                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Serper.dev API Key (Google Images)</label>
+                        <input name="serperKey" type="password" value="${esc(cfg.serperKey)}" class="mpp-m-input" style="width:100%;" placeholder="Optional Serper API key" />
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                         <div>
-                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Username / Owner</label>
-                            <input name="ghOwner" value="${esc(cfg.ghOwner)}" class="mpp-mh-input" style="width:100%;" placeholder="e.g. yourusername" />
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Owner</label>
+                            <input name="ghOwner" value="${esc(cfg.ghOwner)}" class="mpp-m-input" style="width:100%;" />
                         </div>
                         <div>
-                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Repo Name</label>
-                            <input name="ghRepo" value="${esc(cfg.ghRepo)}" class="mpp-mh-input" style="width:100%;" placeholder="e.g. mbbs-profs-prep" />
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Repo</label>
+                            <input name="ghRepo" value="${esc(cfg.ghRepo)}" class="mpp-m-input" style="width:100%;" />
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <div>
                             <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Branch</label>
-                            <input name="ghBranch" value="${esc(cfg.ghBranch)}" class="mpp-mh-input" style="width:100%;" />
+                            <input name="ghBranch" value="${esc(cfg.ghBranch)}" class="mpp-m-input" style="width:100%;" />
                         </div>
                         <div>
-                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Upload Folder</label>
-                            <input name="ghFolder" value="${esc(cfg.ghFolder)}" class="mpp-mh-input" style="width:100%;" />
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Folder</label>
+                            <input name="ghFolder" value="${esc(cfg.ghFolder)}" class="mpp-m-input" style="width:100%;" />
                         </div>
                         <div>
-                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">Image URL Mode</label>
-                            <select name="urlMode" class="mpp-mh-input" style="width:100%;">
-                                <option value="jsdelivr" ${cfg.urlMode === "jsdelivr" ? "selected" : ""}>jsDelivr CDN (Fast)</option>
+                            <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">CDN Mode</label>
+                            <select name="urlMode" class="mpp-m-input" style="width:100%;">
+                                <option value="jsdelivr" ${cfg.urlMode === "jsdelivr" ? "selected" : ""}>jsDelivr (Fast)</option>
                                 <option value="raw" ${cfg.urlMode === "raw" ? "selected" : ""}>GitHub Raw</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Personal Access Token (PAT with repo contents write)</label>
-                        <input name="ghToken" type="password" value="${esc(cfg.ghToken)}" class="mpp-mh-input" style="width:100%;" placeholder="ghp_... or github_pat_..." />
+                        <label style="display:block;font-size:11px;font-weight:800;margin-bottom:3px;">GitHub Personal Access Token</label>
+                        <input name="ghToken" type="password" value="${esc(cfg.ghToken)}" class="mpp-m-input" style="width:100%;" placeholder="ghp_... or github_pat_..." />
                     </div>
-                    <button type="submit" class="mpp-rt-btn primary" style="padding:10px 16px;font-size:13px;justify-self:start;">💾 Save Settings</button>
+                    <button type="submit" class="mpp-ve-btn primary" style="justify-self:start;padding:9px 16px;">💾 Save Settings</button>
                 </form>
             `;
-            bodyEl.querySelector("#mh-cfg-form").addEventListener("submit", (e) => {
+            bodyEl.querySelector("#mp-cfg-form").addEventListener("submit", (e) => {
                 e.preventDefault();
-                const fd = new FormData(e.target);
-                saveCfg(Object.fromEntries(fd.entries()));
-                toast("Media Hub settings saved!", "#059669");
+                saveCfg(Object.fromEntries(new FormData(e.target).entries()));
+                toast("Media settings saved!", "#059669");
             });
         };
 
-        backdrop.querySelectorAll(".mpp-mh-tab").forEach(btn => {
-            btn.addEventListener("click", () => { currentTab = btn.dataset.tab; renderTab(); });
+        bg.querySelectorAll(".mpp-m-tab").forEach(btn => btn.addEventListener("click", () => { currentTab = btn.dataset.tab; renderTab(); }));
+        renderTab();
+        renderFooter();
+    }
+
+    // ========================================================================
+    // 8. LONG-PRESS / RIGHT-CLICK FLOATING TOOLKIT IN LIVE PREVIEW (Pages 1 & 3)
+    // ========================================================================
+    function closeToolkitPopover() {
+        document.getElementById("mpp-tk-popover")?.remove();
+    }
+
+    function extractAnchorInfoAtPoint(x, y, targetEl) {
+        let textBefore = "";
+        let guessWord = "";
+        try {
+            let range = null;
+            if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(x, y);
+            else if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(x, y);
+                if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+            }
+            if (range && range.startContainer?.nodeType === 3) {
+                const full = range.startContainer.nodeValue || "";
+                const off = range.startOffset;
+                textBefore = full.slice(Math.max(0, off - 60), Math.min(full.length, off + 20)).trim();
+                // Extract the sentence/phrase around tap for suggested search query
+                const words = full.slice(Math.max(0, off - 30), Math.min(full.length, off + 20)).replace(/[^a-zA-Z0-9\s-]/g, " ").trim().split(/\s+/).filter(w => w.length > 2);
+                guessWord = words.slice(-3).join(" ");
+            }
+        } catch (_) {}
+
+        if (!textBefore && targetEl) {
+            const block = targetEl.closest("li, p, td, div") || targetEl;
+            textBefore = (block.textContent || "").trim().slice(-60);
+        }
+        return { anchorText: textBefore, suggestedQuery: guessWord };
+    }
+
+    function openToolkitPopover(x, y, ctx, anchorInfo) {
+        closeToolkitPopover();
+        const pop = document.createElement("div");
+        pop.id = "mpp-tk-popover";
+
+        const left = Math.min(Math.max(10, x - 120), window.innerWidth - 280);
+        const top = Math.min(Math.max(10, y + 10), window.innerHeight - 230);
+        pop.style.left = `${left}px`;
+        pop.style.top = `${top}px`;
+
+        const isEditing = _activeVisualEditor?.preview === ctx.preview;
+        pop.innerHTML = `
+            <div class="mpp-tk-head">
+                <span>🛠️ Toolkit</span>
+                <button type="button" id="tk-x" style="border:none;background:transparent;color:#fff;font-size:17px;cursor:pointer;line-height:1;">&times;</button>
+            </div>
+            <div class="mpp-tk-list">
+                <button type="button" class="mpp-tk-item" data-tk="media">
+                    <span style="font-size:18px;">🖼️</span>
+                    <span>1. Add image / audio / video here
+                        <span class="mpp-tk-sub">Search, upload &amp; insert inline "See images (N)"</span>
+                    </span>
+                </button>
+                <button type="button" class="mpp-tk-item" data-tk="edit">
+                    <span style="font-size:18px;">✏️</span>
+                    <span>${isEditing ? "2. Finish & Sync Text Editing" : "2. Enable text editing here also"}
+                        <span class="mpp-tk-sub">Change text, highlight, bold, italic, size, color</span>
+                    </span>
+                </button>
+                <button type="button" class="mpp-tk-item" data-tk="hl">
+                    <span style="font-size:18px;">🖍️</span>
+                    <span>Quick Highlight This Line
+                        <span class="mpp-tk-sub">Yellow highlight right in the explanation</span>
+                    </span>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(pop);
+
+        pop.querySelector("#tk-x").addEventListener("click", closeToolkitPopover);
+        pop.querySelector('[data-tk="media"]').addEventListener("click", () => {
+            closeToolkitPopover();
+            openMediaPickerModal({
+                ctx,
+                anchorText: anchorInfo.anchorText,
+                suggestedQuery: anchorInfo.suggestedQuery
+            });
+        });
+        pop.querySelector('[data-tk="edit"]').addEventListener("click", () => {
+            closeToolkitPopover();
+            if (isEditing) stopVisualEditing(true);
+            else enableVisualEditingInPreview(ctx);
+        });
+        pop.querySelector('[data-tk="hl"]').addEventListener("click", () => {
+            closeToolkitPopover();
+            const phrase = (anchorInfo.anchorText || "").trim();
+            if (!phrase || !ctx.textarea) return;
+            enableVisualEditingInPreview(ctx);
+            toast("Drag to select the exact phrase & tap the yellow swatch!", "#0284c7");
         });
 
-        renderTab();
-        renderBasket();
+        setTimeout(() => {
+            const dismiss = (ev) => {
+                if (!pop.contains(ev.target)) {
+                    closeToolkitPopover();
+                    document.removeEventListener("pointerdown", dismiss, true);
+                }
+            };
+            document.addEventListener("pointerdown", dismiss, true);
+        }, 60);
     }
 
-    // ------------------------------------------------------------------------
-    // 6. AUTO-SCANNER (Attaches Toolbars + Enhances Highlights/Galleries)
-    // ------------------------------------------------------------------------
-    let scanTimer = null;
-    function scanPage() {
-        document.querySelectorAll("textarea").forEach(attachToolbarToTextarea);
-        enhanceRenderedElement(document.body);
+    // Bind Long-Press (550ms) & Desktop Right-Click inside any LIVE STUDENT PREVIEW
+    function bindPreviewToolkitTriggers() {
+        let lpTimer = null;
+        let sx = 0, sy = 0;
+
+        document.addEventListener("touchstart", (e) => {
+            if (e.touches.length !== 1) return;
+            const target = e.target;
+            if (target.closest("textarea, input, button, .mpp-ve-dock, .mpp-modal-bg, #mpp-tk-popover, .mpp-media-drawer")) return;
+            const ctx = findEditorContext(target);
+            if (!ctx || !ctx.preview || !ctx.preview.contains(target)) return;
+            if (!isAdminSync()) return;
+
+            sx = e.touches[0].clientX;
+            sy = e.touches[0].clientY;
+            const anchorInfo = extractAnchorInfoAtPoint(sx, sy, target);
+
+            lpTimer = setTimeout(() => {
+                lpTimer = null;
+                if (navigator.vibrate) try { navigator.vibrate(25); } catch (_) {}
+                openToolkitPopover(sx, sy, ctx, anchorInfo);
+            }, 560);
+        }, { passive: true });
+
+        ["touchmove", "touchend", "touchcancel"].forEach(ev => {
+            document.addEventListener(ev, (e) => {
+                if (!lpTimer) return;
+                if (ev === "touchmove") {
+                    const t = e.touches[0];
+                    if (t && Math.hypot(t.clientX - sx, t.clientY - sy) < 12) return;
+                }
+                clearTimeout(lpTimer);
+                lpTimer = null;
+            }, { passive: true });
+        });
+
+        // Desktop convenience: Right-click inside Live Student Preview opens Toolkit
+        document.addEventListener("contextmenu", (e) => {
+            const target = e.target;
+            if (target.closest("textarea, input, button, .mpp-ve-dock, .mpp-modal-bg, #mpp-tk-popover")) return;
+            const ctx = findEditorContext(target);
+            if (!ctx || !ctx.preview || !ctx.preview.contains(target)) return;
+            if (!isAdminSync()) return;
+
+            e.preventDefault();
+            const anchorInfo = extractAnchorInfoAtPoint(e.clientX, e.clientY, target);
+            openToolkitPopover(e.clientX, e.clientY, ctx, anchorInfo);
+        });
     }
 
-    function scheduleScan() {
-        clearTimeout(scanTimer);
-        scanTimer = setTimeout(scanPage, 160);
+    // ========================================================================
+    // 9. PORTAL SUBJECT CARD LONG-PRESS -> "SELECT VERSION" MANAGER (Page 5)
+    // ========================================================================
+    const KNOWN_SUBJECTS = [
+        "anatomy", "physiology", "biochemistry",
+        "pathology", "pharmacology", "microbiology", "forensic", "fmt",
+        "community medicine", "cfm", "psm", "ophthalmology", "ophthal", "ent", "otorhinolaryngology",
+        "medicine", "surgery", "obstetrics", "gynaecology", "obg", "paediatrics", "pediatrics",
+        "orthopaedics", "orthopedics", "dermatology", "psychiatry", "radiology", "anaesthesia", "anesthesia"
+    ];
+
+    function slugify(str) {
+        return String(str || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     }
 
-    const observer = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-            if (m.addedNodes && m.addedNodes.length) {
-                scheduleScan();
-                break;
+    function detectPortalCollegeSlug() {
+        const bc = document.body.innerText.match(/AIIMS\s+[A-Za-z]+/i);
+        return slugify(bc ? bc[0] : "aiims_deoghar");
+    }
+
+    async function loadSubjectVersionsFromCloud() {
+        try {
+            const cached = JSON.parse(localStorage.getItem(VER_CACHE_KEY) || "null");
+            if (cached && cached.data) _subjectVersionsMap = cached.data;
+            if (cached && Date.now() - cached.ts < 10 * 60 * 1000) return _subjectVersionsMap;
+        } catch (_) {}
+
+        try {
+            const r = await fetch(`${RTDB_BASE}/portal_config/subject_versions.json`);
+            if (r.ok) {
+                const data = await r.json();
+                _subjectVersionsMap = (data && typeof data === "object") ? data : {};
+                localStorage.setItem(VER_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: _subjectVersionsMap }));
+            }
+        } catch (_) {}
+        return _subjectVersionsMap;
+    }
+
+    async function saveSubjectVersionsToCloud(collegeSlug, subjectSlug, versionsArr) {
+        if (!_subjectVersionsMap[collegeSlug]) _subjectVersionsMap[collegeSlug] = {};
+        _subjectVersionsMap[collegeSlug][subjectSlug] = versionsArr;
+        localStorage.setItem(VER_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: _subjectVersionsMap }));
+
+        const authInfo = await readFirebaseAuthFromIDB();
+        if (!authInfo.token) {
+            toast("Saved locally (sign in again if cloud sync is needed).", "#d97706");
+            return;
+        }
+        const r = await fetch(`${RTDB_BASE}/portal_config/subject_versions/${encodeURIComponent(collegeSlug)}/${encodeURIComponent(subjectSlug)}.json?auth=${encodeURIComponent(authInfo.token)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(versionsArr)
+        });
+        if (!r.ok) throw new Error(`Firebase save failed (${r.status})`);
+    }
+
+    function buildVersionHref(baseHref, verObj) {
+        if (verObj.customUrl && verObj.customUrl.trim()) return verObj.customUrl.trim();
+        if (!verObj.code || verObj.code === "standard") return baseHref;
+        try {
+            const u = new URL(baseHref, window.location.href);
+            u.searchParams.set("version", verObj.code);
+            return u.pathname.split("/").pop() + u.search;
+        } catch (_) {
+            const sep = baseHref.includes("?") ? "&" : "?";
+            return `${baseHref}${sep}version=${encodeURIComponent(verObj.code)}`;
+        }
+    }
+
+    function getSubjectCardInfo(el) {
+        const card = el.closest("a, button, [onclick], .subject-card, [data-subject]");
+        if (!card || card.closest(".mpp-modal-bg, nav, header, footer")) return null;
+        // Must be on Portal/Home page (not Review/Clinical table)
+        if (document.getElementById("qTableBody")) return null;
+
+        const txt = (card.textContent || "").trim();
+        if (!txt || txt.length > 90) return null;
+        const low = txt.toLowerCase();
+        const matchedSub = KNOWN_SUBJECTS.find(s => low.includes(s));
+        if (!matchedSub) return null;
+
+        const titleLine = txt.split("\n").map(l => l.trim()).filter(Boolean).find(l => !/^open/i.test(l) && l.length > 2) || matchedSub;
+        const href = card.getAttribute("href") || card.dataset.href || "";
+        return { card, subjectName: titleLine, subjectSlug: slugify(titleLine), baseHref: href };
+    }
+
+    function openVersionPopup({ subjectName, subjectSlug, baseHref, card, adminMode = false }) {
+        document.getElementById("mpp-ver-modal-bg")?.remove();
+        const collegeSlug = detectPortalCollegeSlug();
+
+        const getList = () => {
+            const saved = _subjectVersionsMap?.[collegeSlug]?.[subjectSlug];
+            if (Array.isArray(saved) && saved.length) return saved;
+            return [{ name: "Standard Chapterwise PYQ", code: "standard", customUrl: "" }];
+        };
+
+        const bg = document.createElement("div");
+        bg.id = "mpp-ver-modal-bg";
+        bg.className = "mpp-modal-bg";
+        bg.innerHTML = `
+            <div class="mpp-modal-box narrow">
+                <div class="mpp-m-head">
+                    <div>
+                        <div style="font-size:16px;font-weight:800;">Select Version</div>
+                        <div style="font-size:11.5px;opacity:.7;">${esc(subjectName)}${adminMode ? " • Admin Version Editor" : ""}</div>
+                    </div>
+                    <button type="button" id="ver-x" style="border:none;background:transparent;color:inherit;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+                </div>
+                <div class="mpp-m-body" id="ver-body"></div>
+            </div>
+        `;
+        document.body.appendChild(bg);
+
+        const bodyEl = bg.querySelector("#ver-body");
+        const close = () => bg.remove();
+        bg.querySelector("#ver-x").addEventListener("click", close);
+        bg.addEventListener("click", (e) => { if (e.target === bg) close(); });
+
+        const launchVersion = (v) => {
+            close();
+            if (v.customUrl) {
+                window.location.href = v.customUrl;
+                return;
+            }
+            if (baseHref) {
+                window.location.href = buildVersionHref(baseHref, v);
+                return;
+            }
+            // If old portal card used JS onclick instead of <a href>, set session version & trigger normal click
+            sessionStorage.setItem("mpp_pending_version", v.code && v.code !== "standard" ? v.code : "");
+            card.dataset.mppBypassVer = "1";
+            card.click();
+        };
+
+        const render = (showForm = false, editIdx = -1) => {
+            const list = getList();
+            const editing = editIdx >= 0 ? list[editIdx] : null;
+
+            bodyEl.innerHTML = `
+                <div>
+                    ${list.map((v, i) => `
+                        <div class="mpp-ver-row">
+                            <button type="button" data-open-vi="${i}" style="flex:1;text-align:left;border:none;background:transparent;color:inherit;cursor:pointer;padding:0;">
+                                <div style="font-size:13.5px;font-weight:800;">${esc(v.name)}</div>
+                                <div style="font-size:11px;opacity:.65;">${v.code && v.code !== "standard" ? `Version: ${esc(v.code.toUpperCase())}` : "Default Question Bank"}</div>
+                            </button>
+                            ${adminMode ? `
+                                <div style="display:flex;gap:4px;">
+                                    <button type="button" data-edit-vi="${i}" class="mpp-ve-btn" title="Rename / Edit">✏️</button>
+                                    ${i > 0 ? `<button type="button" data-del-vi="${i}" class="mpp-ve-btn danger" title="Delete">🗑️</button>` : ""}
+                                </div>
+                            ` : `<span style="font-size:14px;opacity:.5;">&rarr;</span>`}
+                        </div>
+                    `).join("")}
+                </div>
+
+                ${adminMode && !showForm ? `
+                    <button type="button" id="ver-add-trigger" class="mpp-ver-add-btn" style="margin-top:6px;">+ Add another version...</button>
+                ` : ""}
+
+                ${adminMode && showForm ? `
+                    <form id="ver-form" style="margin-top:10px;padding:12px;border-radius:11px;border:1px solid #cbd5e1;display:grid;gap:8px;">
+                        <div style="font-size:12px;font-weight:800;">${editing ? "Edit Version" : "Add New Version"}</div>
+                        <input name="name" required class="mpp-m-input" value="${esc(editing?.name || "")}" placeholder="e.g. Chapterwise PYQ (Marrow Ed 8)" />
+                        <input name="code" required class="mpp-m-input" value="${esc(editing?.code || "")}" placeholder="Short code (e.g. ed8, ed9, clinical)" />
+                        <input name="customUrl" class="mpp-m-input" value="${esc(editing?.customUrl || "")}" placeholder="Optional custom page URL (leave blank for auto ?version=)" />
+                        <div style="display:flex;gap:6px;justify-content:flex-end;">
+                            <button type="button" id="ver-cancel" class="mpp-ve-btn">Cancel</button>
+                            <button type="submit" class="mpp-ve-btn primary">💾 Save Version</button>
+                        </div>
+                    </form>
+                ` : ""}
+            `;
+
+            bodyEl.querySelectorAll("[data-open-vi]").forEach(b => {
+                b.addEventListener("click", () => launchVersion(list[Number(b.dataset.openVi)]));
+            });
+            bodyEl.querySelectorAll("[data-edit-vi]").forEach(b => {
+                b.addEventListener("click", () => render(true, Number(b.dataset.editVi)));
+            });
+            bodyEl.querySelectorAll("[data-del-vi]").forEach(b => {
+                b.addEventListener("click", async () => {
+                    const next = list.filter((_, idx) => idx !== Number(b.dataset.delVi));
+                    try {
+                        await saveSubjectVersionsToCloud(collegeSlug, subjectSlug, next);
+                        toast("Version removed.", "#059669");
+                        render(false, -1);
+                    } catch (err) { toast(err.message, "#dc2626"); }
+                });
+            });
+            bodyEl.querySelector("#ver-add-trigger")?.addEventListener("click", () => render(true, -1));
+            bodyEl.querySelector("#ver-cancel")?.addEventListener("click", () => render(false, -1));
+            bodyEl.querySelector("#ver-form")?.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const obj = {
+                    name: String(fd.get("name")).trim(),
+                    code: slugify(fd.get("code")) || "v2",
+                    customUrl: String(fd.get("customUrl") || "").trim()
+                };
+                const next = [...list];
+                if (editIdx >= 0) next[editIdx] = obj;
+                else next.push(obj);
+                try {
+                    await saveSubjectVersionsToCloud(collegeSlug, subjectSlug, next);
+                    toast(`Saved "${obj.name}"!`, "#059669");
+                    render(false, -1);
+                } catch (err) { toast(err.message, "#dc2626"); }
+            });
+        };
+
+        render(false, -1);
+    }
+
+    function bindPortalVersionManager() {
+        if (document.getElementById("qTableBody")) return; // Only on portal/index pages
+        loadSubjectVersionsFromCloud();
+
+        let lpTimer = null;
+        let lpFired = false;
+        let sx = 0, sy = 0;
+
+        document.addEventListener("touchstart", (e) => {
+            if (e.touches.length !== 1) return;
+            const info = getSubjectCardInfo(e.target);
+            if (!info || !isAdminSync()) return;
+            lpFired = false;
+            sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+            lpTimer = setTimeout(() => {
+                lpTimer = null;
+                lpFired = true;
+                if (navigator.vibrate) try { navigator.vibrate(25); } catch (_) {}
+                openVersionPopup({ ...info, adminMode: true });
+            }, 580);
+        }, { passive: true });
+
+        ["touchmove", "touchend", "touchcancel"].forEach(ev => {
+            document.addEventListener(ev, (e) => {
+                if (!lpTimer) return;
+                if (ev === "touchmove") {
+                    const t = e.touches[0];
+                    if (t && Math.hypot(t.clientX - sx, t.clientY - sy) < 12) return;
+                }
+                clearTimeout(lpTimer); lpTimer = null;
+            }, { passive: true });
+        });
+
+        // Desktop right-click on Subject Card -> Admin Version Popup
+        document.addEventListener("contextmenu", (e) => {
+            const info = getSubjectCardInfo(e.target);
+            if (!info || !isAdminSync()) return;
+            e.preventDefault();
+            openVersionPopup({ ...info, adminMode: true });
+        });
+
+        // Normal student click -> Show Version Picker automatically if 2+ versions exist
+        document.addEventListener("click", (e) => {
+            const info = getSubjectCardInfo(e.target);
+            if (!info) return;
+            if (lpFired) { e.preventDefault(); e.stopPropagation(); lpFired = false; return; }
+            if (info.card.dataset.mppBypassVer === "1") {
+                delete info.card.dataset.mppBypassVer;
+                return;
+            }
+            const collegeSlug = detectPortalCollegeSlug();
+            const list = _subjectVersionsMap?.[collegeSlug]?.[info.subjectSlug];
+            if (Array.isArray(list) && list.length > 1) {
+                e.preventDefault();
+                e.stopPropagation();
+                openVersionPopup({ ...info, adminMode: false });
+            }
+        }, true);
+    }
+
+    // Automatic ?version=ed8 JSON Interceptor for Old Subject Review Pages
+    function patchVersionedFetch() {
+        const params = new URLSearchParams(window.location.search);
+        let ver = (params.get("version") || "").trim().toLowerCase();
+        if (!ver) {
+            const pending = sessionStorage.getItem("mpp_pending_version");
+            if (pending) {
+                ver = pending.toLowerCase();
+                sessionStorage.removeItem("mpp_pending_version");
             }
         }
-    });
+        if (!ver || ver === "standard") return;
+
+        // Intercept static *_data.json fetches to try *_{ver}_data.json first
+        const origFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            const url = typeof input === "string" ? input : input?.url;
+            if (typeof url === "string" && /_data\.json(\?|$)/i.test(url) && !url.includes(`_${ver}_data.json`)) {
+                const verUrl = url.replace(/_data\.json/i, `_${ver}_data.json`);
+                try {
+                    const res = await origFetch(verUrl, init);
+                    if (res.ok) return res;
+                } catch (_) {}
+            }
+            return origFetch(input, init);
+        };
+
+        // Show subtle version badge in page header
+        window.addEventListener("DOMContentLoaded", () => {
+            const h1 = document.querySelector("h1");
+            if (h1 && !h1.querySelector(".mpp-ver-pill-tag")) {
+                const tag = document.createElement("span");
+                tag.className = "mpp-ver-pill-tag";
+                tag.textContent = ver.toUpperCase();
+                tag.style.cssText = "margin-left:8px;padding:2px 8px;border-radius:999px;background:#ede9fe;color:#6d28d9;font-size:11px;font-weight:800;vertical-align:middle;";
+                h1.appendChild(tag);
+            }
+        });
+    }
+
+    // ========================================================================
+    // 10. BOOT & DOM OBSERVER
+    // ========================================================================
+    patchVersionedFetch();
+
+    let scanTimer = null;
+    function runScan() {
+        enhanceDOM(document.body);
+    }
 
     function boot() {
-        scanPage();
-        observer.observe(document.body, { childList: true, subtree: true });
-        // Also attach on first focus of any dynamically revealed admin textarea
-        document.addEventListener("focusin", (e) => {
-            if (e.target && e.target.tagName === "TEXTAREA") attachToolbarToTextarea(e.target);
+        runScan();
+        bindPreviewToolkitTriggers();
+        bindPortalVersionManager();
+
+        const obs = new MutationObserver((muts) => {
+            for (const m of muts) {
+                if (m.addedNodes && m.addedNodes.length) {
+                    clearTimeout(scanTimer);
+                    scanTimer = setTimeout(runScan, 140);
+                    break;
+                }
+            }
         });
+        obs.observe(document.body, { childList: true, subtree: true });
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
     else boot();
 
-    // Expose manual trigger if needed
-    window.MPPMediaHub = { open: openMediaHub, enhance: enhanceRenderedElement };
+    window.MPPToolkit = {
+        openMediaPicker: openMediaPickerModal,
+        enableVisualEdit: enableVisualEditingInPreview,
+        stopVisualEdit: stopVisualEditing,
+        enhance: enhanceDOM
+    };
 })();
